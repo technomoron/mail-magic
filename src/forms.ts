@@ -92,7 +92,7 @@ export const forms: Record<string, formType> = {
 	},
 	bjornform: {
 		rcpt: 'bjornjac@pm.me',
-		sender: 'Mother of All Forms <noreply@m.document.no>',
+		sender: 'Mother of All Forms <noreply@ml.yesmedia.no>',
 		subject: 'A New Form Has Been Gifted You',
 		template: stdTemplate,
 	},
