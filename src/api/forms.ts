@@ -1,6 +1,6 @@
+import { apiModule, apiRoute, apiRequest, apiServer, apiError, apiAuthClass } from '@technomoron/api-server-base';
 import nodemailer from 'nodemailer';
 import nunjucks from 'nunjucks';
-import { apiModule, apiRoute, apiRequest, apiServer, apiError, apiAuthClass } from 'tm-api-server';
 
 import { forms } from '../forms.js';
 import { mailApiServer } from '../server.js';

@@ -1,4 +1,4 @@
-import { apiServerConf, apiServer, apiError, apiAuthClass } from 'tm-api-server';
+import { apiServerConf, apiServer, apiError, apiAuthClass } from '@technomoron/api-server-base';
 
 import { api_domain } from './models/domain.js';
 import { api_user } from './models/user.js';

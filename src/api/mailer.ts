@@ -1,7 +1,7 @@
+import { apiModule, apiRoute, apiError } from '@technomoron/api-server-base';
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import { convert } from 'html-to-text';
 import nunjucks from 'nunjucks';
-import { apiModule, apiRoute, apiError } from 'tm-api-server';
 
 import { api_domain } from '../models/domain.js';
 import { api_template } from '../models/template.js';

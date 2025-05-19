@@ -1,5 +1,5 @@
+import { apiRequest } from '@technomoron/api-server-base';
 import { Sequelize, Dialect } from 'sequelize';
-import { apiRequest } from 'tm-api-server';
 
 import { api_domain } from './models/domain.js';
 import { api_user } from './models/user.js';
