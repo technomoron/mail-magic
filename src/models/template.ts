@@ -31,7 +31,7 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 				type: DataTypes.INTEGER,
 				autoIncrement: true,
 				allowNull: false,
-				primaryKey: true,
+				primaryKey: true
 			},
 			user_id: {
 				type: DataTypes.INTEGER,
@@ -39,10 +39,10 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 				unique: false,
 				references: {
 					model: 'user',
-					key: 'user_id',
+					key: 'user_id'
 				},
 				onDelete: 'CASCADE',
-				onUpdate: 'CASCADE',
+				onUpdate: 'CASCADE'
 			},
 			domain_id: {
 				type: DataTypes.INTEGER,
@@ -50,46 +50,46 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 				unique: false,
 				references: {
 					model: 'domain',
-					key: 'domain_id',
+					key: 'domain_id'
 				},
 				onDelete: 'CASCADE',
-				onUpdate: 'CASCADE',
+				onUpdate: 'CASCADE'
 			},
 			name: {
 				type: DataTypes.CHAR(64),
 				allowNull: false,
-				unique: false,
+				unique: false
 			},
 			locale: {
 				type: DataTypes.CHAR(32),
 				allowNull: false,
 				defaultValue: '',
-				unique: false,
+				unique: false
 			},
 			template: {
 				type: DataTypes.TEXT,
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			sender: {
 				type: DataTypes.CHAR(128),
-				allowNull: false,
+				allowNull: false
 			},
 			subject: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			slug: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			part: {
 				type: DataTypes.BOOLEAN,
 				allowNull: false,
-				defaultValue: false,
-			},
+				defaultValue: false
+			}
 		},
 		{
 			sequelize: api_db,
@@ -99,9 +99,9 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 			indexes: [
 				{
 					unique: true,
-					fields: ['user_id', 'domain_id', 'locale', 'name'],
-				},
-			],
+					fields: ['user_id', 'domain_id', 'locale', 'name']
+				}
+			]
 		}
 	);
 

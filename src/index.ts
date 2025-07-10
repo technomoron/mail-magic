@@ -1,18 +1,27 @@
-import { formAPI } from './api/forms.js';
-import { mailerAPI } from './api/mailer.js';
+import { FormAPI } from './api/forms.js';
+import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
-import { store } from './store/store.js';
+import { mailStore } from './store/store.js';
 
-const server = new mailApiServer(
-	{
-		api_host: store.api_host,
-		api_port: store.api_port,
-		jwt_secret: store.jwt_secret,
-		upload_path: 'uploads/',
-	},
-	store
-)
-	.api(mailerAPI)
-	.api(formAPI);
+(async () => {
+	try {
+		const store: mailStore = await new mailStore().init();
+		const env = store.env;
+		const server = new mailApiServer(
+			{
+				apiHost: env.API_HOST,
+				apiPort: env.API_PORT,
+				uploadPath: env.UPLOAD_PATH,
+				debug: true
+			},
+			store
+		)
+			.api(new MailerAPI())
+			.api(new FormAPI());
 
-server.start();
+		server.start();
+	} catch (err) {
+		console.error('Failed to start FormMailer:', err);
+		process.exit(1);
+	}
+})();

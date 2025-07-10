@@ -1,27 +1,29 @@
-import { apiServerConf, apiServer, apiError, apiAuthClass } from '@technomoron/api-server-base';
+import { ApiServerConf, ApiServer } from '@technomoron/api-server-base';
 
-import { api_domain } from './models/domain.js';
+import { formConfig } from './config.js';
 import { api_user } from './models/user.js';
 import { mailStore } from './store/store.js';
-import { mailApiRequest } from './types.js';
+///import { ApiKey } from '@technomoron/api-server-base';
 
-export class mailApiServer extends apiServer {
+export class mailApiServer extends ApiServer {
 	storage: mailStore;
 
 	constructor(
-		config: apiServerConf,
+		config: Partial<ApiServerConf>,
 		private store: mailStore
 	) {
 		super(config);
 		this.storage = store;
 	}
 
-	override async get_api_key(key: string): Promise<any | null> {
-		console.log(`Looking up api key  ${key}`);
-		const user = await api_user.findOne({ where: { token: key } });
+	override async getApiKey<ApiKey>(token: string): Promise<ApiKey | null> {
+		this.storage.print_debug(`Looking up api key ${token}`);
+		const user = await api_user.findOne({ where: { token: token } });
 		if (!user) {
-			// throw apiError({code: 500, message: `Unable to find user for token ${key}`});
+			this.storage.print_debug(`Unable to find user for token ${token}`);
+			return null;
+		} else {
+			return { uid: user.user_id } as ApiKey;
 		}
-		return user ? { uid: user.user_id } : null;
 	}
 }

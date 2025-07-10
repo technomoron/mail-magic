@@ -17,44 +17,44 @@ export async function init_api_user(api_db: Sequelize): Promise<typeof api_user>
 				type: DataTypes.INTEGER,
 				autoIncrement: true,
 				allowNull: false,
-				primaryKey: true,
+				primaryKey: true
 			},
 			idname: {
 				type: DataTypes.CHAR(64),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			token: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			name: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			email: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			defdomain: {
 				type: DataTypes.INTEGER,
 				// allowNull: false,
-				defaultValue: 0,
+				defaultValue: 0
 			},
 			deflocale: {
 				type: DataTypes.CHAR(32),
 				allowNull: false,
-				defaultValue: '',
-			},
+				defaultValue: ''
+			}
 		},
 		{
 			sequelize: api_db,
 			tableName: 'user',
 			charset: 'utf8mb4',
-			collate: 'utf8mb4_unicode_ci',
+			collate: 'utf8mb4_unicode_ci'
 		}
 	);
 	return api_user;

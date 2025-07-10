@@ -1,4 +1,4 @@
-import { apiModule, apiRoute, apiError } from '@technomoron/api-server-base';
+import { ApiModule, ApiRoute, ApiError } from '@technomoron/api-server-base';
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import { convert } from 'html-to-text';
 import nunjucks from 'nunjucks';
@@ -9,11 +9,10 @@ import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
 import { mailApiRequest } from '../types.js';
 
-export class mailerAPI extends apiModule<mailApiServer> {
+export class MailerAPI extends ApiModule<mailApiServer> {
 	//
 	// Validate and return the parsed email address
 	//
-
 	validateEmail(email: string): string | null {
 		const parsed = emailAddresses.parseOneAddress(email);
 		if (parsed) {
@@ -50,15 +49,15 @@ export class mailerAPI extends apiModule<mailApiServer> {
 		const { domain, locale } = apireq.req.body;
 
 		if (!domain) {
-			throw new apiError({ code: 401, message: 'Missing domain' });
+			throw new ApiError({ code: 401, message: 'Missing domain' });
 		}
 		const user = await api_user.findOne({ where: { token: apireq.token } });
 		if (!user) {
-			throw new apiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
+			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
 		}
 		const dbdomain = await api_domain.findOne({ where: { domain } });
 		if (!dbdomain) {
-			throw new apiError({ code: 401, message: `Unable to look up the domain ${domain}` });
+			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
 		}
 		apireq.domain = dbdomain;
 		apireq.locale = locale || 'en';
@@ -73,10 +72,10 @@ export class mailerAPI extends apiModule<mailApiServer> {
 		const { template, sender = '', name, subject = '', locale = '' } = apireq.req.body;
 
 		if (!template) {
-			throw new apiError({ code: 400, message: 'Missing template data' });
+			throw new ApiError({ code: 400, message: 'Missing template data' });
 		}
 		if (!name) {
-			throw new apiError({ code: 400, message: 'Missing template name' });
+			throw new ApiError({ code: 400, message: 'Missing template name' });
 		}
 
 		const data = {
@@ -86,7 +85,7 @@ export class mailerAPI extends apiModule<mailApiServer> {
 			subject,
 			locale,
 			sender,
-			template,
+			template
 		};
 
 		/*
@@ -99,13 +98,13 @@ export class mailerAPI extends apiModule<mailApiServer> {
 
 		try {
 			const [tpl, created] = await api_template.upsert(data, {
-				returning: true,
+				returning: true
 			});
 			console.log('Template upserted:', name, 'Created:', created);
 		} catch (error: any) {
-			throw new apiError({
+			throw new ApiError({
 				code: 500,
-				message: this.server!.guess_exception_text(error, 'Unknown Sequelize Error on upsert template'),
+				message: this.server!.guessExceptionText(error, 'Unknown Sequelize Error on upsert template')
 			});
 		}
 		return [200, { Status: 'OK' }];
@@ -119,14 +118,14 @@ export class mailerAPI extends apiModule<mailApiServer> {
 		const { name, rcpt, user, domain = '', locale = '', vars = {} } = apireq.req.body;
 
 		if (!name || !rcpt || !domain) {
-			throw new apiError({ code: 400, message: 'name/rcpt/domain required' });
+			throw new ApiError({ code: 400, message: 'name/rcpt/domain required' });
 		}
 
 		// const dbdomain = await api_domain.findOne({ where: { domain } });
 
 		const { valid, invalid } = this.validateEmails(rcpt);
 		if (invalid.length > 0) {
-			throw new apiError({ code: 400, message: 'Invalid email address(es): ' + invalid.join(',') });
+			throw new ApiError({ code: 400, message: 'Invalid email address(es): ' + invalid.join(',') });
 		}
 		let template: api_template | null;
 		const deflocale = apireq.server.store.deflocale || '';
@@ -138,22 +137,23 @@ export class mailerAPI extends apiModule<mailApiServer> {
 				(await api_template.findOne({ where: { name, domain_id, locale: deflocale } })) ||
 				(await api_template.findOne({ where: { name, domain_id } }));
 			if (!template) {
-				throw new apiError({
+				throw new ApiError({
 					code: 404,
-					message: `Template "${name}" not found for any locale in domain "${domain}"`,
+					message: `Template "${name}" not found for any locale in domain "${domain}"`
 				});
 			}
 		} catch (e: any) {
-			throw new apiError({
+			throw new ApiError({
 				code: 500,
-				message: this.server!.guess_exception_text(e, 'Unknown Sequelize Error'),
+				message: this.server!.guessExceptionText(e, 'Unknown Sequelize Error')
 			});
 		}
 
 		const sender = template.sender || apireq.domain!.sender || apireq.user!.email;
 		if (!sender) {
-			throw new apiError({ code: 500, message: `Unable to locate sender for ${template.name}` });
+			throw new ApiError({ code: 500, message: `Unable to locate sender for ${template.name}` });
 		}
+
 		try {
 			const env = new nunjucks.Environment(null, { autoescape: false });
 
@@ -168,28 +168,26 @@ export class mailerAPI extends apiModule<mailApiServer> {
 					to: recipient,
 					subject: 'My Subject',
 					html,
-					text,
+					text
 				};
 				await apireq.server.storage.mailer.sendMail(sendargs);
 			}
 			return [200, { Status: 'OK', Message: 'Emails sent successfully' }];
 		} catch (e: any) {
 			// console.log(JSON.stringify(e, null, 2));
-			throw new apiError({ code: 500, message: e });
+			throw new ApiError({ code: 500, message: e });
 		}
 	}
 
-	override define_routes(): apiRoute[] {
+	override defineRoutes(): ApiRoute[] {
 		return [
 			{ method: 'post', path: '/send', handler: this.post_send.bind(this), auth: { type: 'yes', req: 'any' } },
 			{
 				method: 'post',
 				path: '/template',
 				handler: this.post_template.bind(this),
-				auth: { type: 'yes', req: 'any' },
-			},
+				auth: { type: 'yes', req: 'any' }
+			}
 		];
 	}
 }
-
-export default mailerAPI;

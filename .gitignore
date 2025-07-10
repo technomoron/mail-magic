@@ -8,3 +8,5 @@ mjml-server
 mjml-server.db
 pnpm-lock.yaml
 maildata.db
+config/
+uploads/

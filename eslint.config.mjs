@@ -1,28 +1,87 @@
-import skipFormatting from '@vue/eslint-config-prettier/skip-formatting';
-import vueTsEslintConfig from '@vue/eslint-config-typescript';
-// import tsParser from '@typescript-eslint/parser';
-import importPlugin from 'eslint-plugin-import';
 import pluginVue from 'eslint-plugin-vue';
+import pluginPrettier from 'eslint-plugin-prettier';
+import pluginImport from 'eslint-plugin-import';
+import tsParser from '@typescript-eslint/parser';
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
 
 export default [
 	{
-		name: 'app/files-to-lint',
-		files: ['**/*.{ts,mts,tsx,vue}']
+		ignores: [
+			'node_modules',
+			'dist',
+			'.output',
+			'.nuxt',
+			'coverage',
+			'**/*.d.ts',
+			'configure-eslint.js',
+			'*.config.js',
+			'*.config.ts',
+			'public'
+		]
 	},
+	...defineConfigWithVueTs(vueTsConfigs.recommended),
 	{
-		name: 'app/files-to-ignore',
-		ignores: ['**/dist/**', '**/dist-ssr/**', '**/coverage/**']
-	},
-	{
+		files: ['**/*.vue'],
 		plugins: {
 			vue: pluginVue,
-			import: importPlugin
+			prettier: pluginPrettier
+		},
+		rules: {
+			'prettier/prettier': 'error', // Enforce Prettier rules
+			'vue/html-indent': 'off', // Let Prettier handle indentation
+			'vue/max-attributes-per-line': 'off', // Let Prettier handle line breaks
+			'vue/first-attribute-linebreak': 'off', // Let Prettier handle attribute positioning
+			'vue/singleline-html-element-content-newline': 'off',
+			'vue/html-self-closing': [
+				'error',
+				{
+					html: {
+						void: 'always',
+						normal: 'always',
+						component: 'always'
+					}
+				}
+			],
+			'vue/multi-word-component-names': 'off', // Disable multi-word name restriction
+			'vue/attribute-hyphenation': ['error', 'always']
 		}
 	},
-	...pluginVue.configs['flat/essential'],
-	...vueTsEslintConfig(),
 	{
+		files: ['*.json'],
+		plugins: {
+			prettier: pluginPrettier
+		},
 		rules: {
+			quotes: ['error', 'double'], // Enforce double quotes in JSON
+			'prettier/prettier': 'error'
+		}
+	},
+	{
+		files: ['**/*.{ts,mts,tsx,js}'],
+		languageOptions: {
+			parser: tsParser,
+			parserOptions: {
+				ecmaVersion: 2023,
+				sourceType: 'module',
+				extraFileExtensions: ['.vue']
+			},
+			globals: {
+				RequestInit: 'readonly',
+				process: 'readonly',
+				Capacitor: 'readonly',
+				chrome: 'readonly'
+			}
+		},
+		plugins: {
+			prettier: pluginPrettier,
+			import: pluginImport
+		},
+		rules: {
+			indent: ['error', 'tab', { SwitchCase: 1 }], // Use tabs for JS/TS
+			quotes: ['warn', 'single', { avoidEscape: true }], // Prefer single quotes
+			semi: ['error', 'always'], // Enforce semicolons
+			'comma-dangle': 'off', // Disable trailing commas
+			'prettier/prettier': 'error', // Enforce Prettier rules
 			'import/order': [
 				'error',
 				{
@@ -31,73 +90,8 @@ export default [
 					alphabetize: { order: 'asc', caseInsensitive: true }
 				}
 			],
-			'import/default': 'error',
-			'import/export': 'error',
-			'import/extensions': 'off',
-			'import/first': 'error',
-			'import/named': 'off',
-			'import/namespace': 'error',
-			'import/exports-last': 'off',
-			'import/no-cycle': 'warn',
-			'import/no-useless-path-segments': 'error',
-			'import/no-extraneous-dependencies': 'off',
-			'import/no-self-import': 'error',
-			'import/no-absolute-path': 'error',
-			'import/no-named-as-default': 'error',
-			'import/no-duplicates': 'error',
-			'import/no-namespace': 'error',
-			'import/no-deprecated': 'error',
-			'import/no-internal-modules': 'off',
-			'import/no-unresolved': 'off',
-			'no-unused-vars': 'warn',
-			'prefer-promise-reject-errors': 'off',
-			camelcase: 'off',
-			'new-cap': 'off',
-			'generator-star-spacing': 'off',
-			'no-tabs': 'off',
-			'arrow-parens': 'off',
-			'one-var': 'off',
-			'no-void': 'off',
-			semi: ['error', 'always'],
-			'comma-dangle': ['error', 'never'],
-			'multiline-ternary': 'off',
-			'@typescript-eslint/no-unused-vars': 'warn',
-			'@typescript-eslint/no-use-before-define': [
-				'error',
-				{
-					classes: false,
-					functions: true,
-					variables: true
-				}
-			],
-			'@typescript-eslint/explicit-function-return-type': 'off',
 			'@typescript-eslint/no-explicit-any': 'off',
-			'@typescript-eslint/no-require-imports': 'off',
-			'@typescript-eslint/no-empty-object-type': 'off',
-			'@typescript-eslint/no-var-requires': 'off',
-			'vue/multi-word-component-names': 'off'
+			'@typescript-eslint/no-unused-vars': 'off'
 		}
-	},
-	// skipFormatting,
-	// importPlugin,
-	{
-		ignores: [
-			'configure-eslint.js',
-			'dist',
-			'node_modules',
-			'*.config.js',
-			'*.config.ts',
-			'package-lock.json',
-			'pnpm-lock.yaml',
-			'yarn.lock',
-			'.vscode',
-			'.data',
-			'.nuxt',
-			'.netlify',
-			'.output',
-			'.nitro',
-			'public',
-			'**/*.d.ts'
-		]
 	}
 ];

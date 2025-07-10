@@ -25,44 +25,44 @@ export async function init_api_domain(api_db: Sequelize): Promise<typeof api_dom
 				type: DataTypes.INTEGER,
 				autoIncrement: true,
 				allowNull: false,
-				primaryKey: true,
+				primaryKey: true
 			},
 			user_id: {
 				type: DataTypes.INTEGER,
 				allowNull: false,
 				references: {
 					model: 'user',
-					key: 'user_id',
+					key: 'user_id'
 				},
 				onDelete: 'CASCADE',
-				onUpdate: 'CASCADE',
+				onUpdate: 'CASCADE'
 			},
 			domain: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			sender: {
 				type: DataTypes.CHAR(128),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			deflocale: {
 				type: DataTypes.CHAR(32),
 				allowNull: false,
-				defaultValue: '',
+				defaultValue: ''
 			},
 			is_default: {
 				type: DataTypes.BOOLEAN,
 				allowNull: false,
-				defaultValue: false,
-			},
+				defaultValue: false
+			}
 		},
 		{
 			sequelize: api_db,
 			tableName: 'domain',
 			charset: 'utf8mb4',
-			collate: 'utf8mb4_unicode_ci',
+			collate: 'utf8mb4_unicode_ci'
 		}
 	);
 	return api_domain;
