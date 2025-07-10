@@ -1,0 +1,33 @@
+{
+	"user": [
+		{
+			"user_id": 1,
+			"idname": "testuser",
+			"token": "SomethingWeirdWhoKnows",
+			"name": "Test Inc.",
+			"email": "noreply@example.com"
+		}
+	],
+	"domain": [
+		{
+			"domain_id": 1,
+			"user_id": 1,
+			"domain": "mail.example.com",
+			"sender": "Some User <noreply@example.com>"
+		}
+	],
+	"template": [
+		{
+			"template_id": 1,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "test",
+			"locale": "",
+			"template": "",
+			"template_file": "",
+			"sender": "someone@mail.example.com",
+			"subject": "Example Mail",
+			"slug": "test"
+		}
+	]
+}
