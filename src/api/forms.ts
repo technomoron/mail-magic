@@ -7,9 +7,11 @@ export class FormAPI extends ApiModule<mailApiServer> {
 	private async postSendForm(apireq: ApiRequest): Promise<[number, any]> {
 		const { formid } = apireq.req.body;
 
+		/*
 		console.log('Headers:', apireq.req.headers);
 		console.log('Body:', JSON.stringify(apireq.req.body, null, 2));
 		console.log('Files:', JSON.stringify(apireq.req.files, null, 2));
+		*/
 
 		if (!formid) {
 			throw new ApiError({ code: 404, message: 'Missing formid field in form' });

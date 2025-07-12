@@ -121,6 +121,8 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			throw new ApiError({ code: 400, message: 'name/rcpt/domain required' });
 		}
 
+		const thevars = typeof vars === 'string' ? JSON.parse(vars) : vars;
+
 		// const dbdomain = await api_domain.findOne({ where: { domain } });
 
 		const { valid, invalid } = this.validateEmails(rcpt);
@@ -154,13 +156,32 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			throw new ApiError({ code: 500, message: `Unable to locate sender for ${template.name}` });
 		}
 
+		const rawFiles = Array.isArray(apireq.req.files) ? apireq.req.files : [];
+		const attachments = rawFiles.map((file) => ({
+			filename: file.originalname,
+			path: file.path
+		}));
+
+		const attachmentMap: Record<string, string> = {};
+		for (const file of rawFiles) {
+			attachmentMap[file.fieldname] = file.originalname;
+		}
+		const varNames = Object.keys(thevars || {});
+
+		console.log(JSON.stringify({ vars, thevars, varNames }, undefined, 2));
+
 		try {
 			const env = new nunjucks.Environment(null, { autoescape: false });
 
 			const compiled = nunjucks.compile(template.template, env);
 
 			for (const recipient of valid) {
-				const fullargs = { ...vars, _rcpt_email_: recipient };
+				const fullargs = {
+					...thevars,
+					_rcpt_email_: recipient,
+					_attachments_: attachmentMap,
+					_vars_: thevars
+				};
 				const html = await compiled.render(fullargs);
 				const text = convert(html);
 				const sendargs = {
@@ -168,9 +189,10 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 					to: recipient,
 					subject: 'My Subject',
 					html,
-					text
+					text,
+					attachments
 				};
-				await apireq.server.storage.mailer.sendMail(sendargs);
+				await apireq.server.storage.transport.sendMail(sendargs);
 			}
 			return [200, { Status: 'OK', Message: 'Emails sent successfully' }];
 		} catch (e: any) {
@@ -181,7 +203,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 
 	override defineRoutes(): ApiRoute[] {
 		return [
-			{ method: 'post', path: '/send', handler: this.post_send.bind(this), auth: { type: 'yes', req: 'any' } },
+			{ method: 'post', path: '/v1/send', handler: this.post_send.bind(this), auth: { type: 'yes', req: 'any' } },
 			{
 				method: 'post',
 				path: '/template',
