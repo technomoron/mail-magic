@@ -13,7 +13,7 @@ const formDefinitionSchema = z.object({
 	template: z.string().endsWith('.njk')
 });
 
-const formsJsonSchema = z.record(formDefinitionSchema);
+const formsJsonSchema = z.record(z.string(), formDefinitionSchema);
 
 type FormDef = z.infer<typeof formDefinitionSchema>;
 
