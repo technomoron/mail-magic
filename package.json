@@ -6,12 +6,11 @@
 	"scripts": {
 		"start": "node dist/index.js",
 		"dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --watch 'config/**/*.*' --watch '.env' --exec 'tsx' src/index.ts",
-		"run": "NODE_ENV=production npm run build && npm run start",
-		"xrun": "ts-node --project tsconfig.json src/server.ts",
+		"run": "NODE_ENV=production npm run start",
 		"build": "tsc",
-		"scrub": "rm -rf node_modules/ dist/",
+		"scrub": "rm -rf ./node_modules/ ./dist/ pnpm-lock.yaml",
 		"lint": "eslint --ext .js,.ts,.vue ./",
-		"lintfix": "eslint --fix --ext .js,.ts,.vue ./",
+		"lintfix": "eslint --fix --ext .js,.ts,.vue ./src/",
 		"pretty": "prettier --write \"**/*.{js,jsx,ts,tsx,vue,json,css,scss,md}\"",
 		"format": "npm run lintfix && npm run pretty",
 		"cleanbuild": "rm -rf ./dist/ && npm run lintfix && npm run format && npm run build"
