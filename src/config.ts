@@ -4,7 +4,7 @@ import path from 'path';
 import { z } from 'zod';
 
 import { mailStore } from './store/store';
-import { loadFormTemplate } from './util';
+import { loadFormTemplate } from './util.js';
 
 const formDefinitionSchema = z.object({
 	rcpt: z.string().email(),
