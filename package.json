@@ -1,6 +1,6 @@
 {
-	"name": "tm-template-mailer",
-	"version": "1.0.1",
+	"name": "mail-magic",
+	"version": "1.0.2",
 	"main": "server.js",
 	"type": "module",
 	"scripts": {
@@ -26,7 +26,6 @@
 		"bcryptjs": "^3.0.2",
 		"email-addresses": "^5.0.0",
 		"html-to-text": "^9.0.5",
-		"jsonwebtoken": "^9.0.2",
 		"nodemailer": "^6.10.1",
 		"nunjucks": "^3.2.4",
 		"sequelize": "^6.37.7",
@@ -37,7 +36,6 @@
 	},
 	"devDependencies": {
 		"@types/html-to-text": "^9.0.4",
-		"@types/jsonwebtoken": "^9.0.10",
 		"@types/nodemailer": "^6.4.19",
 		"@types/nunjucks": "^3.2.6",
 		"@typescript-eslint/eslint-plugin": "8.32.1",
