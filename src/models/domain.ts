@@ -1,20 +1,25 @@
 import { Sequelize, Model, DataTypes } from 'sequelize';
+import { z } from 'zod';
 
-export interface api_domain_type {
-	domain_id: number;
-	user_id: number;
-	domain: string;
-	sender: string;
-	deflocale: string;
-	is_default: boolean;
-}
+import { normalizeSlug } from '../util';
+
+export const api_domain_schema = z.object({
+	domain_id: z.number().int().nonnegative(),
+	user_id: z.number().int().nonnegative(),
+	name: z.string().min(1),
+	sender: z.string().min(1),
+	locale: z.string().min(1),
+	is_default: z.boolean()
+});
+
+export type api_domain_type = z.infer<typeof api_domain_schema>;
 
 export class api_domain extends Model {
 	declare domain_id: number;
 	declare user_id: number;
-	declare domain: string;
+	declare name: string;
 	declare sender: string;
-	declare deflocale: string;
+	declare locale: string;
 	declare is_default: boolean;
 }
 
@@ -37,18 +42,18 @@ export async function init_api_domain(api_db: Sequelize): Promise<typeof api_dom
 				onDelete: 'CASCADE',
 				onUpdate: 'CASCADE'
 			},
-			domain: {
-				type: DataTypes.CHAR(128),
+			name: {
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
 			sender: {
-				type: DataTypes.CHAR(128),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
-			deflocale: {
-				type: DataTypes.CHAR(32),
+			locale: {
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
@@ -65,5 +70,11 @@ export async function init_api_domain(api_db: Sequelize): Promise<typeof api_dom
 			collate: 'utf8mb4_unicode_ci'
 		}
 	);
+
+	api_domain.addHook('beforeValidate', (domain: api_domain) => {
+		domain.name = normalizeSlug(domain.name);
+		domain.locale = normalizeSlug(domain.locale);
+	});
+
 	return api_domain;
 }

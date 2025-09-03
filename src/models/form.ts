@@ -5,36 +5,38 @@ import { normalizeSlug } from '../util';
 
 import { api_domain } from './domain';
 
-export const api_template_schema = z.object({
-	template_id: z.number().int().nonnegative(),
+export const api_form_schema = z.object({
+	form_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),
 	domain_id: z.number().int().nonnegative(),
-	name: z.string().min(1),
 	locale: z.string(),
-	template: z.string(),
+	name: z.string().min(1),
 	sender: z.string().min(1),
 	subject: z.string(),
-	slug: z.string(),
-	part: z.boolean()
+	template: z.string(),
+	filename: z.string(),
+	slug: z.string()
 });
 
-export type api_template_type = z.infer<typeof api_template_schema>;
-export class api_template extends Model {
-	declare template_id: number;
+export type api_form_type = z.infer<typeof api_form_schema>;
+
+export class api_form extends Model {
+	declare form_id: number;
 	declare user_id: number;
 	declare domain_id: number;
-	declare name: string;
 	declare locale: string;
-	declare template: string;
+	declare name: string;
 	declare sender: string;
 	declare subject: string;
+	declare template: string;
+	declare filename: string;
 	declare slug: string;
 }
 
-export async function init_api_template(api_db: Sequelize): Promise<typeof api_template> {
-	api_template.init(
+export async function init_api_form(api_db: Sequelize): Promise<typeof api_form> {
+	api_form.init(
 		{
-			template_id: {
+			form_id: {
 				type: DataTypes.INTEGER,
 				autoIncrement: true,
 				allowNull: false,
@@ -62,45 +64,45 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 				onDelete: 'CASCADE',
 				onUpdate: 'CASCADE'
 			},
-			name: {
-				type: DataTypes.CHAR(64),
-				allowNull: false,
-				unique: false
-			},
 			locale: {
-				type: DataTypes.CHAR(32),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: '',
 				unique: false
+			},
+			name: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				unique: false
+			},
+			sender: {
+				type: DataTypes.STRING,
+				allowNull: false
+			},
+			subject: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: ''
+			},
+			filename: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: ''
 			},
 			template: {
 				type: DataTypes.TEXT,
 				allowNull: false,
 				defaultValue: ''
 			},
-			sender: {
-				type: DataTypes.CHAR(128),
-				allowNull: false
-			},
-			subject: {
-				type: DataTypes.CHAR(128),
-				allowNull: false,
-				defaultValue: ''
-			},
 			slug: {
-				type: DataTypes.CHAR(128),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
-			},
-			part: {
-				type: DataTypes.BOOLEAN,
-				allowNull: false,
-				defaultValue: false
 			}
 		},
 		{
 			sequelize: api_db,
-			tableName: 'template',
+			tableName: 'form',
 			charset: 'utf8mb4',
 			collate: 'utf8mb4_unicode_ci',
 			indexes: [
@@ -112,17 +114,23 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 		}
 	);
 
-	api_template.addHook('beforeValidate', async (tpl: api_template) => {
-		if (!tpl.slug) {
-			const dom = await api_domain.findByPk(tpl.domain_id);
-			if (!dom) throw new Error(`Domain not found for id ${tpl.domain_id}`);
+	api_form.addHook('beforeValidate', async (form: api_form) => {
+		if (!form.slug || !form.filename) {
+			const dom = await api_domain.findByPk(form.domain_id);
+			if (!dom) throw new Error(`Domain not found for id ${form.domain_id}`);
 
-			const safeDomain = normalizeSlug(dom.name);
-			const safeName = normalizeSlug(tpl.name);
-			const safeLocale = normalizeSlug(tpl.locale);
-			tpl.slug = `${safeDomain}-${safeLocale ? safeLocale + '-' : ''}${safeName}`;
+			const safeName = normalizeSlug(form.name);
+
+			const safeLocale = normalizeSlug(form.locale);
+
+			if (!form.slug) {
+				form.slug = `${dom.name}-${safeLocale ? safeLocale + '-' : ''}${safeName}`;
+			}
+			if (!form.filename) {
+				form.filename = `${dom.name}/${safeLocale ? safeLocale + '/' : ''}${safeName}.njk`;
+			}
 		}
 	});
 
-	return api_template;
+	return api_form;
 }

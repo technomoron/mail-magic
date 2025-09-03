@@ -1,13 +1,25 @@
 import { Sequelize, Model, DataTypes } from 'sequelize';
+import { z } from 'zod';
 
+export const api_user_schema = z.object({
+	user_id: z.number().int().nonnegative(),
+	idname: z.string().min(1),
+	token: z.string().min(1),
+	name: z.string().min(1),
+	email: z.string().email(),
+	domain: z.number().int().nonnegative().optional(),
+	locale: z.string()
+});
+
+export type api_user_type = z.infer<typeof api_user_schema>;
 export class api_user extends Model {
 	declare user_id: number;
 	declare idname: string;
 	declare token: string;
 	declare name: string;
 	declare email: string;
-	declare defdomain: number;
-	declare deflocale: string;
+	declare domain: number;
+	declare locale: string;
 }
 
 export async function init_api_user(api_db: Sequelize): Promise<typeof api_user> {
@@ -20,32 +32,38 @@ export async function init_api_user(api_db: Sequelize): Promise<typeof api_user>
 				primaryKey: true
 			},
 			idname: {
-				type: DataTypes.CHAR(64),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
 			token: {
-				type: DataTypes.CHAR(128),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
 			name: {
-				type: DataTypes.CHAR(128),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
 			email: {
-				type: DataTypes.CHAR(128),
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			},
-			defdomain: {
+			domain: {
 				type: DataTypes.INTEGER,
-				// allowNull: false,
-				defaultValue: 0
+				allowNull: true,
+				references: {
+					model: 'domain',
+					key: 'domain_id'
+				},
+				onDelete: 'SET NULL',
+				onUpdate: 'CASCADE',
+				defaultValue: null
 			},
-			deflocale: {
-				type: DataTypes.CHAR(32),
+			locale: {
+				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
 			}

@@ -20,6 +20,11 @@ export const envOptions = defineEnvOptions({
 		type: 'boolean',
 		default: true
 	},
+	DB_FORCE_SYNC: {
+		description: 'Whether to force sync on table definitions (ALTER TABLE)',
+		type: 'boolean',
+		default: false
+	},
 	/*
 	API_URL: {
 		description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',
