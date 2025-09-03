@@ -1,9 +1,7 @@
 import { ApiServerConf, ApiServer } from '@technomoron/api-server-base';
 
-import { formConfig } from './config.js';
 import { api_user } from './models/user.js';
 import { mailStore } from './store/store.js';
-///import { ApiKey } from '@technomoron/api-server-base';
 
 export class mailApiServer extends ApiServer {
 	storage: mailStore;

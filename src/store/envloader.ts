@@ -15,6 +15,11 @@ export const envOptions = defineEnvOptions({
 		description: 'Sets the local IP address for the API to listen at',
 		default: '0.0.0.0'
 	},
+	DB_AUTO_RELOAD: {
+		description: 'Reload init-data.db automatically on change',
+		type: 'boolean',
+		default: true
+	},
 	/*
 	API_URL: {
 		description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',

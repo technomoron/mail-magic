@@ -6,7 +6,7 @@ import { createTransport, Transporter } from 'nodemailer';
 import { Sequelize, Dialect } from 'sequelize';
 
 import { FormConfig, formConfig } from '../config.js';
-import { connect_api_db } from '../models/db.js';
+import { connect_api_db, upsert_data } from '../models/db.js';
 
 import { envOptions } from './envloader.js';
 
@@ -67,6 +67,10 @@ export class mailStore implements ImailStore {
 		}
 	}
 
+	config_filename(name: string): string {
+		return path.resolve(path.join(this.configpath, name));
+	}
+
 	private async load_api_keys(cfgpath: string): Promise<Record<string, api_key>> {
 		const keyfile = path.resolve(cfgpath, 'api-keys.json');
 		if (fs.existsSync(keyfile)) {
@@ -81,6 +85,7 @@ export class mailStore implements ImailStore {
 
 	async init(): Promise<this> {
 		const env = (this.env = await EnvLoader.createConfigProxy(envOptions, { debug: true }));
+		EnvLoader.genTemplate(envOptions, '.env-dist');
 		const p = env.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 		console.log(`Config path is ${this.configpath}`);
@@ -92,6 +97,19 @@ export class mailStore implements ImailStore {
 		this.transport = await create_mail_transport(env);
 
 		this.api_db = await connect_api_db(this);
+
+		if (this.env.DB_AUTO_RELOAD) {
+			this.print_debug('Enabling auto reload of init-data.json');
+			fs.watchFile(this.config_filename('init-data.json'), { interval: 2000 }, () => {
+				this.print_debug('Config file changed, reloading...');
+				try {
+					upsert_data(this);
+				} catch (err) {
+					this.print_debug(`Failed to reload config: ${err}`);
+				}
+			});
+		}
+
 		return this;
 	}
 

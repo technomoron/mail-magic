@@ -18,7 +18,7 @@ async function generateHash(password: string): Promise<string> {
 	return hash;
 }
 
-async function upsert_data(store: mailStore) {
+export async function upsert_data(store: mailStore) {
 	const initfile = path.join(store.configpath, 'init-data.json');
 	if (fs.existsSync(initfile)) {
 		store.print_debug(`Loading init data from ${initfile}`);

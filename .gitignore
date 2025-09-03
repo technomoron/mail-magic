@@ -2,10 +2,6 @@ node_modules/
 dist/
 package-lock.json
 .env
-.init-data.json
-.api-keys.json
-mjml-server
-mjml-server.db
 pnpm-lock.yaml
 maildata.db
 config/
