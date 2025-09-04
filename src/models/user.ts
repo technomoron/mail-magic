@@ -8,7 +8,7 @@ export const api_user_schema = z.object({
 	name: z.string().min(1),
 	email: z.string().email(),
 	domain: z.number().int().nonnegative().optional(),
-	locale: z.string()
+	locale: z.string().default('')
 });
 
 export type api_user_type = z.infer<typeof api_user_schema>;

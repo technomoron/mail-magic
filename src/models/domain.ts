@@ -7,9 +7,9 @@ export const api_domain_schema = z.object({
 	domain_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),
 	name: z.string().min(1),
-	sender: z.string().min(1),
-	locale: z.string().min(1),
-	is_default: z.boolean()
+	sender: z.string().default(''),
+	locale: z.string().default(''),
+	is_default: z.boolean().default(false)
 });
 
 export type api_domain_type = z.infer<typeof api_domain_schema>;

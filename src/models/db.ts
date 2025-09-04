@@ -1,36 +1,44 @@
 import fs from 'fs';
 import path from 'path';
 
-import bcrypt from 'bcryptjs';
-import nunjucks from 'nunjucks';
 import { Sequelize } from 'sequelize';
+import { z } from 'zod';
 
-import { loadTxTemplate } from '../util.js';
+import { loadTxTemplate, loadFormTemplate } from '../util.js';
 
 import { mailStore } from './../store/store.js';
-import { init_api_domain, api_domain } from './domain.js';
-import { init_api_form, api_form } from './form.js';
-import { init_api_template, api_template } from './template.js';
-import { init_api_user, api_user } from './user.js';
+import { init_api_domain, api_domain, api_domain_schema } from './domain.js';
+import { init_api_form, api_form, api_form_schema } from './form.js';
+import { init_api_template, api_template, api_template_schema } from './template.js';
+import { init_api_user, api_user, api_user_schema } from './user.js';
 
-async function generateHash(password: string): Promise<string> {
-	const salt = bcrypt.genSaltSync(10);
-	const hash = bcrypt.hashSync(password, salt);
-	return hash;
-}
+export const init_data_schema = z.object({
+	user: z.array(api_user_schema).default([]),
+	domain: z.array(api_domain_schema).default([]),
+	template: z.array(api_template_schema).default([]),
+	form: z.array(api_form_schema).default([])
+});
+
+export type InitData = z.infer<typeof init_data_schema>;
 
 export async function upsert_data(store: mailStore) {
 	const initfile = path.join(store.configpath, 'init-data.json');
 	if (fs.existsSync(initfile)) {
 		store.print_debug(`Loading init data from ${initfile}`);
 		const data = await fs.promises.readFile(initfile, 'utf8');
-		const records = JSON.parse(data);
+
+		let records: InitData;
+		try {
+			records = init_data_schema.parse(JSON.parse(data));
+		} catch (err) {
+			store.print_debug(`Invalid init-data.json: ${err}`);
+			return;
+		}
+		console.log(JSON.stringify(records, undefined, 2));
+
 		if (records.user) {
 			for (const record of records.user) {
 				store.print_debug('Creating user records');
-				if (record.password) {
-					record.password = await generateHash(record.password);
-				}
 				await api_user.upsert(record);
 			}
 		}
@@ -43,10 +51,19 @@ export async function upsert_data(store: mailStore) {
 		if (records.template) {
 			store.print_debug('Creating template records');
 			for (const record of records.template) {
-				if (!record.template && record.template_file) {
-					record.template = await loadTxTemplate(store, record.template_file);
+				if (!record.template && record.filename) {
+					record.template = await loadTxTemplate(store, record.filename);
 				}
 				await api_template.upsert(record);
+			}
+		}
+		if (records.form) {
+			store.print_debug('Creating form records');
+			for (const record of records.form) {
+				if (!record.template && record.filename) {
+					record.template = await loadFormTemplate(store, record.filename);
+				}
+				await api_form.upsert(record);
 			}
 		}
 		store.print_debug('Initdata upserted successfully.');
@@ -140,7 +157,7 @@ export async function connect_api_db(store: mailStore): Promise<Sequelize> {
 		}
 	};
 	if (env.DB_TYPE === 'sqlite') {
-		dbparams.storage = env.DB_NAME + '.db';
+		dbparams.storage = env.DB_NAME + env.DB_NAME.endsWith('.db') ? '' : '.db';
 	} else {
 		dbparams.host = env.DB_HOST;
 		dbparams.database = env.DB_NAME;

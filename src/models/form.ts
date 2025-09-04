@@ -9,13 +9,13 @@ export const api_form_schema = z.object({
 	form_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),
 	domain_id: z.number().int().nonnegative(),
-	locale: z.string(),
+	locale: z.string().default(''),
 	name: z.string().min(1),
 	sender: z.string().min(1),
 	subject: z.string(),
-	template: z.string(),
-	filename: z.string(),
-	slug: z.string()
+	template: z.string().default(''),
+	filename: z.string().default(''),
+	slug: z.string().default('')
 });
 
 export type api_form_type = z.infer<typeof api_form_schema>;
@@ -129,6 +129,7 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 			if (!form.filename) {
 				form.filename = `${dom.name}/${safeLocale ? safeLocale + '/' : ''}${safeName}.njk`;
 			}
+			form.filename = form.filename + form.filename.endsWith('.njk') ? '' : '.njk';
 		}
 	});
 
