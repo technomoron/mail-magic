@@ -11,7 +11,7 @@
 		"scrub": "rm -rf ./node_modules/ ./dist/ pnpm-lock.yaml",
 		"lint": "eslint --ext .js,.ts,.vue ./",
 		"lintfix": "eslint --fix --ext .js,.ts,.vue ./src/",
-		"pretty": "prettier --write \"**/*.{js,jsx,ts,tsx,vue,json,css,scss,md}\"",
+		"pretty": "prettier --write \"**/*.{js,jsx,ts,tsx,vue,njk,json,css,scss,md}\"",
 		"format": "npm run lintfix && npm run pretty",
 		"cleanbuild": "rm -rf ./dist/ && npm run lintfix && npm run format && npm run build"
 	},
@@ -20,8 +20,8 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
-		"@technomoron/api-server-base": "^1.0.36",
-		"@technomoron/env-loader": "^1.0.7",
+		"@technomoron/api-server-base": "^1.0.38",
+		"@technomoron/env-loader": "^1.0.8",
 		"bcryptjs": "^3.0.2",
 		"email-addresses": "^5.0.0",
 		"html-to-text": "^9.0.5",
@@ -50,6 +50,7 @@
 		"eslint-plugin-vue": "10.0.0",
 		"nodemon": "^3.1.10",
 		"prettier": "3.5.3",
+		"prettier-plugin-twig-melody": "^0.4.6",
 		"ts-node": "^10.9.2",
 		"tsx": "^4.20.5",
 		"typescript": "^5.9.2",

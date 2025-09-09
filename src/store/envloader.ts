@@ -25,12 +25,10 @@ export const envOptions = defineEnvOptions({
 		type: 'boolean',
 		default: false
 	},
-	/*
 	API_URL: {
 		description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',
-		required: true
+		default: 'http://localhost:3776'
 	},
-	*/
 	CONFIG_PATH: {
 		description: 'Path to directory where config files are located',
 		default: './config/'

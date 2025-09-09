@@ -1,15 +1,11 @@
-import fs from 'fs';
-import path from 'path';
-
-import nunjucks from 'nunjucks';
-
-import { mailStore } from './store/store';
+import { api_domain } from './models/domain';
+import { api_user } from './models/user';
 
 /**
  * Normalize a string into a safe identifier for slugs, filenames, etc.
  *
  * - Lowercases all characters
- * - Replaces any character that is not `a-z`, `0-9`, `-`, or `_` with `-`
+ * - Replaces any character that is not `a-z`, `0-9`, `-`, '.' or `_` with `-`
  * - Collapses multiple consecutive dashes into one
  * - Trims leading and trailing dashes
  *
@@ -25,41 +21,19 @@ export function normalizeSlug(input: string): string {
 	return input
 		.trim()
 		.toLowerCase()
-		.replace(/[^a-z0-9-_]/g, '-')
+		.replace(/[^a-z0-9-_\.]/g, '-')
 		.replace(/--+/g, '-') // collapse multiple dashes
 		.replace(/^-+|-+$/g, ''); // trim leading/trailing dashes
 }
 
-// Validate template syntax, return unrendered source on success.
-
-async function _load_template(store: mailStore, filename: string, pathname: string): Promise<string> {
-	const nunjucksEnv = new nunjucks.Environment(new nunjucks.FileSystemLoader(pathname), {
-		autoescape: true,
-		noCache: true
-	});
-	const fname = path.isAbsolute(filename) ? filename : path.join(pathname, filename);
-	store.print_debug(`Attempting to load template "${fname}"`);
-	if (!fs.existsSync(fname)) {
-		throw new Error(`Missing template file "${fname}"`);
+export async function user_and_domain(domain_id: number): Promise<{ user: api_user; domain: api_domain }> {
+	const domain = await api_domain.findByPk(domain_id);
+	if (!domain) {
+		throw new Error(`Unable to look up domain ${domain_id}`);
 	}
-	const content = fs.readFileSync(fname, 'utf-8');
-	if (!content || !content.trim()) {
-		throw new Error(`Template file "${fname}" is empty`);
+	const user = await api_user.findByPk(domain.user_id);
+	if (!user) {
+		throw new Error(`Unable to look up user ${domain.user_id}`);
 	}
-	try {
-		nunjucksEnv.renderString(content, {});
-	} catch (err) {
-		throw new Error(`Template "${fname}" failed to render: ${(err as Error).message}`);
-	}
-	return content;
-}
-
-export async function loadFormTemplate(store: mailStore, name: string): Promise<string> {
-	const pathname = path.join(store.configpath, 'form-templates');
-	return await _load_template(store, name, pathname);
-}
-
-export async function loadTxTemplate(store: mailStore, name: string): Promise<string> {
-	const pathname = path.join(store.configpath, 'tx-templates');
-	return await _load_template(store, name, pathname);
+	return { user, domain };
 }

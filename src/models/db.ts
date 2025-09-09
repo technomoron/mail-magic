@@ -4,12 +4,11 @@ import path from 'path';
 import { Sequelize } from 'sequelize';
 import { z } from 'zod';
 
-import { loadTxTemplate, loadFormTemplate } from '../util.js';
-
 import { mailStore } from './../store/store.js';
 import { init_api_domain, api_domain, api_domain_schema } from './domain.js';
-import { init_api_form, api_form, api_form_schema } from './form.js';
-import { init_api_template, api_template, api_template_schema } from './template.js';
+import { init_api_form, api_form, api_form_schema, upsert_form } from './form.js';
+import { loadTxTemplate, loadFormTemplate } from './init';
+import { init_api_template, api_template, api_template_schema, upsert_template } from './template.js';
 import { init_api_user, api_user, api_user_schema } from './user.js';
 
 export const init_data_schema = z.object({
@@ -34,7 +33,7 @@ export async function upsert_data(store: mailStore) {
 			store.print_debug(`Invalid init-data.json: ${err}`);
 			return;
 		}
-		console.log(JSON.stringify(records, undefined, 2));
+		// console.log(JSON.stringify(records, undefined, 2));
 
 		if (records.user) {
 			for (const record of records.user) {
@@ -51,19 +50,23 @@ export async function upsert_data(store: mailStore) {
 		if (records.template) {
 			store.print_debug('Creating template records');
 			for (const record of records.template) {
-				if (!record.template && record.filename) {
-					record.template = await loadTxTemplate(store, record.filename);
+				const fixed = await upsert_template(record);
+				if (!fixed.template) {
+					fixed.template = await loadTxTemplate(store, fixed);
+					fixed.update({ template: fixed.template });
 				}
-				await api_template.upsert(record);
 			}
 		}
 		if (records.form) {
 			store.print_debug('Creating form records');
 			for (const record of records.form) {
-				if (!record.template && record.filename) {
-					record.template = await loadFormTemplate(store, record.filename);
+				const fixed = await upsert_form(record);
+				if (!fixed.template) {
+					fixed.template = await loadFormTemplate(store, fixed);
+					fixed.update({ template: fixed.template });
 				}
-				await api_form.upsert(record);
+
+				// console.log(JSON.stringify(fixed, undefined, 2));
 			}
 		}
 		store.print_debug('Initdata upserted successfully.');
@@ -157,13 +160,14 @@ export async function connect_api_db(store: mailStore): Promise<Sequelize> {
 		}
 	};
 	if (env.DB_TYPE === 'sqlite') {
-		dbparams.storage = env.DB_NAME + env.DB_NAME.endsWith('.db') ? '' : '.db';
+		dbparams.storage = env.DB_NAME.endsWith('.db') ? env.DB_NAME : `${env.DB_NAME}.db`;
 	} else {
 		dbparams.host = env.DB_HOST;
 		dbparams.database = env.DB_NAME;
 		dbparams.username = env.DB_USER;
 		dbparams.password = env.DB_PASS;
 	}
+	store.print_debug(`Database params are:\n${JSON.stringify(dbparams, undefined, 2)}`);
 	const db = new Sequelize(dbparams);
 	await db.authenticate();
 

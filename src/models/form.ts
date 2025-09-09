@@ -1,21 +1,23 @@
+import path from 'path';
+
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
-import { normalizeSlug } from '../util';
-
-import { api_domain } from './domain';
+import { user_and_domain, normalizeSlug } from '../util';
 
 export const api_form_schema = z.object({
 	form_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),
 	domain_id: z.number().int().nonnegative(),
 	locale: z.string().default(''),
-	name: z.string().min(1),
+	idname: z.string().min(1),
 	sender: z.string().min(1),
+	recipient: z.string().min(1),
 	subject: z.string(),
 	template: z.string().default(''),
 	filename: z.string().default(''),
-	slug: z.string().default('')
+	slug: z.string().default(''),
+	secret: z.string().default('')
 });
 
 export type api_form_type = z.infer<typeof api_form_schema>;
@@ -25,12 +27,14 @@ export class api_form extends Model {
 	declare user_id: number;
 	declare domain_id: number;
 	declare locale: string;
-	declare name: string;
+	declare idname: string;
 	declare sender: string;
+	declare recipient: string;
 	declare subject: string;
 	declare template: string;
 	declare filename: string;
 	declare slug: string;
+	declare secret: string;
 }
 
 export async function init_api_form(api_db: Sequelize): Promise<typeof api_form> {
@@ -70,14 +74,21 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				defaultValue: '',
 				unique: false
 			},
-			name: {
+			idname: {
 				type: DataTypes.STRING,
 				allowNull: false,
-				unique: false
+				unique: false,
+				defaultValue: ''
 			},
 			sender: {
 				type: DataTypes.STRING,
-				allowNull: false
+				allowNull: false,
+				defaultValue: ''
+			},
+			recipient: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: ''
 			},
 			subject: {
 				type: DataTypes.STRING,
@@ -98,6 +109,11 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
+			},
+			secret: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: ''
 			}
 		},
 		{
@@ -108,30 +124,52 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 			indexes: [
 				{
 					unique: true,
-					fields: ['user_id', 'domain_id', 'locale', 'name']
+					fields: ['user_id', 'domain_id', 'locale', 'idname']
 				}
 			]
 		}
 	);
 
-	api_form.addHook('beforeValidate', async (form: api_form) => {
-		if (!form.slug || !form.filename) {
-			const dom = await api_domain.findByPk(form.domain_id);
-			if (!dom) throw new Error(`Domain not found for id ${form.domain_id}`);
-
-			const safeName = normalizeSlug(form.name);
-
-			const safeLocale = normalizeSlug(form.locale);
-
-			if (!form.slug) {
-				form.slug = `${dom.name}-${safeLocale ? safeLocale + '-' : ''}${safeName}`;
-			}
-			if (!form.filename) {
-				form.filename = `${dom.name}/${safeLocale ? safeLocale + '/' : ''}${safeName}.njk`;
-			}
-			form.filename = form.filename + form.filename.endsWith('.njk') ? '' : '.njk';
-		}
-	});
-
 	return api_form;
+}
+
+export async function upsert_form(record: api_form_type): Promise<api_form> {
+	const { user, domain } = await user_and_domain(record.domain_id);
+
+	const idname = normalizeSlug(user.idname);
+	const dname = normalizeSlug(domain.name);
+	const name = normalizeSlug(record.idname);
+	const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
+
+	if (!record.slug) {
+		record.slug = `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
+	}
+
+	if (!record.filename) {
+		const parts = [idname, dname, 'form-templates'];
+		if (locale) parts.push(locale);
+		parts.push(name);
+		record.filename = path.join(...parts);
+	} else {
+		record.filename = path.join(idname, dname, 'form-templates', record.filename);
+	}
+	if (!record.filename.endsWith('.njk')) {
+		record.filename += '.njk';
+	}
+	record.filename = path.normalize(record.filename);
+
+	let instance: api_form | null = null;
+	instance = await api_form.findByPk(record.form_id);
+	if (instance) {
+		await instance.update(record);
+	} else {
+		console.log('CREATE', JSON.stringify(record, undefined, 2));
+
+		instance = await api_form.create(record);
+		console.log(`INSTANCE IS ${instance}`);
+	}
+	if (!instance) {
+		throw new Error(`Unable to update/create form ${record.form_id}`);
+	}
+	return instance;
 }

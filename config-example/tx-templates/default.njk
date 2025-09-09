@@ -1,81 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Email Details</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      color: #333;
-      line-height: 1.6;
-    }
-    h2 {
-      margin-top: 30px;
-      border-bottom: 1px solid #ccc;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #ddd;
-    }
-    th {
-      background: #f0f0f0;
-    }
-  </style>
-</head>
-<body>
+	<head>
+		<meta charset="utf-8" />
+		<title>Email Details</title>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				color: #333;
+				line-height: 1.6;
+			}
+			h2 {
+				margin-top: 30px;
+				border-bottom: 1px solid #ccc;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				margin-top: 10px;
+			}
+			th,
+			td {
+				padding: 8px;
+				border: 1px solid #ddd;
+			}
+			th {
+				background: #f0f0f0;
+			}
+		</style>
+	</head>
+	<body>
+		<h2>Email Recipient</h2>
+		<p>
+			<strong>To:</strong>
+			{{ _rcpt_email_ }}
+		</p>
 
-  <h2>Email Recipient</h2>
-  <p><strong>To:</strong> {{ _rcpt_email_ }}</p>
+		<h2>Template Variables</h2>
 
-  <h2>Template Variables</h2>
+		{% if _vars_ %}
+		<table>
+			<thead>
+				<tr>
+					<th>Key</th>
+					<th>Value</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for key, value in _vars_ %}
+				<tr>
+					<td>{{ key }}</td>
+					<td>{{ value }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		{% else %}
+		<p>No variables found.</p>
+		{% endif %}
 
-{% if _vars_ %}
-  <table>
-    <thead>
-      <tr>
-        <th>Key</th>
-        <th>Value</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for key, value in _vars_ %}
-        <tr>
-          <td>{{ key }}</td>
-          <td>{{ value }}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-{% else %}
-  <p>No variables found.</p>
-{% endif %}
-
-  <h2>Attachments</h2>
-  {% if _attachments_ and _attachments_ | length > 0 %}
-    <table>
-      <thead>
-        <tr>
-          <th>Label</th>
-          <th>Filename</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for label, filename in _attachments_ %}
-          <tr>
-            <td>{{ label }}</td>
-            <td>{{ filename }}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No attachments included.</p>
-  {% endif %}
-
-</body>
+		<h2>Attachments</h2>
+		{% if _attachments_ and _attachments_ | length > 0 %}
+		<table>
+			<thead>
+				<tr>
+					<th>Label</th>
+					<th>Filename</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for label, filename in _attachments_ %}
+				<tr>
+					<td>{{ label }}</td>
+					<td>{{ filename }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		{% else %}
+		<p>No attachments included.</p>
+		{% endif %}
+	</body>
 </html>

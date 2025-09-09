@@ -1,9 +1,9 @@
+import path from 'path';
+
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
-import { normalizeSlug } from '../util';
-
-import { api_domain } from './domain';
+import { user_and_domain, normalizeSlug } from '../util';
 
 export const api_template_schema = z.object({
 	template_id: z.number().int().nonnegative(),
@@ -15,8 +15,7 @@ export const api_template_schema = z.object({
 	filename: z.string().default(''),
 	sender: z.string().min(1),
 	subject: z.string(),
-	slug: z.string().default(''),
-	part: z.boolean().default(false)
+	slug: z.string().default('')
 });
 
 export type api_template_type = z.infer<typeof api_template_schema>;
@@ -31,6 +30,35 @@ export class api_template extends Model {
 	declare sender: string;
 	declare subject: string;
 	declare slug: string;
+}
+
+export async function upsert_template(record: api_template_type): Promise<api_template> {
+	const { user, domain } = await user_and_domain(record.domain_id);
+
+	const idname = normalizeSlug(user.idname);
+	const dname = normalizeSlug(domain.name);
+	const name = normalizeSlug(record.name);
+	const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
+
+	if (!record.slug) {
+		record.slug = `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
+	}
+
+	if (!record.filename) {
+		const parts = [idname, dname, 'tx-templates'];
+		if (locale) parts.push(locale);
+		parts.push(name);
+		record.filename = path.join(...parts);
+	} else {
+		record.filename = path.join(idname, dname, 'tx-templates', record.filename);
+	}
+	if (!record.filename.endsWith('.njk')) {
+		record.filename += '.njk';
+	}
+	record.filename = path.normalize(record.filename);
+
+	const [instance] = await api_template.upsert(record);
+	return instance;
 }
 
 export async function init_api_template(api_db: Sequelize): Promise<typeof api_template> {
@@ -119,23 +147,29 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 		}
 	);
 
-	api_template.addHook('beforeValidate', async (tpl: api_template) => {
-		if (!tpl.slug || !tpl.filename) {
-			const dom = await api_domain.findByPk(tpl.domain_id);
-			if (!dom) throw new Error(`Domain not found for id ${tpl.domain_id}`);
-			const safeDomain = normalizeSlug(dom.name);
-			const safeName = normalizeSlug(tpl.name);
-			const safeLocale = normalizeSlug(tpl.locale);
-			tpl.slug = `${safeDomain}-${safeLocale ? safeLocale + '-' : ''}${safeName}`;
+	api_template.addHook('beforeValidate', async (template: api_template) => {
+		const { user, domain } = await user_and_domain(template.domain_id);
 
-			if (!tpl.slug) {
-				tpl.slug = `${dom.name}-${safeLocale ? safeLocale + '-' : ''}${safeName}`;
-			}
-			if (!tpl.filename) {
-				tpl.filename = `${dom.name}/${safeLocale ? safeLocale + '/' : ''}${safeName}.njk`;
-			}
-			tpl.filename = tpl.filename + tpl.filename.endsWith('.njk') ? '' : '.njk';
+		console.log('HERE');
+
+		const idname = normalizeSlug(user.idname);
+		const dname = normalizeSlug(domain.name);
+		const name = normalizeSlug(template.name);
+		const locale = normalizeSlug(template.locale || domain.locale || user.locale || '');
+
+		template.slug ||= `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
+
+		if (!template.filename) {
+			const parts = [idname, dname, 'tx-templates'];
+			if (locale) parts.push(locale);
+			parts.push(name);
+			template.filename = parts.join('/');
 		}
+		if (!template.filename.endsWith('.njk')) {
+			template.filename += '.njk';
+		}
+
+		console.log(`FILENAME IS: ${template.filename}`);
 	});
 
 	return api_template;

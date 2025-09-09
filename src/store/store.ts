@@ -1,11 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 
-import EnvLoader, { envConfig } from '@technomoron/env-loader';
+import { EnvLoader, envConfig } from '@technomoron/env-loader';
 import { createTransport, Transporter } from 'nodemailer';
 import { Sequelize, Dialect } from 'sequelize';
 
-import { FormConfig, formConfig } from '../config.js';
 import { connect_api_db, upsert_data } from '../models/db.js';
 
 import { envOptions } from './envloader.js';
@@ -55,7 +54,6 @@ export interface ImailStore {
 
 export class mailStore implements ImailStore {
 	env!: envConfig<typeof envOptions>;
-	forms: FormConfig = {};
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
 	api_db: Sequelize | null = null;
 	keys: Record<string, any> = {};
@@ -90,9 +88,7 @@ export class mailStore implements ImailStore {
 		this.configpath = path.isAbsolute(p) ? p : path.join(process.cwd(), p);
 		console.log(`Config path is ${this.configpath}`);
 
-		this.forms = await formConfig(this);
-
-		this.keys = await this.load_api_keys(this.configpath);
+		// this.keys = await this.load_api_keys(this.configpath);
 
 		this.transport = await create_mail_transport(env);
 

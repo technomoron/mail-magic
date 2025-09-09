@@ -1,11 +1,33 @@
-import { ApiModule, ApiRoute, ApiRequest, ApiServer, ApiError, ApiAuthClass } from '@technomoron/api-server-base';
+import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-server-base';
 import nunjucks from 'nunjucks';
 
+import { api_form } from '../models/form.js';
 import { mailApiServer } from '../server.js';
 
 export class FormAPI extends ApiModule<mailApiServer> {
 	private async postSendForm(apireq: ApiRequest): Promise<[number, any]> {
-		const { formid } = apireq.req.body;
+		const { formid, secret, recipient, vars = {} } = apireq.req.body;
+
+		if (!formid) {
+			throw new ApiError({ code: 404, message: 'Missing formid field in form' });
+		}
+
+		const form = await api_form.findOne({ where: { idname: formid } });
+		if (!form) {
+			throw new ApiError({ code: 404, message: `No such form: ${formid}` });
+		}
+
+		if (form.secret && !secret) {
+			throw new ApiError({ code: 401, message: 'This form requires a secret key' });
+		}
+		if (form.secret && form.secret !== secret) {
+			throw new ApiError({ code: 401, message: 'Bad form secret' });
+		}
+		if (recipient && !form.secret) {
+			throw new ApiError({ code: 401, message: "'recipient' parameterer requires form secret to be set" });
+		}
+
+		const thevars = typeof vars === 'string' ? JSON.parse(vars) : vars;
 
 		/*
 		console.log('Headers:', apireq.req.headers);
@@ -13,31 +35,33 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		console.log('Files:', JSON.stringify(apireq.req.files, null, 2));
 		*/
 
-		if (!formid) {
-			throw new ApiError({ code: 404, message: 'Missing formid field in form' });
-		}
-		if (!this.server.storage.forms[formid]) {
-			throw new ApiError({ code: 404, message: `No such form ${formid}` });
-		}
-		const form = this.server.storage.forms[formid];
-
-		const a = Array.isArray(apireq.req.files) ? apireq.req.files : [];
-		const attachments = a.map((file: any) => ({
+		const rawFiles = Array.isArray(apireq.req.files) ? apireq.req.files : [];
+		const attachments = rawFiles.map((file) => ({
 			filename: file.originalname,
 			path: file.path
 		}));
 
+		const attachmentMap: Record<string, string> = {};
+		for (const file of rawFiles) {
+			attachmentMap[file.fieldname] = file.originalname;
+		}
+		const varNames = Object.keys(thevars || {});
+
 		const context = {
-			formFields: apireq.req.body,
-			files: Array.isArray(apireq.req.files) ? apireq.req.files : []
+			...thevars,
+			_rcpt_email_: recipient,
+			_attachments_: attachmentMap,
+			_vars_: thevars,
+			_fields_: apireq.req.body,
+			_files_: Array.isArray(apireq.req.files) ? apireq.req.files : []
 		};
 
 		nunjucks.configure({ autoescape: true });
-		const html = nunjucks.renderString(form.templateContent, context);
+		const html = nunjucks.renderString(form.template, context);
 
 		const mailOptions = {
 			from: form.sender,
-			to: form.rcpt,
+			to: recipient || form.recipient,
 			subject: form.subject,
 			html,
 			attachments

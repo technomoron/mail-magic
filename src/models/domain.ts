@@ -3,6 +3,13 @@ import { z } from 'zod';
 
 import { normalizeSlug } from '../util';
 
+/*
+	api_domain.addHook('beforeValidate', (domain: api_domain) => {
+		domain.name = normalizeSlug(domain.name);
+		domain.locale = normalizeSlug(domain.locale);
+	});
+*/
+
 export const api_domain_schema = z.object({
 	domain_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),
@@ -70,11 +77,5 @@ export async function init_api_domain(api_db: Sequelize): Promise<typeof api_dom
 			collate: 'utf8mb4_unicode_ci'
 		}
 	);
-
-	api_domain.addHook('beforeValidate', (domain: api_domain) => {
-		domain.name = normalizeSlug(domain.name);
-		domain.locale = normalizeSlug(domain.locale);
-	});
-
 	return api_domain;
 }
