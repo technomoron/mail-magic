@@ -11,30 +11,48 @@ import { api_form_type } from './form';
 import { api_template_type } from './template';
 import { api_user } from './user';
 
+export interface LoadedTemplate {
+	html: string;
+	inlineAssets: {
+		relPath: string;
+		fullPath: string;
+	}[];
+}
+
 function addAssetFilter(
 	nunjucksEnv: nunjucks.Environment,
 	opts: {
 		store: mailStore;
 		idname: string;
-		templateType: 'form-templates' | 'tx-templates';
+		type: 'form-templates' | 'tx-templates';
 		domainName?: string | null;
 		locale?: string | null;
+		inlineAssets: { relPath: string; fullPath: string }[];
 	}
 ) {
-	const { store, idname, templateType, domainName, locale } = opts;
-	nunjucksEnv.addFilter('asset', (relPath: string) => {
+	const { store, idname, type, domainName, locale, inlineAssets } = opts;
+
+	nunjucksEnv.addFilter('asset', (relPath: string, inline: boolean = false) => {
 		const found = resolveAsset(
 			path.join(store.configpath, idname),
-			templateType,
+			type,
 			domainName ?? null,
 			locale ?? null,
 			relPath
 		);
+
 		if (!found) {
 			throw new Error(`Missing asset "${relPath}"`);
 		}
+
+		if (inline) {
+			// Collect for later use in attachments
+			inlineAssets.push({ relPath, fullPath: found });
+			return `cid:${relPath}`;
+		}
+
 		return (
-			`${store.env.API_URL}/image/${idname}/${templateType}/` +
+			`${store.env.API_URL}/image/${idname}/${type}/` +
 			`${domainName ? domainName + '/' : ''}` +
 			`${locale ? locale + '/' : ''}` +
 			relPath
@@ -43,8 +61,8 @@ function addAssetFilter(
 }
 
 function resolveAsset(
-	basePath: string,
-	templateType: 'form-templates' | 'tx-templates',
+	basePath: string, // e.g. config/testuser
+	type: 'form-templates' | 'tx-templates',
 	domainName: string | null,
 	locale: string | null,
 	assetName: string
@@ -52,26 +70,28 @@ function resolveAsset(
 	const searchPaths: string[] = [];
 
 	if (domainName && locale) {
-		searchPaths.push(path.join(templateType, domainName, locale));
+		searchPaths.push(path.join(domainName, type, locale));
 	}
+
 	if (domainName) {
-		searchPaths.push(path.join(templateType, domainName));
+		searchPaths.push(path.join(domainName, type));
 	}
+
 	if (locale) {
-		searchPaths.push(path.join(templateType, locale));
+		searchPaths.push(path.join(type, locale));
 	}
-	searchPaths.push(path.join(templateType));
+
+	searchPaths.push(type);
 
 	for (const p of searchPaths) {
 		const candidate = path.join(basePath, p, 'assets', assetName);
+		console.log('ATTEMPTIONG', candidate);
 		if (fs.existsSync(candidate)) {
 			return candidate;
 		}
 	}
 	return null;
 }
-
-// Validate template syntax, return unrendered source on success.
 
 async function _load_template(
 	store: mailStore,
@@ -80,19 +100,22 @@ async function _load_template(
 	user: api_user,
 	domain: api_domain,
 	locale: string,
-	type: string
-): Promise<string> {
+	type: 'form-templates' | 'tx-templates'
+): Promise<LoadedTemplate> {
 	const nunjucksEnv = new nunjucks.Environment(new nunjucks.FileSystemLoader(pathname), {
 		autoescape: true,
 		noCache: true
 	});
 
+	const inlineAssets: { relPath: string; fullPath: string }[] = [];
+
 	addAssetFilter(nunjucksEnv, {
 		store,
 		idname: user.idname,
-		templateType: 'form-templates',
+		type,
 		domainName: domain.name,
-		locale
+		locale,
+		inlineAssets
 	});
 
 	const fname = path.isAbsolute(filename) ? filename : path.join(pathname, filename);
@@ -106,24 +129,22 @@ async function _load_template(
 	}
 
 	try {
-		nunjucksEnv.renderString(content, {});
+		const rendered = nunjucksEnv.render(path.relative(pathname, fname), {});
+		return { html: rendered, inlineAssets };
 	} catch (err) {
 		throw new Error(`Template "${fname}" failed to render: ${(err as Error).message}`);
 	}
-	return content;
 }
 
-export async function loadFormTemplate(store: mailStore, form: api_form_type): Promise<string> {
+export async function loadFormTemplate(store: mailStore, form: api_form_type): Promise<LoadedTemplate> {
 	const { user, domain } = await user_and_domain(form.domain_id);
-
 	const locale = form.locale || domain.locale || user.locale || '';
 
 	return _load_template(store, form.filename, store.env.CONFIG_PATH, user, domain, locale, 'form-templates');
 }
 
-export async function loadTxTemplate(store: mailStore, template: api_template_type): Promise<string> {
+export async function loadTxTemplate(store: mailStore, template: api_template_type): Promise<LoadedTemplate> {
 	const { user, domain } = await user_and_domain(template.domain_id);
-
 	const locale = template.locale || domain.locale || user.locale || '';
 
 	return _load_template(store, template.filename, store.env.CONFIG_PATH, user, domain, locale, 'tx-templates');

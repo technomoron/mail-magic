@@ -52,8 +52,8 @@ export async function upsert_data(store: mailStore) {
 			for (const record of records.template) {
 				const fixed = await upsert_template(record);
 				if (!fixed.template) {
-					fixed.template = await loadTxTemplate(store, fixed);
-					fixed.update({ template: fixed.template });
+					const { html, inlineAssets } = await loadTxTemplate(store, fixed);
+					fixed.update({ template: html });
 				}
 			}
 		}
@@ -62,8 +62,8 @@ export async function upsert_data(store: mailStore) {
 			for (const record of records.form) {
 				const fixed = await upsert_form(record);
 				if (!fixed.template) {
-					fixed.template = await loadFormTemplate(store, fixed);
-					fixed.update({ template: fixed.template });
+					const { html, inlineAssets } = await loadFormTemplate(store, fixed);
+					fixed.update({ template: html, files: inlineAssets });
 				}
 
 				// console.log(JSON.stringify(fixed, undefined, 2));

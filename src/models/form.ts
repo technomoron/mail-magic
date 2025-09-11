@@ -3,6 +3,7 @@ import path from 'path';
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
+import { StoredFile } from '../types';
 import { user_and_domain, normalizeSlug } from '../util';
 
 export const api_form_schema = z.object({
@@ -17,7 +18,16 @@ export const api_form_schema = z.object({
 	template: z.string().default(''),
 	filename: z.string().default(''),
 	slug: z.string().default(''),
-	secret: z.string().default('')
+	secret: z.string().default(''),
+	files: z
+		.array(
+			z.object({
+				filename: z.string(),
+				path: z.string(),
+				cid: z.string().optional()
+			})
+		)
+		.default([])
 });
 
 export type api_form_type = z.infer<typeof api_form_schema>;
@@ -35,6 +45,7 @@ export class api_form extends Model {
 	declare filename: string;
 	declare slug: string;
 	declare secret: string;
+	declare files: StoredFile[];
 }
 
 export async function init_api_form(api_db: Sequelize): Promise<typeof api_form> {
@@ -114,6 +125,18 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
+			},
+			files: {
+				type: DataTypes.TEXT,
+				allowNull: false,
+				defaultValue: '[]',
+				get() {
+					const raw = this.getDataValue('files') as unknown as string;
+					return raw ? JSON.parse(raw) : [];
+				},
+				set(value: any) {
+					this.setDataValue('files', JSON.stringify(value ?? []));
+				}
 			}
 		},
 		{
