@@ -7,73 +7,9 @@ import { z } from 'zod';
 import { mailStore } from './../store/store.js';
 import { init_api_domain, api_domain, api_domain_schema } from './domain.js';
 import { init_api_form, api_form, api_form_schema, upsert_form } from './form.js';
-import { loadTxTemplate, loadFormTemplate } from './init';
+import { loadTxTemplate, loadFormTemplate, importData } from './init';
 import { init_api_template, api_template, api_template_schema, upsert_template } from './template.js';
 import { init_api_user, api_user, api_user_schema } from './user.js';
-
-export const init_data_schema = z.object({
-	user: z.array(api_user_schema).default([]),
-	domain: z.array(api_domain_schema).default([]),
-	template: z.array(api_template_schema).default([]),
-	form: z.array(api_form_schema).default([])
-});
-
-export type InitData = z.infer<typeof init_data_schema>;
-
-export async function upsert_data(store: mailStore) {
-	const initfile = path.join(store.configpath, 'init-data.json');
-	if (fs.existsSync(initfile)) {
-		store.print_debug(`Loading init data from ${initfile}`);
-		const data = await fs.promises.readFile(initfile, 'utf8');
-
-		let records: InitData;
-		try {
-			records = init_data_schema.parse(JSON.parse(data));
-		} catch (err) {
-			store.print_debug(`Invalid init-data.json: ${err}`);
-			return;
-		}
-		// console.log(JSON.stringify(records, undefined, 2));
-
-		if (records.user) {
-			for (const record of records.user) {
-				store.print_debug('Creating user records');
-				await api_user.upsert(record);
-			}
-		}
-		if (records.domain) {
-			store.print_debug('Creating domain records');
-			for (const record of records.domain) {
-				await api_domain.upsert(record);
-			}
-		}
-		if (records.template) {
-			store.print_debug('Creating template records');
-			for (const record of records.template) {
-				const fixed = await upsert_template(record);
-				if (!fixed.template) {
-					const { html, inlineAssets } = await loadTxTemplate(store, fixed);
-					fixed.update({ template: html });
-				}
-			}
-		}
-		if (records.form) {
-			store.print_debug('Creating form records');
-			for (const record of records.form) {
-				const fixed = await upsert_form(record);
-				if (!fixed.template) {
-					const { html, inlineAssets } = await loadFormTemplate(store, fixed);
-					fixed.update({ template: html, files: inlineAssets });
-				}
-
-				// console.log(JSON.stringify(fixed, undefined, 2));
-			}
-		}
-		store.print_debug('Initdata upserted successfully.');
-	} else {
-		store.print_debug(`No init data file, trying ${initfile}`);
-	}
-}
 
 export async function init_api_db(db: Sequelize, store: mailStore) {
 	await init_api_user(db);
@@ -140,7 +76,7 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 	await db.sync({ alter: true, force: store.env.DB_FORCE_SYNC });
 	await db.query('PRAGMA foreign_keys = ON');
 
-	await upsert_data(store);
+	await importData(store);
 	store.print_debug('API Database Initialized...');
 }
 

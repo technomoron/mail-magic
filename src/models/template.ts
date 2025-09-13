@@ -3,6 +3,7 @@ import path from 'path';
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
+import { StoredFile } from '../types';
 import { user_and_domain, normalizeSlug } from '../util';
 
 export const api_template_schema = z.object({
@@ -15,7 +16,16 @@ export const api_template_schema = z.object({
 	filename: z.string().default(''),
 	sender: z.string().min(1),
 	subject: z.string(),
-	slug: z.string().default('')
+	slug: z.string().default(''),
+	files: z
+		.array(
+			z.object({
+				filename: z.string(),
+				path: z.string(),
+				cid: z.string().optional()
+			})
+		)
+		.default([])
 });
 
 export type api_template_type = z.infer<typeof api_template_schema>;
@@ -30,6 +40,7 @@ export class api_template extends Model {
 	declare sender: string;
 	declare subject: string;
 	declare slug: string;
+	declare files: StoredFile[];
 }
 
 export async function upsert_template(record: api_template_type): Promise<api_template> {
@@ -131,6 +142,18 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 				type: DataTypes.BOOLEAN,
 				allowNull: false,
 				defaultValue: false
+			},
+			files: {
+				type: DataTypes.TEXT,
+				allowNull: false,
+				defaultValue: '[]',
+				get() {
+					const raw = this.getDataValue('files') as unknown as string;
+					return raw ? JSON.parse(raw) : [];
+				},
+				set(value: any) {
+					this.setDataValue('files', JSON.stringify(value ?? []));
+				}
 			}
 		},
 		{

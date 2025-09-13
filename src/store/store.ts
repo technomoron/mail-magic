@@ -5,7 +5,8 @@ import { EnvLoader, envConfig } from '@technomoron/env-loader';
 import { createTransport, Transporter } from 'nodemailer';
 import { Sequelize, Dialect } from 'sequelize';
 
-import { connect_api_db, upsert_data } from '../models/db.js';
+import { connect_api_db } from '../models/db.js';
+import { importData } from '../models/init.js';
 
 import { envOptions } from './envloader.js';
 
@@ -99,7 +100,7 @@ export class mailStore implements ImailStore {
 			fs.watchFile(this.config_filename('init-data.json'), { interval: 2000 }, () => {
 				this.print_debug('Config file changed, reloading...');
 				try {
-					upsert_data(this);
+					importData(this);
 				} catch (err) {
 					this.print_debug(`Failed to reload config: ${err}`);
 				}
