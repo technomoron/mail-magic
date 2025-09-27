@@ -26,6 +26,12 @@ export interface StoredFile {
 	cid?: string;
 }
 
+export interface RequestMeta {
+	client_ip: string;
+	received_at: string;
+	ip_chain: string[];
+}
+
 export interface UploadedFile {
 	originalname: string;
 	path: string;

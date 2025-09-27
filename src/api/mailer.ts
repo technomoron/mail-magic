@@ -7,6 +7,7 @@ import { api_domain } from '../models/domain.js';
 import { api_txmail } from '../models/txmail.js';
 import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
+import { buildRequestMeta } from '../util.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
@@ -56,7 +57,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		if (!user) {
 			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
 		}
-		const dbdomain = await api_domain.findOne({ where: { domain } });
+		const dbdomain = await api_domain.findOne({ where: { name: domain } });
 		if (!dbdomain) {
 			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
 		}
@@ -185,6 +186,8 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		}
 		console.log(JSON.stringify({ vars, thevars }, undefined, 2));
 
+		const meta = buildRequestMeta(apireq.req);
+
 		try {
 			const env = new nunjucks.Environment(null, { autoescape: false });
 
@@ -195,7 +198,8 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 					...thevars,
 					_rcpt_email_: recipient,
 					_attachments_: attachmentMap,
-					_vars_: thevars
+					_vars_: thevars,
+					_meta_: meta
 				};
 				const html = await compiled.render(fullargs);
 				const text = convert(html);

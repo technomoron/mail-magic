@@ -7,7 +7,7 @@ import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
-import { normalizeSlug } from '../util.js';
+import { buildRequestMeta, normalizeSlug } from '../util.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
@@ -22,7 +22,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		if (!user) {
 			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
 		}
-		const dbdomain = await api_domain.findOne({ where: { domain } });
+		const dbdomain = await api_domain.findOne({ where: { name: domain } });
 		if (!dbdomain) {
 			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
 		}
@@ -155,13 +155,16 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			attachmentMap[file.fieldname] = file.originalname;
 		}
 
+		const meta = buildRequestMeta(apireq.req);
+
 		const context = {
 			...thevars,
 			_rcpt_email_: recipient,
 			_attachments_: attachmentMap,
 			_vars_: thevars,
 			_fields_: apireq.req.body,
-			_files_: rawFiles
+			_files_: rawFiles,
+			_meta_: meta
 		};
 
 		nunjucks.configure({ autoescape: true });

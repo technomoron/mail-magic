@@ -1,9 +1,25 @@
 CHANGES
 
+Version 1.0.4 (2025-09-27)
+
+- Surface request metadata (client IP, IP chain, received-at) to form and transactional
+  template rendering and update the bundled templates to display it.
+- Correct domain lookups to match `api_domain.name` during form and mail submission
+  authentication so legitimate domains are accepted.
+- Export `createMailMagicServer`/`startMailMagicServer` helpers and only auto-start when
+  executed directly, printing the bound host/port after.
+
 Version 1.0.3 (2025-09-26)
 
-- Introduced the transactional mail model and API route updates so stored templates, attachments, and message delivery flow through `api_txmail` instead of the removed `api_template` (src/models/txmail.ts, src/api/mailer.ts, src/models/db.ts).
-- Let authenticated clients upload form templates via the API, aligning filename/slug generation with the new singular config structure (src/api/forms.ts, src/models/form.ts, config-example/form-template/default.njk).
-- Replaced the bespoke Nunjucks loader with `@technomoron/unyuck` to flatten includes and collect referenced assets before persisting them (src/models/init.ts, package.json).
-- Refreshed tooling and metadata (ESLint/Prettier configs, README, ecosystem config) to match the renamed package and repository (eslint.config.mjs, .prettierrc, README.md, ecosystem.config.cjs, package.json).
-- Added workspace metadata and sample templates so pnpm and new installs pick up example assets (pnpm-workspace.yaml, config-example/tx-template/default.njk).
+- Introduced the transactional mail model and API route updates so stored templates,
+  attachments, and message delivery flow through `api_txmail` instead of the
+  removed `api_template`.
+- Let authenticated clients upload form templates via the API, aligning filename/slug
+  generation with the new singular config structure.
+- Replaced the Nunjucks loader with `@technomoron/unyuck` to flatten includes
+  and collect referenced assets before persisting them.
+- Refreshed tooling and metadata (ESLint/Prettier configs, README, ecosystem config)
+  to match the renamed package and repository.
+- Added workspace metadata and sample templates so pnpm and new installs pick up example
+  assets.
+

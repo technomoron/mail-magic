@@ -79,5 +79,29 @@
 		{% else %}
 		<p>No attachments included.</p>
 		{% endif %}
+
+		<h2>Request Metadata</h2>
+		{% if _meta_ %}
+		<table>
+			<tbody>
+				<tr>
+					<th>Client IP</th>
+					<td>{{ _meta_.client_ip | default('Unknown') }}</td>
+				</tr>
+				<tr>
+					<th>Received At</th>
+					<td>{{ _meta_.received_at | default('Unknown') }}</td>
+				</tr>
+				{% if _meta_.ip_chain and _meta_.ip_chain.length %}
+				<tr>
+					<th>IP Chain</th>
+					<td>{{ _meta_.ip_chain | join(', ') }}</td>
+				</tr>
+				{% endif %}
+			</tbody>
+		</table>
+		{% else %}
+		<p>No request metadata provided.</p>
+		{% endif %}
 	</body>
 </html>
