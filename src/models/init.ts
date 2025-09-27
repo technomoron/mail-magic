@@ -1,17 +1,17 @@
 import fs from 'fs';
 import path from 'path';
 
-import nunjucks from 'nunjucks';
+import { Unyuck } from '@technomoron/unyuck';
 import { z } from 'zod';
 
-import { mailStore } from '../store/store';
-import { StoredFile } from '../types';
-import { user_and_domain } from '../util';
+import { mailStore } from '../store/store.js';
+import { StoredFile } from '../types.js';
+import { user_and_domain } from '../util.js';
 
-import { api_domain, api_domain_schema } from './domain';
-import { api_form_schema, api_form_type, upsert_form } from './form';
-import { api_template_schema, api_template_type, upsert_template } from './template';
-import { api_user, api_user_schema } from './user';
+import { api_domain, api_domain_schema } from './domain.js';
+import { api_form_schema, api_form_type, upsert_form } from './form.js';
+import { api_txmail_schema, api_txmail_type, upsert_txmail } from './txmail.js';
+import { api_user, api_user_schema } from './user.js';
 
 interface LoadedTemplate {
 	html: string;
@@ -21,7 +21,7 @@ interface LoadedTemplate {
 const init_data_schema = z.object({
 	user: z.array(api_user_schema).default([]),
 	domain: z.array(api_domain_schema).default([]),
-	template: z.array(api_template_schema).default([]),
+	template: z.array(api_txmail_schema).default([]),
 	form: z.array(api_form_schema).default([])
 });
 
@@ -32,7 +32,7 @@ type InitData = z.infer<typeof init_data_schema>;
  */
 function resolveAsset(
 	basePath: string,
-	type: 'form-templates' | 'tx-templates',
+	type: 'form-template' | 'tx-template',
 	domainName: string,
 	assetName: string,
 	locale?: string | null
@@ -65,7 +65,7 @@ function extractAndReplaceAssets(
 	html: string,
 	opts: {
 		basePath: string;
-		type: 'form-templates' | 'tx-templates';
+		type: 'form-template' | 'tx-template';
 		domainName: string;
 		locale?: string | null;
 		apiUrl: string;
@@ -103,87 +103,6 @@ function extractAndReplaceAssets(
 	return { html: replacedHtml, assets };
 }
 
-class DebugLoader extends nunjucks.FileSystemLoader {
-	getSource(name: string) {
-		console.log('[Nunjucks] trying to resolve include:', name);
-		const src = super.getSource(name);
-		if (!src) {
-			console.warn('[Nunjucks] include not found:', name);
-		} else {
-			console.log('[Nunjucks] resolved include:', src.path);
-		}
-		return src;
-	}
-}
-
-function createEnvForUser(store: mailStore, user: api_user) {
-	const userBasePath = path.join(store.configpath, user.idname);
-
-	class ProtectingLoader extends DebugLoader {
-		getSource(name: string) {
-			console.log('[Nunjucks] trying to resolve include:', name);
-			const src = super.getSource(name);
-			if (!src) {
-				console.warn('[Nunjucks] include not found:', name);
-				return src;
-			} else {
-				console.log('[Nunjucks] resolved include:', src.path);
-				// Apply variable protection to the included content
-				const protectedSrc = {
-					...src,
-					src: env.getFilter('protect_variables')(src.src) as string
-				};
-				return protectedSrc;
-			}
-		}
-	}
-
-	const env = new nunjucks.Environment(
-		new ProtectingLoader(userBasePath, {
-			noCache: true,
-			watch: false
-		}),
-		{
-			autoescape: true,
-			trimBlocks: true,
-			lstripBlocks: true
-		}
-	);
-
-	// const re = /(\{%(?!\s*block|\s*endblock|\s*extends|\s*include)[\s\S]*?%\})/g;
-	const re = /(\{%(?!\s*block|\s*endblock|\s*extends|\s*include|\s*import)[\s\S]*?%\})/g;
-
-	env.addFilter('protect_variables', (content: string) => {
-		console.log(`CONTENT BEFORE: ${content}`);
-		const out = content
-			.replace(/(\{\{[\s\S]*?\}\})/g, (m) => `<!--VAR:${Buffer.from(m).toString('base64')}-->`)
-			.replace(
-				/(\{%(?!\s*block|\s*endblock|\s*extends|\s*include|\s*import)[\s\S]*?%\})/g,
-				(m) => `<!--FLOW:${Buffer.from(m).toString('base64')}-->`
-			);
-		console.log(`CONTENT AFTER: ${out}`);
-		return out;
-	});
-
-	/*
-	env.addFilter('protect_variables', (content: string) => {
-		console.log(`CONTENT BEFORE: ${content}`);
-		const out = content
-			.replace(/(\{\{[\s\S]*?\}\})/g, (m) => `<!--VAR:${Buffer.from(m).toString('base64')}-->`)
-			.replace(re, (m) => `< !--FLOW: ${Buffer.from(m).toString('base64')}-- >`);
-		console.log(`CONTENT AFTER: ${out}`);
-		return out;
-	});
-*/
-	env.addFilter('restore_variables', (content: string) => {
-		return content
-			.replace(/<!--VAR:(.*?)-->/g, (_m, enc) => Buffer.from(enc, 'base64').toString('utf8'))
-			.replace(/<!--FLOW:(.*?)-->/g, (_m, enc) => Buffer.from(enc, 'base64').toString('utf8'));
-	});
-
-	return env;
-}
-
 async function _load_template(
 	store: mailStore,
 	filename: string,
@@ -191,7 +110,7 @@ async function _load_template(
 	user: api_user,
 	domain: api_domain,
 	locale: string | null,
-	type: 'form-templates' | 'tx-templates'
+	type: 'form-template' | 'tx-template'
 ): Promise<LoadedTemplate> {
 	const rootDir = path.join(store.configpath, user.idname, domain.name, type);
 
@@ -210,24 +129,22 @@ async function _load_template(
 		throw new Error(`Missing template file "${absPath}"`);
 	}
 
-	const loader = createEnvForUser(store, user);
 	const raw = fs.readFileSync(absPath, 'utf8');
 	if (!raw.trim()) {
 		throw new Error(`Template file "${absPath}" is empty`);
 	}
 
 	try {
-		// Protect variables in the main template
-		const protectedTpl = loader.getFilter('protect_variables')(raw) as string;
-		const relName = path.relative(rootDir, absPath);
+		const baseUserPath = path.join(store.configpath, user.idname);
+		const templateKey = path.relative(baseUserPath, absPath);
+		if (!templateKey) {
+			throw new Error(`Unable to resolve template path for "${absPath}"`);
+		}
 
-		// Process includes/extends - the loader will protect variables in included files
-		const merged = (loader as any).renderString(protectedTpl, {}, { path: relName });
+		const processor = new Unyuck({ basePath: baseUserPath });
+		const merged = processor.flattenNoAssets(templateKey);
 
-		// Restore all variables in the final merged template
-		const restored = loader.getFilter('restore_variables')(merged) as string;
-
-		const { html, assets } = extractAndReplaceAssets(restored, {
+		const { html, assets } = extractAndReplaceAssets(merged, {
 			basePath: path.join(store.configpath, user.idname),
 			type,
 			domainName: domain.name,
@@ -245,14 +162,14 @@ export async function loadFormTemplate(store: mailStore, form: api_form_type): P
 	const { user, domain } = await user_and_domain(form.domain_id);
 	const locale = form.locale || domain.locale || user.locale || null;
 
-	return _load_template(store, form.filename, '', user, domain, locale, 'form-templates');
+	return _load_template(store, form.filename, '', user, domain, locale, 'form-template');
 }
 
-export async function loadTxTemplate(store: mailStore, template: api_template_type): Promise<LoadedTemplate> {
+export async function loadTxTemplate(store: mailStore, template: api_txmail_type): Promise<LoadedTemplate> {
 	const { user, domain } = await user_and_domain(template.domain_id);
 	const locale = template.locale || domain.locale || user.locale || null;
 
-	return _load_template(store, template.filename, '', user, domain, locale, 'tx-templates');
+	return _load_template(store, template.filename, '', user, domain, locale, 'tx-template');
 }
 
 export async function importData(store: mailStore) {
@@ -269,10 +186,16 @@ export async function importData(store: mailStore) {
 			return;
 		}
 
+		const pendingUserDomains: Array<{ user_id: number; domain: number }> = [];
 		if (records.user) {
 			store.print_debug('Creating user records');
 			for (const record of records.user) {
-				await api_user.upsert(record);
+				const { domain, ...userWithoutDomain } = record;
+
+				await api_user.upsert({ ...userWithoutDomain, domain: null });
+				if (typeof domain === 'number') {
+					pendingUserDomains.push({ user_id: record.user_id, domain });
+				}
 			}
 		}
 		if (records.domain) {
@@ -281,13 +204,19 @@ export async function importData(store: mailStore) {
 				await api_domain.upsert(record);
 			}
 		}
+		if (pendingUserDomains.length) {
+			store.print_debug('Linking user default domains');
+			for (const entry of pendingUserDomains) {
+				await api_user.update({ domain: entry.domain }, { where: { user_id: entry.user_id } });
+			}
+		}
 		if (records.template) {
 			store.print_debug('Creating template records');
 			for (const record of records.template) {
-				const fixed = await upsert_template(record);
+				const fixed = await upsert_txmail(record);
 				if (!fixed.template) {
 					const { html, assets } = await loadTxTemplate(store, fixed);
-					await fixed.update({ template: html, assets });
+					await fixed.update({ template: html, files: assets });
 				}
 			}
 		}

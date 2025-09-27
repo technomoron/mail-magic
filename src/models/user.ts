@@ -7,7 +7,7 @@ export const api_user_schema = z.object({
 	token: z.string().min(1),
 	name: z.string().min(1),
 	email: z.string().email(),
-	domain: z.number().int().nonnegative().optional(),
+	domain: z.number().int().nonnegative().nullable().optional(),
 	locale: z.string().default('')
 });
 

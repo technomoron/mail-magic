@@ -3,7 +3,7 @@ import path from 'path';
 
 import { EnvLoader, envConfig } from '@technomoron/env-loader';
 import { createTransport, Transporter } from 'nodemailer';
-import { Sequelize, Dialect } from 'sequelize';
+import { Sequelize } from 'sequelize';
 
 import { connect_api_db } from '../models/db.js';
 import { importData } from '../models/init.js';
@@ -49,7 +49,7 @@ function create_mail_transport(env: envConfig<typeof envOptions>): Transporter {
 export interface ImailStore {
 	env: envConfig<typeof envOptions>;
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
-	keys: Record<string, any>;
+	keys: Record<string, api_key>;
 	configpath: string;
 }
 
@@ -57,7 +57,7 @@ export class mailStore implements ImailStore {
 	env!: envConfig<typeof envOptions>;
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
 	api_db: Sequelize | null = null;
-	keys: Record<string, any> = {};
+	keys: Record<string, api_key> = {};
 	configpath = '';
 
 	print_debug(msg: string) {
@@ -74,7 +74,7 @@ export class mailStore implements ImailStore {
 		const keyfile = path.resolve(cfgpath, 'api-keys.json');
 		if (fs.existsSync(keyfile)) {
 			const raw = fs.readFileSync(keyfile, 'utf-8');
-			const jsonData = JSON.parse(raw);
+			const jsonData = JSON.parse(raw) as Record<string, api_key>;
 			this.print_debug(`API Key Database loaded from ${keyfile}`);
 			return jsonData;
 		}
@@ -110,7 +110,7 @@ export class mailStore implements ImailStore {
 		return this;
 	}
 
-	public get_api_key(key: string): Record<string, any> {
+	public get_api_key(key: string): api_key | null {
 		return this.keys[key] || null;
 	}
 }

@@ -1,15 +1,6 @@
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
-import { normalizeSlug } from '../util';
-
-/*
-	api_domain.addHook('beforeValidate', (domain: api_domain) => {
-		domain.name = normalizeSlug(domain.name);
-		domain.locale = normalizeSlug(domain.locale);
-	});
-*/
-
 export const api_domain_schema = z.object({
 	domain_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),

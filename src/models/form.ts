@@ -3,8 +3,8 @@ import path from 'path';
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
-import { StoredFile } from '../types';
-import { user_and_domain, normalizeSlug } from '../util';
+import { StoredFile } from '../types.js';
+import { user_and_domain, normalizeSlug } from '../util.js';
 
 export const api_form_schema = z.object({
 	form_id: z.number().int().nonnegative(),
@@ -131,10 +131,10 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				allowNull: false,
 				defaultValue: '[]',
 				get() {
-					const raw = this.getDataValue('files') as unknown as string;
-					return raw ? JSON.parse(raw) : [];
+					const raw = this.getDataValue('files') as string | null;
+					return raw ? (JSON.parse(raw) as StoredFile[]) : [];
 				},
-				set(value: any) {
+				set(value: StoredFile[] | null | undefined) {
 					this.setDataValue('files', JSON.stringify(value ?? []));
 				}
 			}
@@ -169,12 +169,12 @@ export async function upsert_form(record: api_form_type): Promise<api_form> {
 	}
 
 	if (!record.filename) {
-		const parts = [idname, dname, 'form-templates'];
+		const parts = [idname, dname, 'form-template'];
 		if (locale) parts.push(locale);
 		parts.push(name);
 		record.filename = path.join(...parts);
 	} else {
-		record.filename = path.join(idname, dname, 'form-templates', record.filename);
+		record.filename = path.join(idname, dname, 'form-template', record.filename);
 	}
 	if (!record.filename.endsWith('.njk')) {
 		record.filename += '.njk';

@@ -1,7 +1,4 @@
 import { ApiRequest } from '@technomoron/api-server-base';
-import { envConfig } from '@technomoron/env-loader';
-import { Transporter } from 'nodemailer';
-// import { Sequelize, Dialect } from 'sequelize';
 
 import { api_domain } from './models/domain.js';
 import { api_user } from './models/user.js';
@@ -27,4 +24,10 @@ export interface StoredFile {
 	filename: string;
 	path: string;
 	cid?: string;
+}
+
+export interface UploadedFile {
+	originalname: string;
+	path: string;
+	fieldname: string;
 }

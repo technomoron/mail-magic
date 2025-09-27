@@ -1,8 +1,9 @@
-import pluginVue from 'eslint-plugin-vue';
-import pluginPrettier from 'eslint-plugin-prettier';
-import pluginImport from 'eslint-plugin-import';
 import tsParser from '@typescript-eslint/parser';
 import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
+import pluginImport from 'eslint-plugin-import';
+import pluginPrettier from 'eslint-plugin-prettier';
+import pluginVue from 'eslint-plugin-vue';
+import jsoncParser from 'jsonc-eslint-parser';
 
 export default [
 	{
@@ -48,16 +49,21 @@ export default [
 	},
 	{
 		files: ['*.json'],
+		languageOptions: {
+			parser: jsoncParser
+		},
 		plugins: {
 			prettier: pluginPrettier
 		},
 		rules: {
 			quotes: ['error', 'double'], // Enforce double quotes in JSON
-			'prettier/prettier': 'error'
+			'prettier/prettier': 'error',
+			'@typescript-eslint/no-unused-expressions': 'off',
+			'@typescript-eslint/no-unused-vars': 'off'
 		}
 	},
 	{
-		files: ['**/*.{ts,mts,tsx,js}'],
+		files: ['**/*.{ts,mts,tsx,js,mjs,cjs}'],
 		languageOptions: {
 			parser: tsParser,
 			parserOptions: {
@@ -90,8 +96,9 @@ export default [
 					alphabetize: { order: 'asc', caseInsensitive: true }
 				}
 			],
-			'@typescript-eslint/no-explicit-any': 'off',
-			'@typescript-eslint/no-unused-vars': 'off'
+			'@typescript-eslint/no-explicit-any': ['warn'],
+			'@typescript-eslint/no-unused-vars': ['warn'],
+			'@typescript-eslint/no-require-imports': 'off'
 		}
 	}
 ];

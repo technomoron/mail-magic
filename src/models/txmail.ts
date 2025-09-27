@@ -3,10 +3,10 @@ import path from 'path';
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
-import { StoredFile } from '../types';
-import { user_and_domain, normalizeSlug } from '../util';
+import { StoredFile } from '../types.js';
+import { user_and_domain, normalizeSlug } from '../util.js';
 
-export const api_template_schema = z.object({
+export const api_txmail_schema = z.object({
 	template_id: z.number().int().nonnegative(),
 	user_id: z.number().int().nonnegative(),
 	domain_id: z.number().int().nonnegative(),
@@ -28,8 +28,8 @@ export const api_template_schema = z.object({
 		.default([])
 });
 
-export type api_template_type = z.infer<typeof api_template_schema>;
-export class api_template extends Model {
+export type api_txmail_type = z.infer<typeof api_txmail_schema>;
+export class api_txmail extends Model {
 	declare template_id: number;
 	declare user_id: number;
 	declare domain_id: number;
@@ -43,7 +43,7 @@ export class api_template extends Model {
 	declare files: StoredFile[];
 }
 
-export async function upsert_template(record: api_template_type): Promise<api_template> {
+export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail> {
 	const { user, domain } = await user_and_domain(record.domain_id);
 
 	const idname = normalizeSlug(user.idname);
@@ -56,24 +56,24 @@ export async function upsert_template(record: api_template_type): Promise<api_te
 	}
 
 	if (!record.filename) {
-		const parts = [idname, dname, 'tx-templates'];
+		const parts = [idname, dname, 'tx-template'];
 		if (locale) parts.push(locale);
 		parts.push(name);
 		record.filename = path.join(...parts);
 	} else {
-		record.filename = path.join(idname, dname, 'tx-templates', record.filename);
+		record.filename = path.join(idname, dname, 'tx-template', record.filename);
 	}
 	if (!record.filename.endsWith('.njk')) {
 		record.filename += '.njk';
 	}
 	record.filename = path.normalize(record.filename);
 
-	const [instance] = await api_template.upsert(record);
+	const [instance] = await api_txmail.upsert(record);
 	return instance;
 }
 
-export async function init_api_template(api_db: Sequelize): Promise<typeof api_template> {
-	api_template.init(
+export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txmail> {
+	api_txmail.init(
 		{
 			template_id: {
 				type: DataTypes.INTEGER,
@@ -148,17 +148,17 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 				allowNull: false,
 				defaultValue: '[]',
 				get() {
-					const raw = this.getDataValue('files') as unknown as string;
-					return raw ? JSON.parse(raw) : [];
+					const raw = this.getDataValue('files') as string | null;
+					return raw ? (JSON.parse(raw) as StoredFile[]) : [];
 				},
-				set(value: any) {
+				set(value: StoredFile[] | null | undefined) {
 					this.setDataValue('files', JSON.stringify(value ?? []));
 				}
 			}
 		},
 		{
 			sequelize: api_db,
-			tableName: 'template',
+			tableName: 'txmail',
 			charset: 'utf8mb4',
 			collate: 'utf8mb4_unicode_ci',
 			indexes: [
@@ -170,7 +170,7 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 		}
 	);
 
-	api_template.addHook('beforeValidate', async (template: api_template) => {
+	api_txmail.addHook('beforeValidate', async (template: api_txmail) => {
 		const { user, domain } = await user_and_domain(template.domain_id);
 
 		console.log('HERE');
@@ -183,7 +183,7 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 		template.slug ||= `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
 
 		if (!template.filename) {
-			const parts = [idname, dname, 'tx-templates'];
+			const parts = [idname, dname, 'tx-template'];
 			if (locale) parts.push(locale);
 			parts.push(name);
 			template.filename = parts.join('/');
@@ -195,5 +195,5 @@ export async function init_api_template(api_db: Sequelize): Promise<typeof api_t
 		console.log(`FILENAME IS: ${template.filename}`);
 	});
 
-	return api_template;
+	return api_txmail;
 }

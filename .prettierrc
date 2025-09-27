@@ -1,5 +1,4 @@
 {
-	"plugins": ["prettier-plugin-twig-melody"],
 	"tabWidth": 4,
 	"useTabs": true,
 	"singleQuote": true,
@@ -11,11 +10,5 @@
 	"printWidth": 120,
 	"vueIndentScriptAndStyle": false,
 	"htmlWhitespaceSensitivity": "ignore",
-	"singleAttributePerLine": false,
-  "overrides": [
-    {
-      "files": "*.njk",
-      "options": { "parser": "html" }
-    }
-  ]
+	"singleAttributePerLine": false
 }

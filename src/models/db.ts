@@ -1,20 +1,18 @@
-import fs from 'fs';
-import path from 'path';
-
 import { Sequelize } from 'sequelize';
-import { z } from 'zod';
 
 import { mailStore } from './../store/store.js';
-import { init_api_domain, api_domain, api_domain_schema } from './domain.js';
-import { init_api_form, api_form, api_form_schema, upsert_form } from './form.js';
-import { loadTxTemplate, loadFormTemplate, importData } from './init';
-import { init_api_template, api_template, api_template_schema, upsert_template } from './template.js';
-import { init_api_user, api_user, api_user_schema } from './user.js';
+import { init_api_domain, api_domain } from './domain.js';
+import { init_api_form, api_form } from './form.js';
+import { importData } from './init.js';
+import { init_api_txmail, api_txmail } from './txmail.js';
+import { init_api_user, api_user } from './user.js';
+
+import type { Dialect, Options } from 'sequelize';
 
 export async function init_api_db(db: Sequelize, store: mailStore) {
 	await init_api_user(db);
 	await init_api_domain(db);
-	await init_api_template(db);
+	await init_api_txmail(db);
 	await init_api_form(db);
 
 	// User ↔ Domain
@@ -28,21 +26,21 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 	});
 
 	// User ↔ Template
-	api_user.hasMany(api_template, {
+	api_user.hasMany(api_txmail, {
 		foreignKey: 'user_id',
-		as: 'templates'
+		as: 'txmail'
 	});
-	api_template.belongsTo(api_user, {
+	api_txmail.belongsTo(api_user, {
 		foreignKey: 'user_id',
 		as: 'user'
 	});
 
 	// Domain ↔ Template
-	api_domain.hasMany(api_template, {
+	api_domain.hasMany(api_txmail, {
 		foreignKey: 'domain_id',
-		as: 'templates'
+		as: 'txmail'
 	});
-	api_template.belongsTo(api_domain, {
+	api_txmail.belongsTo(api_domain, {
 		foreignKey: 'domain_id',
 		as: 'domain'
 	});
@@ -84,9 +82,9 @@ export async function connect_api_db(store: mailStore): Promise<Sequelize> {
 	console.log('DB INIT');
 
 	const env = store.env;
-	const dbparams: any = {
+	const dbparams: Options = {
 		logging: false, // env.DB_LOG ? console.log : false,
-		dialect: env.DB_TYPE,
+		dialect: env.DB_TYPE as Dialect,
 		dialectOptions: {
 			charset: 'utf8mb4'
 		},

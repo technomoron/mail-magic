@@ -1,5 +1,5 @@
-import { api_domain } from './models/domain';
-import { api_user } from './models/user';
+import { api_domain } from './models/domain.js';
+import { api_user } from './models/user.js';
 
 /**
  * Normalize a string into a safe identifier for slugs, filenames, etc.
