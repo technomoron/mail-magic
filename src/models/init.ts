@@ -112,10 +112,10 @@ async function _load_template(
 	locale: string | null,
 	type: 'form-template' | 'tx-template'
 ): Promise<LoadedTemplate> {
-	const rootDir = path.join(store.configpath, user.idname, domain.name, type);
+	const rootDir = path.join(store.configpath, domain.name, type);
 
 	let relFile = filename;
-	const prefix = path.join(user.idname, domain.name, type) + path.sep;
+	const prefix = path.join(domain.name, type) + path.sep;
 	if (filename.startsWith(prefix)) {
 		relFile = filename.slice(prefix.length);
 	}
@@ -135,17 +135,17 @@ async function _load_template(
 	}
 
 	try {
-		const baseUserPath = path.join(store.configpath, user.idname);
-		const templateKey = path.relative(baseUserPath, absPath);
+		const baseConfigPath = store.configpath;
+		const templateKey = path.relative(baseConfigPath, absPath);
 		if (!templateKey) {
 			throw new Error(`Unable to resolve template path for "${absPath}"`);
 		}
 
-		const processor = new Unyuck({ basePath: baseUserPath });
+		const processor = new Unyuck({ basePath: baseConfigPath });
 		const merged = processor.flattenNoAssets(templateKey);
 
 		const { html, assets } = extractAndReplaceAssets(merged, {
-			basePath: path.join(store.configpath, user.idname),
+			basePath: baseConfigPath,
 			type,
 			domainName: domain.name,
 			locale,

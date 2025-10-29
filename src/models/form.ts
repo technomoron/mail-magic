@@ -169,12 +169,12 @@ export async function upsert_form(record: api_form_type): Promise<api_form> {
 	}
 
 	if (!record.filename) {
-		const parts = [idname, dname, 'form-template'];
+		const parts = [dname, 'form-template'];
 		if (locale) parts.push(locale);
 		parts.push(name);
 		record.filename = path.join(...parts);
 	} else {
-		record.filename = path.join(idname, dname, 'form-template', record.filename);
+		record.filename = path.join(dname, 'form-template', record.filename);
 	}
 	if (!record.filename.endsWith('.njk')) {
 		record.filename += '.njk';

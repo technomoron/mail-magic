@@ -65,7 +65,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		const formSlug = normalizeSlug(idname);
 		const localeSlug = normalizeSlug(resolvedLocale || domain.locale || user.locale || '');
 		const slug = `${userSlug}-${domainSlug}${localeSlug ? '-' + localeSlug : ''}-${formSlug}`;
-		const filenameParts = [userSlug, domainSlug, 'form-template'];
+		const filenameParts = [domainSlug, 'form-template'];
 		if (localeSlug) {
 			filenameParts.push(localeSlug);
 		}

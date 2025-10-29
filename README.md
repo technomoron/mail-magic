@@ -24,7 +24,7 @@ During development you can run `npm run dev` for a watch mode that recompiles on
 ## Configuration
 
 - **Environment variables** are defined in `src/store/envloader.ts`. Important settings include SMTP credentials, API host/port, the config directory path, and database options.
-- **Config directory** (`CONFIG_PATH`) contains JSON seed data (`init-data.json`), optional API key files, and template assets. Review `config-example/` for the recommended layout, in particular the `form-template/` and `tx-template/` folders used for compiled Nunjucks templates.
+- **Config directory** (`CONFIG_PATH`) contains JSON seed data (`init-data.json`), optional API key files, and template assets. Each domain now lives directly under the config root (for example `config/example.com/form-template/…`). Review `config-example/` for the recommended layout, in particular the `form-template/` and `tx-template/` folders used for compiled Nunjucks templates.
 - **Database** defaults to SQLite (`maildata.db`). You can switch dialects by updating the environment options if your deployment requires another database.
 
 When `DB_AUTO_RELOAD` is enabled the service watches `init-data.json` and refreshes templates and forms without a restart.

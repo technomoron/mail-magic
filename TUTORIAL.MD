@@ -29,9 +29,9 @@ From now on the tutorial assumes `${CONFIG_ROOT}` is the root of the custom conf
 
 ```bash
 mkdir -p \
-  "$CONFIG_ROOT"/myorg/myorg.com/{form-template,tx-template} \
-  "$CONFIG_ROOT"/myorg/myorg.com/form-template/{partials,assets} \
-  "$CONFIG_ROOT"/myorg/myorg.com/tx-template/{partials,assets}
+  "$CONFIG_ROOT"/myorg.com/{form-template,tx-template} \
+  "$CONFIG_ROOT"/myorg.com/form-template/{partials,assets} \
+  "$CONFIG_ROOT"/myorg.com/tx-template/{partials,assets}
 ```
 
 The resulting tree should look like this (logo placement shown for clarity — add the file in step 4):
@@ -39,21 +39,20 @@ The resulting tree should look like this (logo placement shown for clarity — a
 ```
 myorg-config/
 ├── init-data.json
-└── myorg/
-    └── myorg.com/
-        ├── form-template/
-        │   ├── assets/
-        │   ├── contact.njk
-        │   └── partials/
-        │       ├── footer.njk
-        │       └── header.njk
-        └── tx-template/
-            ├── assets/
-            │   └── logo.png
-            ├── partials/
-            │   ├── footer.njk
-            │   └── header.njk
-            └── welcome.njk
+└── myorg.com/
+    ├── form-template/
+    │   ├── assets/
+    │   ├── contact.njk
+    │   └── partials/
+    │       ├── footer.njk
+    │       └── header.njk
+    └── tx-template/
+        ├── assets/
+        │   └── logo.png
+        ├── partials/
+        │   ├── footer.njk
+        │   └── header.njk
+        └── welcome.njk
 ```
 
 > **Tip:** If you want to share partials between templates, keep file names aligned (e.g. identical `header.njk` content under both `form-template/partials/` and `tx-template/partials/`).
@@ -122,7 +121,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 
 ### 4.1 Transactional email partials (`tx-template/partials`)
 
-`$CONFIG_ROOT/myorg/myorg.com/tx-template/partials/header.njk`
+`$CONFIG_ROOT/myorg.com/tx-template/partials/header.njk`
 
 ```njk
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#102347;color:#ffffff;padding:24px 0;font-family:'Segoe UI',Tahoma,sans-serif;">
@@ -135,7 +134,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 </table>
 ```
 
-`$CONFIG_ROOT/myorg/myorg.com/tx-template/partials/footer.njk`
+`$CONFIG_ROOT/myorg.com/tx-template/partials/footer.njk`
 
 ```njk
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;color:#6b7280;padding:24px 0;font-family:'Segoe UI',Tahoma,sans-serif;font-size:12px;">
@@ -150,7 +149,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 
 ### 4.2 Transactional welcome template (`tx-template/welcome.njk`)
 
-`$CONFIG_ROOT/myorg/myorg.com/tx-template/welcome.njk`
+`$CONFIG_ROOT/myorg.com/tx-template/welcome.njk`
 
 ```njk
 {% include 'partials/header.njk' %}
@@ -189,7 +188,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 
 ### 4.3 Contact form partials (`form-template/partials`)
 
-`$CONFIG_ROOT/myorg/myorg.com/form-template/partials/header.njk`
+`$CONFIG_ROOT/myorg.com/form-template/partials/header.njk`
 
 ```njk
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#102347;color:#ffffff;padding:18px 0;font-family:Arial,sans-serif;">
@@ -199,7 +198,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 </table>
 ```
 
-`$CONFIG_ROOT/myorg/myorg.com/form-template/partials/footer.njk`
+`$CONFIG_ROOT/myorg.com/form-template/partials/footer.njk`
 
 ```njk
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;color:#6b7280;padding:16px 0;font-family:Arial,sans-serif;font-size:12px;">
@@ -213,7 +212,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 
 ### 4.4 Contact form template (`form-template/contact.njk`)
 
-`$CONFIG_ROOT/myorg/myorg.com/form-template/contact.njk`
+`$CONFIG_ROOT/myorg.com/form-template/contact.njk`
 
 ```njk
 {% include 'partials/header.njk' %}
@@ -262,8 +261,8 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 Copy or design a square PNG logo and add it to both asset folders so the inline references resolve (Mail Magic resolves assets per template type):
 
 ```bash
-cp path/to/myorg-logo.png "$CONFIG_ROOT"/myorg/myorg.com/tx-template/assets/logo.png
-cp path/to/myorg-logo.png "$CONFIG_ROOT"/myorg/myorg.com/form-template/assets/logo.png
+cp path/to/myorg-logo.png "$CONFIG_ROOT"/myorg.com/tx-template/assets/logo.png
+cp path/to/myorg-logo.png "$CONFIG_ROOT"/myorg.com/form-template/assets/logo.png
 ```
 
 The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach the image and rewrite the markup to `cid:logo.png` when messages are flattened.

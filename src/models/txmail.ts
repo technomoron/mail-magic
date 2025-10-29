@@ -56,12 +56,12 @@ export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail
 	}
 
 	if (!record.filename) {
-		const parts = [idname, dname, 'tx-template'];
+		const parts = [dname, 'tx-template'];
 		if (locale) parts.push(locale);
 		parts.push(name);
 		record.filename = path.join(...parts);
 	} else {
-		record.filename = path.join(idname, dname, 'tx-template', record.filename);
+		record.filename = path.join(dname, 'tx-template', record.filename);
 	}
 	if (!record.filename.endsWith('.njk')) {
 		record.filename += '.njk';
@@ -175,15 +175,14 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 
 		console.log('HERE');
 
-		const idname = normalizeSlug(user.idname);
 		const dname = normalizeSlug(domain.name);
 		const name = normalizeSlug(template.name);
 		const locale = normalizeSlug(template.locale || domain.locale || user.locale || '');
 
-		template.slug ||= `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
+		template.slug ||= `${normalizeSlug(user.idname)}-${dname}${locale ? '-' + locale : ''}-${name}`;
 
 		if (!template.filename) {
-			const parts = [idname, dname, 'tx-template'];
+			const parts = [dname, 'tx-template'];
 			if (locale) parts.push(locale);
 			parts.push(name);
 			template.filename = parts.join('/');

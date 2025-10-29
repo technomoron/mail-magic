@@ -1,4 +1,10 @@
-CHANGES
+Version 1.0.5 (2025-10-29)
+
+- Store compiled templates and assets under domain-rooted directories inside
+  `CONFIG_PATH`, removing the redundant user segment while keeping slugs and
+  API behaviour unchanged.
+- Update documentation and examples to reflect the domain-first configuration
+  layout.
 
 Version 1.0.4 (2025-09-27)
 
@@ -22,4 +28,3 @@ Version 1.0.3 (2025-09-26)
   to match the renamed package and repository.
 - Added workspace metadata and sample templates so pnpm and new installs pick up example
   assets.
-

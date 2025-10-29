@@ -6,3 +6,4 @@ pnpm-lock.yaml
 maildata.db
 config/
 uploads/
+AGENTS.md
