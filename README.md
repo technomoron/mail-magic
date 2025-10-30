@@ -29,6 +29,12 @@ During development you can run `npm run dev` for a watch mode that recompiles on
 
 When `DB_AUTO_RELOAD` is enabled the service watches `init-data.json` and refreshes templates and forms without a restart.
 
+### Template assets and inline resources
+
+- Keep any non-inline files (images, attachments, etc.) under `config/<domain>/assets`. Mail Magic rewrites `asset('logo.png')` to the public route `/asset/<domain>/logo.png` (or whatever you set via `ASSET_ROUTE`).
+- Pass `true` as the second argument when you want to embed a file as an inline CID attachment: `asset('logo.png', true)` stores the file in Nodemailer and rewrites the HTML to reference `cid:logo.png`.
+- Avoid mixing template-type folders for assets; everything that should be linked externally belongs in the shared `<domain>/assets` tree so it can be served for both form and transactional templates.
+
 ## API Overview
 
 | Method | Path                | Description                                   |

@@ -28,48 +28,45 @@ const init_data_schema = z.object({
 type InitData = z.infer<typeof init_data_schema>;
 
 /**
- * Resolve an asset file within ./config/<userid>/<domain>/<type>/assets
+ * Resolve an asset file within ./config/<domain>/assets
  */
-function resolveAsset(
-	basePath: string,
-	type: 'form-template' | 'tx-template',
-	domainName: string,
-	assetName: string,
-	locale?: string | null
-): string | null {
-	const searchPaths: string[] = [];
-
-	// always domain-scoped
-	if (locale) {
-		searchPaths.push(path.join(domainName, type, locale));
+function resolveAsset(basePath: string, domainName: string, assetName: string): string | null {
+	const assetsRoot = path.join(basePath, domainName, 'assets');
+	if (!fs.existsSync(assetsRoot)) {
+		return null;
 	}
-	searchPaths.push(path.join(domainName, type));
-
-	// no domain fallback → do not leak assets between domains
-	// but allow locale fallbacks inside type
-	if (locale) {
-		searchPaths.push(path.join(type, locale));
+	const resolvedRoot = path.resolve(assetsRoot);
+	const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
+	const candidate = path.resolve(assetsRoot, assetName);
+	if (!candidate.startsWith(normalizedRoot)) {
+		return null;
 	}
-	searchPaths.push(type);
-
-	for (const p of searchPaths) {
-		const candidate = path.join(basePath, p, 'assets', assetName);
-		if (fs.existsSync(candidate)) {
-			return candidate;
-		}
+	if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+		return candidate;
 	}
 	return null;
+}
+
+function buildAssetUrl(baseUrl: string, route: string, domainName: string, assetPath: string): string {
+	const trimmedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+	const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
+	const encodedDomain = encodeURIComponent(domainName);
+	const encodedPath = assetPath
+		.split('/')
+		.filter((segment) => segment.length > 0)
+		.map((segment) => encodeURIComponent(segment))
+		.join('/');
+	const trailing = encodedPath ? `/${encodedPath}` : '';
+	return `${trimmedBase}${normalizedRoute}/${encodedDomain}${trailing}`;
 }
 
 function extractAndReplaceAssets(
 	html: string,
 	opts: {
 		basePath: string;
-		type: 'form-template' | 'tx-template';
 		domainName: string;
-		locale?: string | null;
 		apiUrl: string;
-		idname: string;
+		assetRoute: string;
 	}
 ): { html: string; assets: StoredFile[] } {
 	const regex = /src=["']asset\(['"]([^'"]+)['"](?:,\s*(true|false|[01]))?\)["']/g;
@@ -77,7 +74,7 @@ function extractAndReplaceAssets(
 	const assets: StoredFile[] = [];
 
 	const replacedHtml = html.replace(regex, (_m, relPath: string, inlineFlag?: string) => {
-		const fullPath = resolveAsset(opts.basePath, opts.type, opts.domainName, relPath, opts.locale ?? undefined);
+		const fullPath = resolveAsset(opts.basePath, opts.domainName, relPath);
 		if (!fullPath) {
 			throw new Error(`Missing asset "${relPath}"`);
 		}
@@ -91,13 +88,18 @@ function extractAndReplaceAssets(
 
 		assets.push(storedFile);
 
-		return isInline
-			? `src="cid:${relPath}"`
-			: `src="${opts.apiUrl}/image/${opts.idname}/${opts.type}/` +
-					`${opts.domainName ? opts.domainName + '/' : ''}` +
-					`${opts.locale ? opts.locale + '/' : ''}` +
-					relPath +
-					'"';
+		if (isInline) {
+			return `src="cid:${relPath}"`;
+		}
+
+		const domainAssetsRoot = path.join(opts.basePath, opts.domainName, 'assets');
+		const relativeToAssets = path.relative(domainAssetsRoot, fullPath);
+		if (!relativeToAssets || relativeToAssets.startsWith('..')) {
+			throw new Error(`Asset path escapes domain assets directory: ${fullPath}`);
+		}
+		const normalizedAssetPath = relativeToAssets.split(path.sep).join('/');
+		const assetUrl = buildAssetUrl(opts.apiUrl, opts.assetRoute, opts.domainName, normalizedAssetPath);
+		return `src="${assetUrl}"`;
 	});
 
 	return { html: replacedHtml, assets };
@@ -146,11 +148,9 @@ async function _load_template(
 
 		const { html, assets } = extractAndReplaceAssets(merged, {
 			basePath: baseConfigPath,
-			type,
 			domainName: domain.name,
-			locale,
 			apiUrl: store.env.API_URL,
-			idname: user.idname
+			assetRoute: store.env.ASSET_ROUTE
 		});
 
 		return { html, assets };

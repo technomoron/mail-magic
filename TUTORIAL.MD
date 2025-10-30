@@ -57,6 +57,8 @@ myorg-config/
 
 > **Tip:** If you want to share partials between templates, keep file names aligned (e.g. identical `header.njk` content under both `form-template/partials/` and `tx-template/partials/`).
 
+> **Assets vs inline:** Any file you want to serve as an external URL must live under `myorg.com/assets/`. The template helper `asset('logo.png')` will become `/asset/myorg.com/logo.png`. Use `asset('logo.png', true)` when you need the file embedded as a CID attachment instead.
+
 ---
 
 ## 3. Seed users, domains, and templates with `init-data.json`
@@ -65,49 +67,49 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
 
 ```json
 {
-  "user": [
-    {
-      "user_id": 10,
-      "idname": "myorg",
-      "token": "<generate-a-32-char-hex-token>",
-      "name": "MyOrg",
-      "email": "notifications@myorg.com"
-    }
-  ],
-  "domain": [
-    {
-      "domain_id": 10,
-      "user_id": 10,
-      "name": "myorg.com",
-      "sender": "MyOrg Mailer <noreply@myorg.com>"
-    }
-  ],
-  "template": [
-    {
-      "template_id": 100,
-      "user_id": 10,
-      "domain_id": 10,
-      "name": "welcome",
-      "slug": "welcome",
-      "locale": "",
-      "filename": "welcome.njk",
-      "sender": "support@myorg.com",
-      "subject": "Welcome to MyOrg",
-      "template": ""
-    }
-  ],
-  "form": [
-    {
-      "form_id": 100,
-      "user_id": 10,
-      "domain_id": 10,
-      "idname": "contact",
-      "filename": "contact.njk",
-      "sender": "MyOrg Support <support@myorg.com>",
-      "recipient": "contact@myorg.com",
-      "subject": "New contact form submission"
-    }
-  ]
+	"user": [
+		{
+			"user_id": 10,
+			"idname": "myorg",
+			"token": "<generate-a-32-char-hex-token>",
+			"name": "MyOrg",
+			"email": "notifications@myorg.com"
+		}
+	],
+	"domain": [
+		{
+			"domain_id": 10,
+			"user_id": 10,
+			"name": "myorg.com",
+			"sender": "MyOrg Mailer <noreply@myorg.com>"
+		}
+	],
+	"template": [
+		{
+			"template_id": 100,
+			"user_id": 10,
+			"domain_id": 10,
+			"name": "welcome",
+			"slug": "welcome",
+			"locale": "",
+			"filename": "welcome.njk",
+			"sender": "support@myorg.com",
+			"subject": "Welcome to MyOrg",
+			"template": ""
+		}
+	],
+	"form": [
+		{
+			"form_id": 100,
+			"user_id": 10,
+			"domain_id": 10,
+			"idname": "contact",
+			"filename": "contact.njk",
+			"sender": "MyOrg Support <support@myorg.com>",
+			"recipient": "contact@myorg.com",
+			"subject": "New contact form submission"
+		}
+	]
 }
 ```
 
@@ -274,18 +276,18 @@ The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach
 1. Restart `mail-magic` (or run `npm run dev`) so it picks up the new `CONFIG_PATH`.
 2. Confirm the bootstrap worked — the logs should mention importing user `myorg` and domain `myorg.com`.
 3. Trigger a transactional email:
-   ```bash
-   curl -X POST http://localhost:3000/v1/tx/message \
-     -H 'Content-Type: application/json' \
-     -H 'X-API-Token: <your 32-char token>' \
-     -d '{
-       "user": "myorg",
-       "domain": "myorg.com",
-       "slug": "welcome",
-       "to": "new.user@myorg.com",
-       "variables": {"first_name": "Kai", "cta_url": "https://myorg.com/confirm"}
-     }'
-   ```
+    ```bash
+    curl -X POST http://localhost:3000/v1/tx/message \
+      -H 'Content-Type: application/json' \
+      -H 'X-API-Token: <your 32-char token>' \
+      -d '{
+        "user": "myorg",
+        "domain": "myorg.com",
+        "slug": "welcome",
+        "to": "new.user@myorg.com",
+        "variables": {"first_name": "Kai", "cta_url": "https://myorg.com/confirm"}
+      }'
+    ```
 4. Trigger the contact form template the same way your frontend will post to `/v1/form/message` (Supply `form_id` or `idname` of `contact`). With `DB_AUTO_RELOAD=1`, editing the templates or assets is as simple as saving the file.
 
 You now have a clean, self-contained configuration for MyOrg that inherits Mail Magic behaviour while keeping templates, partials, and assets under version control in a dedicated folder.

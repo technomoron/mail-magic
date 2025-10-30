@@ -1,5 +1,6 @@
 import { pathToFileURL } from 'node:url';
 
+import { AssetAPI } from './api/assets.js';
 import { FormAPI } from './api/forms.js';
 import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
@@ -22,6 +23,7 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 		apiPort: env.API_PORT,
 		uploadPath: env.UPLOAD_PATH,
 		debug: env.DEBUG,
+		apiBasePath: '',
 		...overrides
 	};
 }
@@ -29,7 +31,7 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 export async function createMailMagicServer(overrides: MailMagicServerOptions = {}): Promise<MailMagicServerBootstrap> {
 	const store = await new mailStore().init();
 	const config = buildServerConfig(store, overrides);
-	const server = new mailApiServer(config, store).api(new MailerAPI()).api(new FormAPI());
+	const server = new mailApiServer(config, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
 
 	return { server, store, env: store.env };
 }

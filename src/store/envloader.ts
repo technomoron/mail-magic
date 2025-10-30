@@ -29,31 +29,14 @@ export const envOptions = defineEnvOptions({
 		description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',
 		default: 'http://localhost:3776'
 	},
+	ASSET_ROUTE: {
+		description: 'Route prefix exposed for config assets',
+		default: '/asset'
+	},
 	CONFIG_PATH: {
 		description: 'Path to directory where config files are located',
 		default: './config/'
 	},
-	/*
-	SWAGGER_ENABLE: {
-		description: 'Enable Swagger API docs',
-		default: 'false',
-		type: 'boolean'
-	},
-	SWAGGER_PATH: {
-		description: 'Path for swagger api docs',
-		default: '/api-docs'
-	},
-	*/
-	/*
-	JWT_SECRET: {
-		description: 'Secret key for generating JWT access tokens',
-		required: true
-	},
-	JWT_REFRESH: {
-		description: 'Secret key for generating JWT refresh tokens',
-		required: true
-	},
-	*/
 	DB_USER: {
 		description: 'Database username for API database'
 	},

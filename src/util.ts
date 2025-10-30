@@ -109,3 +109,29 @@ export function buildRequestMeta(rawReq: unknown): RequestMeta {
 		ip_chain: uniqueIps
 	};
 }
+
+export function decodeComponent(value: string | undefined): string {
+	if (!value) {
+		return '';
+	}
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+}
+
+export function sendFileAsync(
+	res: { sendFile: (path: string, cb: (err?: Error | null) => void) => void },
+	file: string
+): Promise<void> {
+	return new Promise((resolve, reject) => {
+		res.sendFile(file, (err) => {
+			if (err) {
+				reject(err);
+			} else {
+				resolve();
+			}
+		});
+	});
+}

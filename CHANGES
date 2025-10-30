@@ -1,3 +1,14 @@
+Version 1.0.6 (2025-11-06)
+
+- Added the dedicated asset API module so files stored under `config/<domain>/assets`
+  are served directly from `/asset/<domain>/<path>` (configurable via `ASSET_ROUTE`).
+- Tightened the template preprocessor to require non-inline assets to live in the
+  domain `assets/` folder and automatically rewrite `asset('logo.png')` calls to the
+  public route.
+- Clarified inline usage: `asset('logo.png', true)` continues to embed a CID-backed
+  attachment, while omitting the second argument keeps the file external and expects
+  it under `config/<domain>/assets`.
+
 Version 1.0.5 (2025-10-29)
 
 - Store compiled templates and assets under domain-rooted directories inside
