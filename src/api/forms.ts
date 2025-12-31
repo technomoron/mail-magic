@@ -132,7 +132,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		if (typeof vars === 'string') {
 			try {
 				parsedVars = JSON.parse(vars);
-			} catch (error) {
+			} catch {
 				throw new ApiError({ code: 400, message: 'Invalid JSON provided in "vars"' });
 			}
 		}
@@ -181,7 +181,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		try {
 			const info = await this.server.storage.transport!.sendMail(mailOptions);
 			this.server.storage.print_debug('Email sent: ' + info.response);
-		} catch (error) {
+		} catch (error: unknown) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			this.server.storage.print_debug('Error sending email: ' + errorMessage);
 			return [500, { error: `Error sending email: ${errorMessage}` }];

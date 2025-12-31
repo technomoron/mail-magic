@@ -27,7 +27,7 @@
 		"url": "https://github.com/technomoron/mail-magic/issues"
 	},
 	"dependencies": {
-		"@technomoron/api-server-base": "^1.0.40",
+		"@technomoron/api-server-base": "2.0.0-beta.15",
 		"@technomoron/env-loader": "^1.0.8",
 		"@technomoron/unyuck": "^1.0.4",
 		"bcryptjs": "^3.0.2",
