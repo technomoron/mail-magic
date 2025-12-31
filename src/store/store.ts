@@ -51,6 +51,7 @@ export interface ImailStore {
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
 	keys: Record<string, api_key>;
 	configpath: string;
+	deflocale?: string;
 }
 
 export class mailStore implements ImailStore {
@@ -59,6 +60,7 @@ export class mailStore implements ImailStore {
 	api_db: Sequelize | null = null;
 	keys: Record<string, api_key> = {};
 	configpath = '';
+	deflocale?: string;
 
 	print_debug(msg: string) {
 		if (this.env.DEBUG) {

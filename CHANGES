@@ -2,6 +2,8 @@ Version 1.0.6 (2025-11-06)
 
 - Added the dedicated asset API module so files stored under `config/<domain>/assets`
   are served directly from `/asset/<domain>/<path>` (configurable via `ASSET_ROUTE`).
+- Updated `@technomoron/api-server-base` to the latest 2.x beta and aligned mailer
+  server access with the new API server types.
 - Tightened the template preprocessor to require non-inline assets to live in the
   domain `assets/` folder and automatically rewrite `asset('logo.png')` calls to the
   public route.

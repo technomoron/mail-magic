@@ -1,107 +1,79 @@
 import fs from 'fs';
 import path from 'path';
 
-import { ApiModule } from '@technomoron/api-server-base';
+import { ApiError, ApiModule, ApiRoute } from '@technomoron/api-server-base';
 
 import { mailApiServer } from '../server.js';
 import { decodeComponent, sendFileAsync } from '../util.js';
 
-type AssetRequest = {
-	method?: string;
-	path?: string;
-};
+import type { ApiRequest } from '@technomoron/api-server-base';
 
-type AssetResponse = {
-	status: (code: number) => AssetResponse;
-	send: (body?: string) => void;
-	sendFile: (file: string, cb: (err?: Error | null) => void) => void;
-};
-
-function normalizeRoute(route: string): string {
-	if (!route) {
-		return '/asset';
-	}
-	const withSlash = route.startsWith('/') ? route : `/${route}`;
-	return withSlash.endsWith('/') ? withSlash.slice(0, -1) : withSlash;
-}
-
-function resolveAssetsRoot(configPath: string, domain: string): string | null {
-	const root = path.resolve(configPath);
-	const assetsRoot = path.resolve(root, domain, 'assets');
-	const normalizedRoot = root.endsWith(path.sep) ? root : root + path.sep;
-	if (!assetsRoot.startsWith(normalizedRoot)) {
-		return null;
-	}
-	return assetsRoot;
-}
-
-async function handleAssetRequest(
-	req: AssetRequest,
-	res: AssetResponse,
-	store: mailApiServer['storage']
-): Promise<void> {
-	if (req.method !== 'GET' && req.method !== 'HEAD') {
-		res.status(405).send('Method not allowed');
-		return;
-	}
-
-	const rawPath = req.path ?? '';
-	const trimmed = rawPath.replace(/^\/+/, '');
-	if (!trimmed) {
-		res.status(404).send('Missing asset path');
-		return;
-	}
-
-	const [rawDomain, ...rawSegments] = trimmed.split('/');
-	const domain = decodeComponent(rawDomain);
-	if (!domain) {
-		res.status(400).send('Invalid domain');
-		return;
-	}
-
-	const assetSegments = rawSegments.map((segment: string) => decodeComponent(segment)).filter(Boolean);
-	if (assetSegments.length === 0) {
-		res.status(404).send('Missing asset path');
-		return;
-	}
-
-	const assetsRoot = resolveAssetsRoot(store.configpath, domain);
-	if (!assetsRoot) {
-		res.status(400).send('Invalid domain');
-		return;
-	}
-
-	const requestedPath = path.join(...assetSegments);
-	const candidate = path.resolve(assetsRoot, requestedPath);
-	const normalizedRoot = assetsRoot.endsWith(path.sep) ? assetsRoot : assetsRoot + path.sep;
-	if (!candidate.startsWith(normalizedRoot)) {
-		res.status(400).send('Invalid asset path');
-		return;
-	}
-
-	if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) {
-		res.status(404).send('Asset not found');
-		return;
-	}
-
-	try {
-		await sendFileAsync(res, candidate);
-	} catch (error) {
-		const message = error instanceof Error ? error.message : 'Unable to send asset';
-		res.status(500).send(message);
-	}
-}
+const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
+const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 export class AssetAPI extends ApiModule<mailApiServer> {
-	override checkConfig(): boolean {
-		const route = normalizeRoute(this.server.storage.env.ASSET_ROUTE);
-		this.server.useExpress(route, (req: AssetRequest, res: AssetResponse) =>
-			handleAssetRequest(req, res, this.server.storage)
-		);
-		return true;
+	private async getAsset(apiReq: ApiRequest): Promise<[number, null]> {
+		const domain = decodeComponent(apiReq.req.params.domain);
+		if (!domain || !DOMAIN_PATTERN.test(domain)) {
+			throw new ApiError({ code: 404, message: 'Asset not found' });
+		}
+
+		const rawPath = apiReq.req.params[0] ?? '';
+		const segments = rawPath
+			.split('/')
+			.filter(Boolean)
+			.map((segment: string) => decodeComponent(segment));
+		if (!segments.length || segments.some((segment) => !SEGMENT_PATTERN.test(segment))) {
+			throw new ApiError({ code: 404, message: 'Asset not found' });
+		}
+
+		const assetsRoot = path.join(this.server.storage.configpath, domain, 'assets');
+		const resolvedRoot = path.resolve(assetsRoot);
+		const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
+		const candidate = path.resolve(assetsRoot, path.join(...segments));
+		if (!candidate.startsWith(normalizedRoot)) {
+			throw new ApiError({ code: 404, message: 'Asset not found' });
+		}
+
+		try {
+			await fs.promises.access(candidate, fs.constants.R_OK);
+		} catch {
+			throw new ApiError({ code: 404, message: 'Asset not found' });
+		}
+
+		const { res } = apiReq;
+		const originalStatus = res.status.bind(res);
+		const originalJson = res.json.bind(res);
+		res.status = ((code: number) => (res.headersSent ? res : originalStatus(code))) as typeof res.status;
+		res.json = ((body: unknown) => (res.headersSent ? res : originalJson(body))) as typeof res.json;
+
+		res.type(path.extname(candidate));
+		res.set('Cache-Control', 'public, max-age=300');
+
+		try {
+			await sendFileAsync(res, candidate);
+		} catch (err) {
+			this.server.storage.print_debug(
+				`Failed to serve asset ${domain}/${segments.join('/')}: ${err instanceof Error ? err.message : String(err)}`
+			);
+			if (!res.headersSent) {
+				throw new ApiError({ code: 500, message: 'Failed to stream asset' });
+			}
+		}
+
+		return [200, null];
 	}
 
-	override defineRoutes() {
-		return [];
+	override defineRoutes(): ApiRoute[] {
+		const route = this.server.storage.env.ASSET_ROUTE;
+		const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
+		return [
+			{
+				method: 'get',
+				path: `${normalizedRoute}/:domain/*`,
+				handler: (apiReq) => this.getAsset(apiReq),
+				auth: { type: 'none', req: 'any' }
+			}
+		];
 	}
 }

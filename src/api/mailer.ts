@@ -127,7 +127,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		if (typeof vars === 'string') {
 			try {
 				parsedVars = JSON.parse(vars);
-			} catch (error) {
+			} catch {
 				throw new ApiError({ code: 400, message: 'Invalid JSON provided in "vars"' });
 			}
 		}
@@ -140,7 +140,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			throw new ApiError({ code: 400, message: 'Invalid email address(es): ' + invalid.join(',') });
 		}
 		let template: api_txmail | null = null;
-		const deflocale = apireq.server.store.deflocale || '';
+		const deflocale = this.server.storage.deflocale || '';
 		const domain_id = apireq.domain!.domain_id;
 
 		try {
@@ -211,7 +211,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 					text,
 					attachments
 				};
-				await apireq.server.storage.transport.sendMail(sendargs);
+				await this.server.storage.transport!.sendMail(sendargs);
 			}
 			return [200, { Status: 'OK', Message: 'Emails sent successfully' }];
 		} catch (error: unknown) {
