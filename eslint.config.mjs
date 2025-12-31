@@ -1,9 +1,43 @@
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import pluginImport from 'eslint-plugin-import';
-import pluginPrettier from 'eslint-plugin-prettier';
-import pluginVue from 'eslint-plugin-vue';
 import jsoncParser from 'jsonc-eslint-parser';
+const TS_FILE_GLOBS = ['**/*.{ts,tsx,mts,cts,vue}'];
+const TS_PLUGIN_FILE_GLOBS = ['**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}'];
+const VUE_FILE_GLOBS = ['**/*.vue'];
+
+const { hasVueSupport, pluginVue, vueTypeScriptConfigs } = await loadVueSupport();
+const scopedVueTypeScriptConfigs = hasVueSupport ? scopeVueConfigs(vueTypeScriptConfigs).map(stripTypeScriptPlugin) : [];
+const vueSpecificBlocks = hasVueSupport
+	? [
+			...scopedVueTypeScriptConfigs,
+			{
+				files: VUE_FILE_GLOBS,
+				plugins: {
+					vue: pluginVue
+				},
+				rules: {
+					'vue/html-indent': 'off', // Let Prettier handle indentation
+					'vue/max-attributes-per-line': 'off', // Let Prettier handle line breaks
+					'vue/first-attribute-linebreak': 'off', // Let Prettier handle attribute positioning
+					'vue/singleline-html-element-content-newline': 'off',
+					'vue/html-self-closing': [
+						'error',
+						{
+							html: {
+								void: 'always',
+								normal: 'always',
+								component: 'always'
+							}
+						}
+					],
+					'vue/multi-word-component-names': 'off', // Disable multi-word name restriction
+					'vue/attribute-hyphenation': ['error', 'always']
+				}
+			}
+	  ]
+	: [];
 
 export default [
 	{
@@ -12,54 +46,31 @@ export default [
 			'dist',
 			'.output',
 			'.nuxt',
+			'.netlify',
+			'node_modules/.netlify',
+			'4000/.nuxt',
 			'coverage',
 			'**/*.d.ts',
+			'configure-eslint.cjs',
 			'configure-eslint.js',
 			'*.config.js',
-			'*.config.ts',
 			'public'
 		]
 	},
-	...defineConfigWithVueTs(vueTsConfigs.recommended),
 	{
-		files: ['**/*.vue'],
+		files: TS_PLUGIN_FILE_GLOBS,
 		plugins: {
-			vue: pluginVue,
-			prettier: pluginPrettier
-		},
-		rules: {
-			'prettier/prettier': 'error', // Enforce Prettier rules
-			'vue/html-indent': 'off', // Let Prettier handle indentation
-			'vue/max-attributes-per-line': 'off', // Let Prettier handle line breaks
-			'vue/first-attribute-linebreak': 'off', // Let Prettier handle attribute positioning
-			'vue/singleline-html-element-content-newline': 'off',
-			'vue/html-self-closing': [
-				'error',
-				{
-					html: {
-						void: 'always',
-						normal: 'always',
-						component: 'always'
-					}
-				}
-			],
-			'vue/multi-word-component-names': 'off', // Disable multi-word name restriction
-			'vue/attribute-hyphenation': ['error', 'always']
+			'@typescript-eslint': tsPlugin
 		}
 	},
+	...vueSpecificBlocks,
 	{
-		files: ['*.json'],
+		files: ['**/*.json'],
 		languageOptions: {
 			parser: jsoncParser
 		},
-		plugins: {
-			prettier: pluginPrettier
-		},
 		rules: {
-			quotes: ['error', 'double'], // Enforce double quotes in JSON
-			'prettier/prettier': 'error',
-			'@typescript-eslint/no-unused-expressions': 'off',
-			'@typescript-eslint/no-unused-vars': 'off'
+			quotes: ['error', 'double'] // Enforce double quotes in JSON
 		}
 	},
 	{
@@ -79,15 +90,9 @@ export default [
 			}
 		},
 		plugins: {
-			prettier: pluginPrettier,
 			import: pluginImport
 		},
 		rules: {
-			indent: ['error', 'tab', { SwitchCase: 1 }], // Use tabs for JS/TS
-			quotes: ['warn', 'single', { avoidEscape: true }], // Prefer single quotes
-			semi: ['error', 'always'], // Enforce semicolons
-			'comma-dangle': 'off', // Disable trailing commas
-			'prettier/prettier': 'error', // Enforce Prettier rules
 			'import/order': [
 				'error',
 				{
@@ -100,5 +105,94 @@ export default [
 			'@typescript-eslint/no-unused-vars': ['warn'],
 			'@typescript-eslint/no-require-imports': 'off'
 		}
+	},
+	{
+		...eslintConfigPrettier
 	}
 ];
+
+async function loadVueSupport() {
+	try {
+		const [vuePluginModule, vueConfigModule] = await Promise.all([
+			import('eslint-plugin-vue'),
+			import('@vue/eslint-config-typescript')
+		]);
+
+		const pluginVue = unwrapDefault(vuePluginModule);
+		const { defineConfigWithVueTs, vueTsConfigs } = vueConfigModule;
+		const configs = defineConfigWithVueTs(vueTsConfigs.recommended);
+
+		return {
+			hasVueSupport: Boolean(pluginVue && configs.length),
+			pluginVue,
+			vueTypeScriptConfigs: configs
+		};
+	} catch (error) {
+		if (isModuleNotFoundError(error)) {
+			return {
+				hasVueSupport: false,
+				pluginVue: null,
+				vueTypeScriptConfigs: []
+			};
+		}
+
+		throw error;
+	}
+}
+
+function scopeVueConfigs(configs) {
+	return configs.map((config) => {
+		const files = config.files ?? [];
+		const referencesOnlyVueFiles = files.length > 0 && files.every((pattern) => pattern.includes('.vue'));
+		const hasVuePlugin = Boolean(config.plugins?.vue);
+
+		if (hasVuePlugin || referencesOnlyVueFiles) {
+			return {
+				...config,
+				files: VUE_FILE_GLOBS
+			};
+		}
+
+		return {
+			...config,
+			files: TS_FILE_GLOBS
+		};
+	});
+}
+
+function stripTypeScriptPlugin(config) {
+	const { plugins = {}, ...rest } = config;
+
+	if (!plugins['@typescript-eslint']) {
+		return config;
+	}
+
+	const otherPlugins = { ...plugins };
+	delete otherPlugins['@typescript-eslint'];
+	const hasOtherPlugins = Object.keys(otherPlugins).length > 0;
+
+	return {
+		...rest,
+		...(hasOtherPlugins ? { plugins: otherPlugins } : {})
+	};
+}
+
+function unwrapDefault(module) {
+	return module?.default ?? module;
+}
+
+function isModuleNotFoundError(error) {
+	if (!error) {
+		return false;
+	}
+
+	if (error.code === 'ERR_MODULE_NOT_FOUND' || error.code === 'MODULE_NOT_FOUND') {
+		return true;
+	}
+
+	return typeof error.message === 'string' && error.message.includes('Cannot find module');
+}
+
+
+
+
