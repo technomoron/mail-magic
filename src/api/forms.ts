@@ -1,6 +1,7 @@
 import path from 'path';
 
 import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-server-base';
+import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import nunjucks from 'nunjucks';
 
 import { api_domain } from '../models/domain.js';
@@ -12,6 +13,14 @@ import { buildRequestMeta, normalizeSlug } from '../util.js';
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
 export class FormAPI extends ApiModule<mailApiServer> {
+	private validateEmail(email: string): string | undefined {
+		const parsed = emailAddresses.parseOneAddress(email);
+		if (parsed) {
+			return (parsed as ParsedMailbox).address;
+		}
+		return undefined;
+	}
+
 	private async assertDomainAndUser(apireq: mailApiRequest): Promise<void> {
 		const { domain, locale } = apireq.req.body;
 
@@ -25,6 +34,9 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		const dbdomain = await api_domain.findOne({ where: { name: domain } });
 		if (!dbdomain) {
 			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
+		}
+		if (dbdomain.user_id !== user.user_id) {
+			throw new ApiError({ code: 403, message: `Domain ${domain} is not owned by this user` });
 		}
 		apireq.domain = dbdomain;
 		apireq.locale = locale || 'en';
@@ -107,7 +119,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 	}
 
 	private async postSendForm(apireq: ApiRequest): Promise<[number, Record<string, unknown>]> {
-		const { formid, secret, recipient, vars = {} } = apireq.req.body;
+		const { formid, secret, recipient, vars = {}, replyTo, reply_to } = apireq.req.body;
 
 		if (!formid) {
 			throw new ApiError({ code: 404, message: 'Missing formid field in form' });
@@ -126,6 +138,21 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		}
 		if (recipient && !form.secret) {
 			throw new ApiError({ code: 401, message: "'recipient' parameterer requires form secret to be set" });
+		}
+		let normalizedReplyTo: string | undefined;
+		let normalizedRecipient: string | undefined;
+		const replyToValue = (replyTo || reply_to) as string | undefined;
+		if (replyToValue) {
+			normalizedReplyTo = this.validateEmail(replyToValue);
+			if (!normalizedReplyTo) {
+				throw new ApiError({ code: 400, message: 'Invalid reply-to email address' });
+			}
+		}
+		if (recipient) {
+			normalizedRecipient = this.validateEmail(String(recipient));
+			if (!normalizedRecipient) {
+				throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
+			}
 		}
 
 		let parsedVars: unknown = vars ?? {};
@@ -172,10 +199,11 @@ export class FormAPI extends ApiModule<mailApiServer> {
 
 		const mailOptions = {
 			from: form.sender,
-			to: recipient || form.recipient,
+			to: normalizedRecipient || form.recipient,
 			subject: form.subject,
 			html,
-			attachments
+			attachments,
+			...(normalizedReplyTo ? { replyTo: normalizedReplyTo } : {})
 		};
 
 		try {

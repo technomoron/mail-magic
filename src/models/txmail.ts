@@ -43,6 +43,17 @@ export class api_txmail extends Model {
 	declare files: StoredFile[];
 }
 
+function assertSafeRelativePath(filename: string, label: string): string {
+	const normalized = path.normalize(filename);
+	if (path.isAbsolute(normalized)) {
+		throw new Error(`${label} path must be relative`);
+	}
+	if (normalized.split(path.sep).includes('..')) {
+		throw new Error(`${label} path cannot include '..' segments`);
+	}
+	return normalized;
+}
+
 export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail> {
 	const { user, domain } = await user_and_domain(record.domain_id);
 
@@ -66,7 +77,7 @@ export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail
 	if (!record.filename.endsWith('.njk')) {
 		record.filename += '.njk';
 	}
-	record.filename = path.normalize(record.filename);
+	record.filename = assertSafeRelativePath(record.filename, 'Template filename');
 
 	const [instance] = await api_txmail.upsert(record);
 	return instance;
@@ -115,7 +126,7 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 				unique: false
 			},
 			template: {
-				type: DataTypes.STRING,
+				type: DataTypes.TEXT,
 				allowNull: false,
 				defaultValue: ''
 			},
@@ -173,8 +184,6 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 	api_txmail.addHook('beforeValidate', async (template: api_txmail) => {
 		const { user, domain } = await user_and_domain(template.domain_id);
 
-		console.log('HERE');
-
 		const dname = normalizeSlug(domain.name);
 		const name = normalizeSlug(template.name);
 		const locale = normalizeSlug(template.locale || domain.locale || user.locale || '');
@@ -190,8 +199,7 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 		if (!template.filename.endsWith('.njk')) {
 			template.filename += '.njk';
 		}
-
-		console.log(`FILENAME IS: ${template.filename}`);
+		template.filename = assertSafeRelativePath(template.filename, 'Template filename');
 	});
 
 	return api_txmail;

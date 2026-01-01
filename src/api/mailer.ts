@@ -15,12 +15,12 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 	//
 	// Validate and return the parsed email address
 	//
-	validateEmail(email: string): string | null {
+	validateEmail(email: string): string | undefined {
 		const parsed = emailAddresses.parseOneAddress(email);
 		if (parsed) {
 			return (parsed as ParsedMailbox).address;
 		}
-		return null;
+		return undefined;
 	}
 
 	//
@@ -60,6 +60,9 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		const dbdomain = await api_domain.findOne({ where: { name: domain } });
 		if (!dbdomain) {
 			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
+		}
+		if (dbdomain.user_id !== user.user_id) {
+			throw new ApiError({ code: 403, message: `Domain ${domain} is not owned by this user` });
 		}
 		apireq.domain = dbdomain;
 		apireq.locale = locale || 'en';
@@ -102,7 +105,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			const [templateRecord, created] = await api_txmail.upsert(data, {
 				returning: true
 			});
-			console.log('Template upserted:', templateRecord.name, 'Created:', created);
+			this.server.storage.print_debug(`Template upserted: ${templateRecord.name} (created=${created})`);
 		} catch (error: unknown) {
 			throw new ApiError({
 				code: 500,
@@ -117,7 +120,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 	private async post_send(apireq: mailApiRequest): Promise<[number, Record<string, unknown>]> {
 		await this.assert_domain_and_user(apireq);
 
-		const { name, rcpt, domain = '', locale = '', vars = {} } = apireq.req.body;
+		const { name, rcpt, domain = '', locale = '', vars = {}, replyTo, reply_to, headers } = apireq.req.body;
 
 		if (!name || !rcpt || !domain) {
 			throw new ApiError({ code: 400, message: 'name/rcpt/domain required' });
@@ -184,9 +187,31 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		for (const file of rawFiles) {
 			attachmentMap[file.fieldname] = file.originalname;
 		}
-		console.log(JSON.stringify({ vars, thevars }, undefined, 2));
+		this.server.storage.print_debug(`Template vars: ${JSON.stringify({ vars, thevars }, undefined, 2)}`);
 
 		const meta = buildRequestMeta(apireq.req);
+		const replyToValue = (replyTo || reply_to) as string | undefined;
+		let normalizedReplyTo: string | undefined;
+		if (replyToValue) {
+			normalizedReplyTo = this.validateEmail(replyToValue);
+			if (!normalizedReplyTo) {
+				throw new ApiError({ code: 400, message: 'Invalid reply-to email address' });
+			}
+		}
+
+		let normalizedHeaders: Record<string, string> | undefined;
+		if (headers !== undefined) {
+			if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
+				throw new ApiError({ code: 400, message: 'headers must be a key/value object' });
+			}
+			normalizedHeaders = {};
+			for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
+				if (typeof value !== 'string') {
+					throw new ApiError({ code: 400, message: `headers.${key} must be a string` });
+				}
+				normalizedHeaders[key] = value;
+			}
+		}
 
 		try {
 			const env = new nunjucks.Environment(null, { autoescape: false });
@@ -209,7 +234,9 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 					subject: template.subject || apireq.req.body.subject || '',
 					html,
 					text,
-					attachments
+					attachments,
+					...(normalizedReplyTo ? { replyTo: normalizedReplyTo } : {}),
+					...(normalizedHeaders ? { headers: normalizedHeaders } : {})
 				};
 				await this.server.storage.transport!.sendMail(sendargs);
 			}

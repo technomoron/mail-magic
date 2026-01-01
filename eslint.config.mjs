@@ -8,7 +8,9 @@ const TS_PLUGIN_FILE_GLOBS = ['**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}'];
 const VUE_FILE_GLOBS = ['**/*.vue'];
 
 const { hasVueSupport, pluginVue, vueTypeScriptConfigs } = await loadVueSupport();
-const scopedVueTypeScriptConfigs = hasVueSupport ? scopeVueConfigs(vueTypeScriptConfigs).map(stripTypeScriptPlugin) : [];
+const scopedVueTypeScriptConfigs = hasVueSupport
+	? scopeVueConfigs(vueTypeScriptConfigs).map(stripTypeScriptPlugin)
+	: [];
 const vueSpecificBlocks = hasVueSupport
 	? [
 			...scopedVueTypeScriptConfigs,
@@ -36,7 +38,7 @@ const vueSpecificBlocks = hasVueSupport
 					'vue/attribute-hyphenation': ['error', 'always']
 				}
 			}
-	  ]
+		]
 	: [];
 
 export default [
@@ -192,7 +194,3 @@ function isModuleNotFoundError(error) {
 
 	return typeof error.message === 'string' && error.message.includes('Cannot find module');
 }
-
-
-
-

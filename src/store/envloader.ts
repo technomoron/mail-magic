@@ -29,6 +29,15 @@ export const envOptions = defineEnvOptions({
 		description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',
 		default: 'http://localhost:3776'
 	},
+	SWAGGER_ENABLED: {
+		description: 'Enable the Swagger/OpenAPI endpoint',
+		type: 'boolean',
+		default: false
+	},
+	SWAGGER_PATH: {
+		description: 'Path to expose the Swagger/OpenAPI spec (default: /api/swagger when enabled)',
+		default: ''
+	},
 	ASSET_ROUTE: {
 		description: 'Route prefix exposed for config assets',
 		default: '/asset'

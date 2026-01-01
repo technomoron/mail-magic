@@ -28,16 +28,29 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		}
 
 		const assetsRoot = path.join(this.server.storage.configpath, domain, 'assets');
-		const resolvedRoot = path.resolve(assetsRoot);
+		if (!fs.existsSync(assetsRoot)) {
+			throw new ApiError({ code: 404, message: 'Asset not found' });
+		}
+		const resolvedRoot = fs.realpathSync(assetsRoot);
 		const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
 		const candidate = path.resolve(assetsRoot, path.join(...segments));
-		if (!candidate.startsWith(normalizedRoot)) {
+
+		try {
+			const stats = await fs.promises.stat(candidate);
+			if (!stats.isFile()) {
+				throw new ApiError({ code: 404, message: 'Asset not found' });
+			}
+		} catch {
 			throw new ApiError({ code: 404, message: 'Asset not found' });
 		}
 
+		let realCandidate: string;
 		try {
-			await fs.promises.access(candidate, fs.constants.R_OK);
+			realCandidate = await fs.promises.realpath(candidate);
 		} catch {
+			throw new ApiError({ code: 404, message: 'Asset not found' });
+		}
+		if (!realCandidate.startsWith(normalizedRoot)) {
 			throw new ApiError({ code: 404, message: 'Asset not found' });
 		}
 
@@ -47,11 +60,11 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		res.status = ((code: number) => (res.headersSent ? res : originalStatus(code))) as typeof res.status;
 		res.json = ((body: unknown) => (res.headersSent ? res : originalJson(body))) as typeof res.json;
 
-		res.type(path.extname(candidate));
+		res.type(path.extname(realCandidate));
 		res.set('Cache-Control', 'public, max-age=300');
 
 		try {
-			await sendFileAsync(res, candidate);
+			await sendFileAsync(res, realCandidate);
 		} catch (err) {
 			this.server.storage.print_debug(
 				`Failed to serve asset ${domain}/${segments.join('/')}: ${err instanceof Error ? err.message : String(err)}`

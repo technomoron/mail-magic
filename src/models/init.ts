@@ -35,16 +35,17 @@ function resolveAsset(basePath: string, domainName: string, assetName: string): 
 	if (!fs.existsSync(assetsRoot)) {
 		return null;
 	}
-	const resolvedRoot = path.resolve(assetsRoot);
+	const resolvedRoot = fs.realpathSync(assetsRoot);
 	const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
 	const candidate = path.resolve(assetsRoot, assetName);
-	if (!candidate.startsWith(normalizedRoot)) {
+	if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) {
 		return null;
 	}
-	if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
-		return candidate;
+	const realCandidate = fs.realpathSync(candidate);
+	if (!realCandidate.startsWith(normalizedRoot)) {
+		return null;
 	}
-	return null;
+	return realCandidate;
 }
 
 function buildAssetUrl(baseUrl: string, route: string, domainName: string, assetPath: string): string {
@@ -122,9 +123,11 @@ async function _load_template(
 		relFile = filename.slice(prefix.length);
 	}
 
-	const absPath = path.resolve(rootDir, pathname || '', relFile);
+	const resolvedRoot = path.resolve(rootDir);
+	const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
+	const absPath = path.resolve(resolvedRoot, pathname || '', relFile);
 
-	if (!absPath.startsWith(rootDir)) {
+	if (!absPath.startsWith(normalizedRoot)) {
 		throw new Error(`Invalid template path "${filename}"`);
 	}
 	if (!fs.existsSync(absPath)) {

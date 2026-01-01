@@ -24,6 +24,8 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 		uploadPath: env.UPLOAD_PATH,
 		debug: env.DEBUG,
 		apiBasePath: '',
+		swaggerEnabled: env.SWAGGER_ENABLED,
+		swaggerPath: env.SWAGGER_PATH,
 		...overrides
 	};
 }

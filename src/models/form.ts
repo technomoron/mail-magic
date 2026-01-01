@@ -156,6 +156,17 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 	return api_form;
 }
 
+function assertSafeRelativePath(filename: string, label: string): string {
+	const normalized = path.normalize(filename);
+	if (path.isAbsolute(normalized)) {
+		throw new Error(`${label} path must be relative`);
+	}
+	if (normalized.split(path.sep).includes('..')) {
+		throw new Error(`${label} path cannot include '..' segments`);
+	}
+	return normalized;
+}
+
 export async function upsert_form(record: api_form_type): Promise<api_form> {
 	const { user, domain } = await user_and_domain(record.domain_id);
 
@@ -179,7 +190,7 @@ export async function upsert_form(record: api_form_type): Promise<api_form> {
 	if (!record.filename.endsWith('.njk')) {
 		record.filename += '.njk';
 	}
-	record.filename = path.normalize(record.filename);
+	record.filename = assertSafeRelativePath(record.filename, 'Form filename');
 
 	let instance: api_form | null = null;
 	instance = await api_form.findByPk(record.form_id);

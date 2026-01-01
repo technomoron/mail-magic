@@ -1,3 +1,15 @@
+Version 1.0.7 (2026-01-01)
+
+- Harden asset serving and template resolution against traversal/symlink escapes by
+  resolving real paths and requiring files to exist.
+- Enforce domain ownership for form/template and mailer endpoints, validate
+  reply-to/recipient addresses, and allow reply-to plus custom headers on
+  transactional sends.
+- Constrain stored template/form filenames to safe relative paths and widen the
+  txmail template column to TEXT for larger templates.
+- Added Vitest-based integration tests with a local SMTP harness, plus test
+  scripts and dependencies.
+
 Version 1.0.6 (2025-11-06)
 
 - Added the dedicated asset API module so files stored under `config/<domain>/assets`
