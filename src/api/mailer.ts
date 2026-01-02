@@ -170,6 +170,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		}
 
 		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
+		await this.server.storage.relocateUploads(apireq.domain?.name ?? null, rawFiles);
 		const templateAssets = Array.isArray(template.files) ? template.files : [];
 		const attachments = [
 			...templateAssets.map((file) => ({

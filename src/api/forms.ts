@@ -172,6 +172,8 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		*/
 
 		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
+		const domainRecord = await api_domain.findOne({ where: { domain_id: form.domain_id } });
+		await this.server.storage.relocateUploads(domainRecord?.name ?? null, rawFiles);
 		const attachments = rawFiles.map((file) => ({
 			filename: file.originalname,
 			path: file.path

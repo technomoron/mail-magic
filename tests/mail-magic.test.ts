@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import request from 'supertest';
 
 import { api_form } from '../src/models/form.js';
@@ -93,6 +96,8 @@ describe('mail-magic API', () => {
 	});
 
 	test('sends transactional mail with inline assets and attachments', async () => {
+		const uploadsDir = ctx.uploadsPath;
+		const beforeUploads = fs.existsSync(uploadsDir) ? fs.readdirSync(uploadsDir) : [];
 		const res = await api
 			.post('/api/v1/tx/message')
 			.set('Authorization', `Bearer apikey-${ctx.userToken}`)
@@ -116,6 +121,18 @@ describe('mail-magic API', () => {
 		expect(filenames).toContain('upload.txt');
 		const inline = message.attachments.find((att) => att.contentId?.includes('images/logo.png'));
 		expect(inline).toBeTruthy();
+
+		expect(fs.existsSync(uploadsDir)).toBe(true);
+		const afterUploads = fs.readdirSync(uploadsDir);
+		const newUploads = afterUploads.filter((name) => !beforeUploads.includes(name));
+		expect(newUploads.length).toBeGreaterThan(0);
+		const uploadedPath = path.join(uploadsDir, newUploads[0]);
+		expect(fs.readFileSync(uploadedPath, 'utf8')).toBe('upload-bytes');
+
+		const stagingDir = path.join(ctx.configPath, '_uploads');
+		if (fs.existsSync(stagingDir)) {
+			expect(fs.existsSync(path.join(stagingDir, newUploads[0]))).toBe(false);
+		}
 	});
 
 	test('rejects form submissions without the secret', async () => {

@@ -19,6 +19,7 @@ Update your `.env` (or runtime environment) to point at the new workspace:
 ```
 CONFIG_PATH=${CONFIG_ROOT}
 DB_AUTO_RELOAD=1  # optional: hot‑reload init-data and templates
+UPLOAD_PATH=./{domain}/uploads
 ```
 
 From now on the tutorial assumes `${CONFIG_ROOT}` is the root of the custom config tree.

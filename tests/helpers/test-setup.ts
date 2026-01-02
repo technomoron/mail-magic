@@ -30,6 +30,7 @@ export type TestContext = {
 	tempDir: string;
 	configPath: string;
 	uploadFile: string;
+	uploadsPath: string;
 	domainName: string;
 	userToken: string;
 	apiUrl: string;
@@ -239,8 +240,7 @@ export async function createTestContext(): Promise<TestContext> {
 
 	const smtp = await startSmtpServer();
 
-	const uploadPath = path.join(tempDir, 'uploads');
-	fs.mkdirSync(uploadPath, { recursive: true });
+	const uploadsPath = path.join(configPath, domainName, 'uploads');
 
 	const uploadFile = path.join(tempDir, 'upload.txt');
 	fs.writeFileSync(uploadFile, 'upload-bytes');
@@ -279,7 +279,7 @@ export async function createTestContext(): Promise<TestContext> {
 	process.env.ASSET_ROUTE = '/asset';
 	process.env.API_HOST = '127.0.0.1';
 	process.env.API_PORT = '0';
-	process.env.UPLOAD_PATH = uploadPath;
+	process.env.UPLOAD_PATH = './{domain}/uploads';
 	process.env.SMTP_HOST = '127.0.0.1';
 	process.env.SMTP_PORT = String(smtp.port);
 	process.env.SMTP_SECURE = 'true';
@@ -308,6 +308,7 @@ export async function createTestContext(): Promise<TestContext> {
 		tempDir,
 		configPath,
 		uploadFile,
+		uploadsPath,
 		domainName,
 		userToken: 'test-token',
 		apiUrl,

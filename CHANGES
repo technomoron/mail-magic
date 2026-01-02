@@ -1,3 +1,11 @@
+Version 1.0.9 (2026-01-02)
+
+- Default CONFIG_PATH to ./data and document the data-rooted layout, including
+  per-domain uploads.
+- Allow UPLOAD_PATH to include {domain}, staging incoming uploads under
+  <CONFIG_PATH>/_uploads before relocating to <CONFIG_PATH>/<domain>/uploads
+  for transactional and form submissions.
+
 Version 1.0.7 (2026-01-01)
 
 - Harden asset serving and template resolution against traversal/symlink escapes by

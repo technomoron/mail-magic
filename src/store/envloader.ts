@@ -44,7 +44,7 @@ export const envOptions = defineEnvOptions({
 	},
 	CONFIG_PATH: {
 		description: 'Path to directory where config files are located',
-		default: './config/'
+		default: './data/'
 	},
 	DB_USER: {
 		description: 'Database username for API database'
@@ -103,7 +103,7 @@ export const envOptions = defineEnvOptions({
 		default: ''
 	},
 	UPLOAD_PATH: {
-		description: 'Path for attached files',
-		default: './uploads/'
+		description: 'Path for attached files. Use {domain} to scope per domain.',
+		default: './{domain}/uploads'
 	}
 });
