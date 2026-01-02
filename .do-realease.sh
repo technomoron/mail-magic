@@ -30,6 +30,11 @@ if [ "$BEHIND_COUNT" -ne 0 ] || [ "$AHEAD_COUNT" -ne 0 ]; then
 	exit 1
 fi
 
+if ! npm whoami >/dev/null 2>&1; then
+	echo "Not logged into npm. Run 'npm login' before release." >&2
+	exit 1
+fi
+
 if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
 	echo "Tag v${VERSION} already exists. Aborting." >&2
 	exit 1
