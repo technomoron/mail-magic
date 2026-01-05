@@ -1,0 +1,66 @@
+{
+	"name": "mail-magic-client",
+	"version": "1.0.21",
+	"description": "Client library for mail-magic",
+	"main": "dist/cjs/mail-magic-client.js",
+	"types": "dist/cjs/mail-magic-client.d.ts",
+	"module": "dist/esm/mail-magic-client.js",
+	"bin": {
+		"mail-magic-cli": "dist/cli.js"
+	},
+	"scripts": {
+		"prepare": "npm run build",
+		"scrub": "rm -rf node_modules pnpm-lock.yaml lib/ dist/",
+		"build:cjs": "tsc --project tsconfig/tsconfig.cjs.json",
+		"build:esm": "tsc --project tsconfig/tsconfig.esm.json",
+		"build:cli": "tsc --project tsconfig/tsconfig.cli.json",
+		"build": "npm run build:cjs && npm run build:esm && npm run build:cli",
+		"test": "echo 'No automated tests for mail-magic-client'",
+		"lint": "eslint --ext .js,.ts,.vue ./src",
+		"lintfix": "eslint --fix --ext .js,.ts,.vue,.json ./src",
+		"format": "npm run lintfix && npm run pretty",
+		"pretty": "prettier --write \"**/*.{js,ts,vue,json,css,scss,md}\"",
+		"cleanbuild": "rm -rf ./dist/ && npm run lintfix && npm run format && npm run build"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/technomoron/mail-magic.git",
+		"directory": "packages/mail-magic-client"
+	},
+	"author": "Bjørn Erik Jacobsen",
+	"license": "MIT",
+	"files": [
+		"dist/**/*.js",
+		"dist/**/*.d.ts",
+		"package.json"
+	],
+	"dependencies": {
+		"cheerio": "^1.1.2",
+		"commander": "^10.0.1",
+		"email-addresses": "^5.0.0",
+		"foundation-emails": "^2.4.0",
+		"inky": "^0.1.0",
+		"juice": "^11.0.1",
+		"node-fetch": "^3.3.2",
+		"nunjucks": "^3.2.4"
+	},
+	"devDependencies": {
+		"@types/cheerio": "^1.0.0",
+		"@types/node": "^20.19.11",
+		"@types/nunjucks": "^3.2.6",
+		"@typescript-eslint/eslint-plugin": "^8.30.1",
+		"@typescript-eslint/parser": "^8.30.1",
+		"@vue/eslint-config-prettier": "^10.2.0",
+		"@vue/eslint-config-typescript": "^14.5.0",
+		"eslint": "^9.34.0",
+		"eslint-config-prettier": "^10.1.5",
+		"eslint-import-resolver-alias": "^1.1.2",
+		"eslint-plugin-import": "^2.31.0",
+		"eslint-plugin-nuxt": "^4.0.0",
+		"eslint-plugin-prettier": "^5.4.1",
+		"eslint-plugin-vue": "^10.0.0",
+		"prettier": "^3.5.3",
+		"typescript": "^5.9.2",
+		"vue-eslint-parser": "^10.1.3"
+	}
+}

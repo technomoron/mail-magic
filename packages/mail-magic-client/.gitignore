@@ -1,0 +1,7 @@
+node_modules/
+package-lock.json
+lib/
+dist/
+.env
+node-compile-cache/
+pnpm-lock.yaml

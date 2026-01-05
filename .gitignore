@@ -1,5 +1,7 @@
 node_modules/
 dist/
+lib/
+node-compile-cache/
 package-lock.json
 .env
 pnpm-lock.yaml

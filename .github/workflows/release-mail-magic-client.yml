@@ -1,0 +1,41 @@
+name: Release mail-magic-client
+
+on:
+  push:
+    tags:
+      - 'mail-magic-client@*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Package
+        run: npm -w packages/mail-magic-client run build
+
+      - name: Pack npm Package
+        run: npm pack
+        working-directory: packages/mail-magic-client
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            packages/mail-magic-client/*.tgz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
