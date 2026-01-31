@@ -36,13 +36,13 @@ if ! npm whoami >/dev/null 2>&1; then
 	exit 1
 fi
 
-if git rev-parse -q --verify "refs/tags/${NAME}@${VERSION}" >/dev/null; then
-	echo "Tag ${NAME}@${VERSION} already exists. Aborting." >&2
-	exit 1
+tag_ref="refs/tags/${NAME}@${VERSION}"
+if git rev-parse -q --verify "$tag_ref" >/dev/null; then
+	echo "Tag ${NAME}@${VERSION} already exists. Skipping tag creation."
+else
+	git tag -a "${NAME}@${VERSION}" -m "Release ${NAME} ${VERSION}"
+	git push origin "${NAME}@${VERSION}"
 fi
-
-git tag -a "${NAME}@${VERSION}" -m "Release ${NAME} ${VERSION}"
-git push origin "${NAME}@${VERSION}"
 
 # detect prerelease versions (contains a hyphen)
 if echo "$VERSION" | grep -q "-"; then
