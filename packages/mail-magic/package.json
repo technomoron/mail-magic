@@ -6,6 +6,12 @@
 	"bin": {
 		"mail-magic": "dist/bin/mail-magic.js"
 	},
+	"files": [
+		"dist",
+		"README.md",
+		"CHANGES",
+		"TUTORIAL.MD"
+	],
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/technomoron/mail-magic.git",
@@ -24,6 +30,8 @@
 		"dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --watch 'config/**/*.*' --watch '.env' --exec 'tsx' src/index.ts",
 		"run": "NODE_ENV=production npm run start",
 		"build": "tsc",
+		"postbuild": "node scripts/add-shebang.cjs",
+		"prepack": "npm run build",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"scrub": "rm -rf ./node_modules/ ./dist/ pnpm-lock.yaml",
@@ -43,8 +51,8 @@
 	},
 	"dependencies": {
 		"@technomoron/api-server-base": "2.0.0-beta.15",
-		"@technomoron/mail-magic-admin": "0.0.1",
 		"@technomoron/env-loader": "^1.0.8",
+		"@technomoron/mail-magic-admin": "0.0.1",
 		"@technomoron/unyuck": "^1.0.4",
 		"bcryptjs": "^3.0.2",
 		"dotenv": "^16.4.5",
@@ -75,7 +83,7 @@
 		"smtp-server": "^3.18.0",
 		"supertest": "^7.1.4",
 		"tsx": "^4.20.5",
-		"typescript": "^5.9.2",
+		"typescript": "^5.9.3",
 		"vitest": "^4.0.16"
 	},
 	"homepage": "https://github.com/technomoron/mail-magic#readme",
