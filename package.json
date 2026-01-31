@@ -6,9 +6,20 @@
 	],
 	"scripts": {
 		"build": "npm -ws --if-present run build",
-		"test": "npm -ws --if-present run test",
+		"test:client": "npm -w packages/mail-magic-client test",
+		"test:server": "npm -w packages/mail-magic test",
+		"test:function": "vitest run",
+		"test": "npm run test:server && npm run test:client && npm run test:function",
 		"lint": "npm -ws --if-present run lint",
 		"format": "npm -ws --if-present run format",
 		"release": "bash .do-release.sh"
+	},
+	"devDependencies": {
+		"@types/node": "^20.19.11",
+		"@types/supertest": "^6.0.3",
+		"mailparser": "^3.9.1",
+		"smtp-server": "^3.18.0",
+		"supertest": "^7.1.4",
+		"vitest": "^4.0.16"
 	}
 }

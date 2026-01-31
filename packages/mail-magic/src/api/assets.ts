@@ -3,15 +3,180 @@ import path from 'path';
 
 import { ApiError, ApiModule, ApiRoute } from '@technomoron/api-server-base';
 
+import { api_domain } from '../models/domain.js';
+import { api_form } from '../models/form.js';
+import { api_txmail } from '../models/txmail.js';
+import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
 import { decodeComponent, sendFileAsync } from '../util.js';
 
+import type { mailApiRequest, UploadedFile } from '../types.js';
 import type { ApiRequest } from '@technomoron/api-server-base';
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 export class AssetAPI extends ApiModule<mailApiServer> {
+	private getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
+		for (const key of keys) {
+			const value = body[key];
+			if (Array.isArray(value) && value.length > 0) {
+				return String(value[0]);
+			}
+			if (value !== undefined && value !== null) {
+				return String(value);
+			}
+		}
+		return '';
+	}
+
+	private async assertDomainAndUser(apireq: mailApiRequest): Promise<void> {
+		const domainName = this.getBodyValue(apireq.req.body ?? {}, 'domain');
+		if (!domainName) {
+			throw new ApiError({ code: 401, message: 'Missing domain' });
+		}
+		const user = await api_user.findOne({ where: { token: apireq.token } });
+		if (!user) {
+			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
+		}
+		const dbdomain = await api_domain.findOne({ where: { name: domainName } });
+		if (!dbdomain) {
+			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domainName}` });
+		}
+		if (dbdomain.user_id !== user.user_id) {
+			throw new ApiError({ code: 403, message: `Domain ${domainName} is not owned by this user` });
+		}
+		apireq.domain = dbdomain;
+		apireq.user = user;
+	}
+
+	private normalizeSubdir(value: string): string {
+		if (!value) {
+			return '';
+		}
+		const cleaned = value.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
+		if (!cleaned) {
+			return '';
+		}
+		const segments = cleaned.split('/').filter(Boolean);
+		for (const segment of segments) {
+			if (!SEGMENT_PATTERN.test(segment)) {
+				throw new ApiError({ code: 400, message: `Invalid path segment "${segment}"` });
+			}
+		}
+		return path.join(...segments);
+	}
+
+	private async moveUploadedFiles(files: UploadedFile[], targetDir: string): Promise<void> {
+		await fs.promises.mkdir(targetDir, { recursive: true });
+		for (const file of files) {
+			const filename = path.basename(file.originalname || '');
+			if (!filename || !SEGMENT_PATTERN.test(filename)) {
+				throw new ApiError({ code: 400, message: `Invalid filename "${file.originalname}"` });
+			}
+			const destination = path.join(targetDir, filename);
+			if (destination === file.path) {
+				continue;
+			}
+			try {
+				await fs.promises.rename(file.path, destination);
+			} catch {
+				await fs.promises.copyFile(file.path, destination);
+				await fs.promises.unlink(file.path);
+			}
+		}
+	}
+
+	private async resolveTemplateDir(apireq: mailApiRequest): Promise<string> {
+		const body = apireq.req.body ?? {};
+		const templateTypeRaw = this.getBodyValue(body, 'templateType', 'template_type', 'type');
+		const templateName = this.getBodyValue(body, 'template', 'name', 'idname', 'formid');
+		const locale = this.getBodyValue(body, 'locale');
+
+		if (!templateTypeRaw) {
+			throw new ApiError({ code: 400, message: 'Missing templateType for template asset upload' });
+		}
+		if (!templateName) {
+			throw new ApiError({ code: 400, message: 'Missing template name/id for template asset upload' });
+		}
+
+		const templateType = templateTypeRaw.toLowerCase();
+		const domainId = apireq.domain!.domain_id;
+		const deflocale = this.server.storage.deflocale || '';
+
+		if (templateType === 'tx') {
+			const template =
+				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale } })) ||
+				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale: deflocale } })) ||
+				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId } }));
+			if (!template) {
+				throw new ApiError({
+					code: 404,
+					message: `Template "${templateName}" not found for domain "${apireq.domain!.name}"`
+				});
+			}
+			const candidate = path.resolve(this.server.storage.configpath, template.filename);
+			const configRoot = this.server.storage.configpath;
+			const normalizedRoot = configRoot.endsWith(path.sep) ? configRoot : configRoot + path.sep;
+			if (!candidate.startsWith(normalizedRoot)) {
+				throw new ApiError({ code: 400, message: 'Template path escapes config root' });
+			}
+			return path.dirname(candidate);
+		}
+
+		if (templateType === 'form') {
+			const form =
+				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale } })) ||
+				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale: deflocale } })) ||
+				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId } }));
+			if (!form) {
+				throw new ApiError({
+					code: 404,
+					message: `Form "${templateName}" not found for domain "${apireq.domain!.name}"`
+				});
+			}
+			const candidate = path.resolve(this.server.storage.configpath, form.filename);
+			const configRoot = this.server.storage.configpath;
+			const normalizedRoot = configRoot.endsWith(path.sep) ? configRoot : configRoot + path.sep;
+			if (!candidate.startsWith(normalizedRoot)) {
+				throw new ApiError({ code: 400, message: 'Template path escapes config root' });
+			}
+			return path.dirname(candidate);
+		}
+
+		throw new ApiError({ code: 400, message: 'templateType must be "tx" or "form"' });
+	}
+
+	private async postAssets(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
+		await this.assertDomainAndUser(apireq);
+
+		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
+		if (!rawFiles.length) {
+			throw new ApiError({ code: 400, message: 'No files uploaded' });
+		}
+
+		const body = apireq.req.body ?? {};
+		const subdir = this.normalizeSubdir(this.getBodyValue(body, 'path', 'dir'));
+		const templateType = this.getBodyValue(body, 'templateType', 'template_type', 'type');
+
+		let targetRoot: string;
+		if (templateType) {
+			targetRoot = await this.resolveTemplateDir(apireq);
+		} else {
+			targetRoot = path.join(this.server.storage.configpath, apireq.domain!.name, 'assets');
+		}
+
+		const candidate = path.resolve(targetRoot, subdir);
+		const normalizedRoot = targetRoot.endsWith(path.sep) ? targetRoot : targetRoot + path.sep;
+		if (candidate !== targetRoot && !candidate.startsWith(normalizedRoot)) {
+			throw new ApiError({ code: 400, message: 'Invalid asset target path' });
+		}
+
+		await this.moveUploadedFiles(rawFiles, candidate);
+
+		return [200, { Status: 'OK' }];
+	}
+
 	private async getAsset(apiReq: ApiRequest): Promise<[number, null]> {
 		const domain = decodeComponent(apiReq.req.params.domain);
 		if (!domain || !DOMAIN_PATTERN.test(domain)) {
@@ -81,6 +246,12 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		const route = this.server.storage.env.ASSET_ROUTE;
 		const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
 		return [
+			{
+				method: 'post',
+				path: '/v1/assets',
+				handler: (apiReq) => this.postAssets(apiReq as mailApiRequest),
+				auth: { type: 'yes', req: 'any' }
+			},
 			{
 				method: 'get',
 				path: `${normalizedRoute}/:domain/*`,

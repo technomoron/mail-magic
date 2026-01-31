@@ -1,0 +1,8 @@
+{% extends "base.njk" %}
+{% block body %}
+{% include "partials/fields.njk" %}
+<p>Kampanje: {{ _fields_.campaign_name }}</p>
+<p>Kilde: {{ _fields_.source }}</p>
+<p>Budsjett: {{ _fields_.budget }}</p>
+<p>Melding: {{ _fields_.message }}</p>
+{% endblock %}

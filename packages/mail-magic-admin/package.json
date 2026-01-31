@@ -1,0 +1,25 @@
+{
+  "name": "@technomoron/mail-magic-admin",
+  "version": "0.0.1",
+  "description": "Admin UI for mail-magic (placeholder)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "files": [
+    "dist/**",
+    "package.json",
+    "README.md"
+  ],
+  "dependencies": {
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "^5.9.2",
+    "vite": "^5.4.11",
+    "vue-tsc": "^2.2.12"
+  }
+}

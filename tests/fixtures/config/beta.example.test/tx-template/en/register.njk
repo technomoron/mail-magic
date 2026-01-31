@@ -1,0 +1,7 @@
+{% extends "base.njk" %}
+{% block body %}
+{% include "partials/header.njk" %}
+<p>Hello {{ first_name }}</p>
+<p>Confirm: {{ confirmation_url }}</p>
+<p>Expires: {{ expires_in }}</p>
+{% endblock %}

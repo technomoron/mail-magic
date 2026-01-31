@@ -9,6 +9,7 @@ Mail Magic is a TypeScript service for managing, templating, and delivering tran
 - Nodemailer transport configuration driven by environment variables
 - SQLite-backed data models for domains, users, forms, and templates
 - Type-safe configuration loader powered by `@technomoron/env-loader`
+- Bundled admin UI (placeholder) served at the root path `/`
 
 ## Getting Started
 
@@ -29,6 +30,10 @@ During development you can run `npm run dev` for a watch mode that recompiles on
 - **Uploads** default to `<CONFIG_PATH>/<domain>/uploads` via `UPLOAD_PATH=./{domain}/uploads`. Set a fixed path if you prefer a shared upload directory.
 
 When `DB_AUTO_RELOAD` is enabled the service watches `init-data.json` and refreshes templates and forms without a restart.
+
+### Admin UI
+
+The server mounts the admin UI at `/` when the `@technomoron/mail-magic-admin` package is installed. This is a placeholder Vue app today, but it is already wired so future admin features can live there without changing the server routing.
 
 ### Template assets and inline resources
 

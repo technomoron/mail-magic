@@ -1,0 +1,6 @@
+{% extends "base.njk" %}
+{% block body %}
+{% include "partials/header.njk" %}
+<p>Tilbakestill: {{ reset_url }}</p>
+<p>Utløper: {{ expires_in }}</p>
+{% endblock %}

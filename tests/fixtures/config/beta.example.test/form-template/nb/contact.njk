@@ -1,0 +1,6 @@
+{% extends "base.njk" %}
+{% block body %}
+{% include "partials/fields.njk" %}
+<p>Melding: {{ _fields_.message }}</p>
+<p>IP: {{ _meta_.client_ip }}</p>
+{% endblock %}

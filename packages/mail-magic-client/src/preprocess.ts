@@ -29,6 +29,7 @@ interface CompileCfg {
 	dist_dir: string;
 	css_path: string;
 	css_content: string | null;
+	inline_includes: boolean;
 }
 
 const cfg: CompileCfg = {
@@ -36,8 +37,41 @@ const cfg: CompileCfg = {
 	src_dir: 'templates',
 	dist_dir: 'templates-dist',
 	css_path: path.join(process.cwd(), 'templates', 'foundation-emails.css'),
-	css_content: null
+	css_content: null,
+	inline_includes: true
 };
+
+function resolvePathRoot(dir: string): string {
+	return path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir);
+}
+
+function resolveCssPath(cssPath: string): string {
+	if (!cssPath) {
+		return '';
+	}
+	return path.isAbsolute(cssPath) ? cssPath : path.join(process.cwd(), cssPath);
+}
+
+function inlineIncludes(content: string, baseDir: string, srcRoot: string, stack: Set<string>): string {
+	const includeExp = /\{%\s*include\s+['"]([^'"]+)['"][^%]*%\}/g;
+	return content.replace(includeExp, (_match, includePath: string) => {
+		const cleaned = includePath.replace(/^\/+/, '');
+		const candidates = [path.resolve(baseDir, cleaned), path.resolve(srcRoot, cleaned)];
+		const found = candidates.find((candidate) => fs.existsSync(candidate));
+		if (!found) {
+			throw new Error(`Include not found: ${includePath}`);
+		}
+		const resolved = fs.realpathSync(found);
+		if (stack.has(resolved)) {
+			throw new Error(`Circular include detected for ${includePath}`);
+		}
+		stack.add(resolved);
+		const raw = fs.readFileSync(resolved, 'utf8');
+		const inlined = inlineIncludes(raw, path.dirname(resolved), srcRoot, stack);
+		stack.delete(resolved);
+		return inlined;
+	});
+}
 
 class PreprocessExtension {
 	tags: string[] = ['process_layout'];
@@ -89,15 +123,23 @@ class PreprocessExtension {
 	}
 }
 
-function process_template(tplname: string) {
+function process_template(tplname: string, writeOutput = true) {
 	console.log(`Processing template: ${tplname}`);
 
 	try {
+		const srcRoot = resolvePathRoot(cfg.src_dir);
+		const templateFile = path.join(srcRoot, `${tplname}.njk`);
+
 		// 1) Resolve template inheritance
 		const mergedTemplate = cfg.env!.renderString(`{% process_layout "${tplname}.njk" %}`, {});
 
+		// 1.5) Inline partials/includes so the server doesn't need a loader
+		const mergedWithPartials = cfg.inline_includes
+			? inlineIncludes(mergedTemplate, path.dirname(templateFile), srcRoot, new Set<string>())
+			: mergedTemplate;
+
 		// 2) Protect variables/flow
-		const protectedTemplate = cfg.env!.filters.protect_variables(mergedTemplate);
+		const protectedTemplate = cfg.env!.filters.protect_variables(mergedWithPartials);
 
 		// 3) Light HTML transforms for email compatibility
 		console.log('Processing HTML for email compatibility');
@@ -190,11 +232,16 @@ function process_template(tplname: string) {
 		const finalHtml = cfg.env!.filters.restore_variables(inlinedHtml);
 
 		// Write
-		const outputPath = path.join(process.cwd(), cfg.dist_dir, `${tplname}.njk`);
-		fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-		fs.writeFileSync(outputPath, finalHtml);
+		if (writeOutput) {
+			const distRoot = resolvePathRoot(cfg.dist_dir);
+			const outputPath = path.join(distRoot, `${tplname}.njk`);
+			fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+			fs.writeFileSync(outputPath, finalHtml);
+		}
 
-		console.log(`Created ${tplname}.njk`);
+		if (writeOutput) {
+			console.log(`Created ${tplname}.njk`);
+		}
 		return finalHtml;
 	} catch (error) {
 		console.error(`Error processing ${tplname}:`, error);
@@ -216,7 +263,8 @@ function get_all_files(dir: string, filelist: string[] = []): string[] {
 }
 
 function find_templates() {
-	const all = get_all_files(path.join(process.cwd(), cfg.src_dir));
+	const srcRoot = resolvePathRoot(cfg.src_dir);
+	const all = get_all_files(srcRoot);
 
 	return all
 		.filter((file) => file.endsWith('.njk'))
@@ -231,14 +279,15 @@ function find_templates() {
 			);
 		})
 		.map((file) => {
-			const name = path.relative(cfg.src_dir, file);
+			const name = path.relative(srcRoot, file);
 			return name.substring(0, name.length - 4);
 		});
 }
 
 async function process_all_templates() {
-	if (!fs.existsSync(cfg.dist_dir)) {
-		fs.mkdirSync(cfg.dist_dir, { recursive: true });
+	const distRoot = resolvePathRoot(cfg.dist_dir);
+	if (!fs.existsSync(distRoot)) {
+		fs.mkdirSync(distRoot, { recursive: true });
 	}
 
 	const templates = find_templates();
@@ -255,12 +304,17 @@ async function process_all_templates() {
 }
 
 function init_env() {
-	const loader = new nunjucks.FileSystemLoader(path.join(process.cwd(), cfg.src_dir));
+	const loader = new nunjucks.FileSystemLoader(resolvePathRoot(cfg.src_dir));
 	cfg.env = new nunjucks.Environment(loader, { autoescape: false }) as ExtendedEnvironment;
 	if (!cfg.env) throw Error('Unable to init nunjucks environment');
 
-	// Load CSS
-	cfg.css_content = fs.readFileSync(cfg.css_path, 'utf8');
+	// Load CSS if present
+	const cssPath = resolveCssPath(cfg.css_path);
+	if (cssPath && fs.existsSync(cssPath)) {
+		cfg.css_content = fs.readFileSync(cssPath, 'utf8');
+	} else {
+		cfg.css_content = null;
+	}
 
 	// Extension
 	cfg.env.addExtension('PreprocessExtension', new PreprocessExtension());
@@ -287,11 +341,13 @@ export async function do_the_template_thing(
 		dist_dir?: string;
 		css_path?: string;
 		tplname?: string;
+		inline_includes?: boolean;
 	} = {}
 ) {
 	if (options.src_dir) cfg.src_dir = options.src_dir;
 	if (options.dist_dir) cfg.dist_dir = options.dist_dir;
 	if (options.css_path) cfg.css_path = options.css_path;
+	if (options.inline_includes !== undefined) cfg.inline_includes = options.inline_includes;
 
 	init_env();
 
@@ -300,4 +356,19 @@ export async function do_the_template_thing(
 	} else {
 		await process_all_templates();
 	}
+}
+
+export async function compileTemplate(options: {
+	src_dir?: string;
+	css_path?: string;
+	tplname: string;
+	inline_includes?: boolean;
+}): Promise<string> {
+	if (options.src_dir) cfg.src_dir = options.src_dir;
+	if (options.css_path) cfg.css_path = options.css_path;
+	if (options.inline_includes !== undefined) cfg.inline_includes = options.inline_includes;
+
+	init_env();
+
+	return process_template(options.tplname, false);
 }

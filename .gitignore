@@ -4,8 +4,13 @@ lib/
 node-compile-cache/
 package-lock.json
 .env
+.mmcli-env
 pnpm-lock.yaml
 maildata.db
 config/
 uploads/
 AGENTS.md
+!tests/fixtures/config/
+!tests/fixtures/config/**
+!tests/fixtures/uploads/
+!tests/fixtures/uploads/**

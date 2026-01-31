@@ -1,0 +1,6 @@
+{% extends "base.njk" %}
+{% block body %}
+{% include "partials/header.njk" %}
+<p>Magic link: {{ magic_link }}</p>
+<p>Expires: {{ expires_in }}</p>
+{% endblock %}
