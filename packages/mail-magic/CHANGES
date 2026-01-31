@@ -1,3 +1,10 @@
+Version 1.0.11 (2026-01-31)
+
+- Scoped the client package to `@technomoron/mail-magic-client` and refreshed
+  documentation to match.
+- Added root build shortcuts for server/client/admin packages and aligned the
+  release tag pattern for the client workflow.
+
 Version 1.0.10 (2026-01-31)
 
 - Added authenticated asset uploads via `POST /api/v1/assets`, supporting

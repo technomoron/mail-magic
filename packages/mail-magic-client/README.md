@@ -5,13 +5,13 @@ Client library and CLI for the mail-magic server.
 ## Install
 
 ```bash
-npm install mail-magic-client
+npm install @technomoron/mail-magic-client
 ```
 
 ## Client Usage
 
 ```ts
-import TemplateClient from 'mail-magic-client';
+import TemplateClient from '@technomoron/mail-magic-client';
 
 const client = new TemplateClient('http://localhost:3000', 'username:token');
 

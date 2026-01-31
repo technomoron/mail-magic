@@ -6,6 +6,9 @@
 	],
 	"scripts": {
 		"build": "npm -ws --if-present run build",
+		"client": "npm -w packages/mail-magic-client run build",
+		"server": "npm -w packages/mail-magic run build",
+		"admin": "npm -w packages/mail-magic-admin run build",
 		"test:client": "npm -w packages/mail-magic-client test",
 		"test:server": "npm -w packages/mail-magic test",
 		"test:function": "vitest run",

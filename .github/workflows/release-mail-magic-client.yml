@@ -3,7 +3,7 @@ name: Release mail-magic-client
 on:
   push:
     tags:
-      - 'mail-magic-client@*'
+      - '@technomoron/mail-magic-client@*'
   workflow_dispatch:
 
 permissions:
