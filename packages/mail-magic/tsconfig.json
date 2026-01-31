@@ -5,6 +5,7 @@
 		"moduleResolution": "node",
 		"outDir": "./dist",
 		"rootDir": "./src",
+		"preserveShebang": true,
 		"strict": true,
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
