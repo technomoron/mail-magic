@@ -1,3 +1,8 @@
+Version 1.0.12 (2026-01-31)
+
+- Removed the hard dependency on `@technomoron/mail-magic-admin` so installs
+  are fully standalone unless the admin UI is explicitly added.
+
 Version 1.0.11 (2026-01-31)
 
 - Scoped the client package to `@technomoron/mail-magic-client` and refreshed
