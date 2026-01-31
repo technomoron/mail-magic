@@ -4,6 +4,7 @@ Version 1.0.11 (2026-01-31)
   documentation to match.
 - Added root build shortcuts for server/client/admin packages and aligned the
   release tag pattern for the client workflow.
+- Added a TypeScript-based CLI bin so global installs expose `mail-magic`.
 
 Version 1.0.10 (2026-01-31)
 
