@@ -1,8 +1,9 @@
 #!/bin/sh
 
+NAME=$(node -p "require('./package.json').name")
 VERSION=$(node -p "require('./package.json').version")
 
-echo "Creating release for ${VERSION}"
+echo "Creating release for ${NAME}@${VERSION}"
 
 if [ -n "$(git status --porcelain)" ]; then
 	echo "Working tree is not clean. Commit or stash changes before release." >&2
@@ -35,13 +36,13 @@ if ! npm whoami >/dev/null 2>&1; then
 	exit 1
 fi
 
-if git rev-parse -q --verify "refs/tags/v${VERSION}" >/dev/null; then
-	echo "Tag v${VERSION} already exists. Aborting." >&2
+if git rev-parse -q --verify "refs/tags/${NAME}@${VERSION}" >/dev/null; then
+	echo "Tag ${NAME}@${VERSION} already exists. Aborting." >&2
 	exit 1
 fi
 
-git tag -a "v${VERSION}" -m "Release version ${VERSION}"
-git push origin "v${VERSION}"
+git tag -a "${NAME}@${VERSION}" -m "Release ${NAME} ${VERSION}"
+git push origin "${NAME}@${VERSION}"
 
 # detect prerelease versions (contains a hyphen)
 if echo "$VERSION" | grep -q "-"; then

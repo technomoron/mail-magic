@@ -1,3 +1,8 @@
+Version 1.0.13 (2026-01-31)
+
+- Fixed the per-package release script name and tag format used to trigger
+  CI releases; no runtime changes.
+
 Version 1.0.12 (2026-01-31)
 
 - Removed the hard dependency on `@technomoron/mail-magic-admin` so installs
