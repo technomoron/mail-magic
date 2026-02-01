@@ -6,7 +6,7 @@ import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
 import { mailStore } from './store/store.js';
 
-import type { ApiServerConf } from '@technomoron/api-server-base';
+import type { ApiModule, ApiServerConf } from '@technomoron/api-server-base';
 
 export type MailMagicServerOptions = Partial<ApiServerConf>;
 
@@ -97,8 +97,8 @@ if (isDirectExecution) {
 async function enableAdminFeatures(server: mailApiServer, store: mailStore): Promise<void> {
 	try {
 		const mod = (await import('@technomoron/mail-magic-admin')) as {
-			registerAdmin?: (server: mailApiServer, options?: Record<string, unknown>) => Promise<void> | void;
-			AdminAPI?: new () => unknown;
+			registerAdmin?: (server: mailApiServer, options?: Record<string, unknown>) => unknown;
+			AdminAPI?: new () => ApiModule;
 		};
 		if (typeof mod?.registerAdmin === 'function') {
 			await mod.registerAdmin(server, {
@@ -113,9 +113,7 @@ async function enableAdminFeatures(server: mailApiServer, store: mailStore): Pro
 			store.print_debug('Admin features not exported from @technomoron/mail-magic-admin');
 		}
 	} catch (err) {
-		store.print_debug(
-			`Unable to load admin module: ${err instanceof Error ? err.message : String(err)}`
-		);
+		store.print_debug(`Unable to load admin module: ${err instanceof Error ? err.message : String(err)}`);
 	}
 }
 

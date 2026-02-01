@@ -3,12 +3,13 @@ import path from 'path';
 
 import { ApiError, ApiModule, ApiRoute } from '@technomoron/api-server-base';
 
-import { assert_domain_and_user } from './auth.js';
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_txmail } from '../models/txmail.js';
 import { mailApiServer } from '../server.js';
 import { decodeComponent, sendFileAsync } from '../util.js';
+
+import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
@@ -176,7 +177,7 @@ export function createAssetHandler(server: mailApiServer) {
 			return;
 		}
 
-		const rawPath = req?.params?.[0] ?? '';
+		const rawPath = typeof req?.params?.[0] === 'string' ? req.params[0] : '';
 		const segments = rawPath
 			.split('/')
 			.filter(Boolean)

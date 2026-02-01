@@ -50,9 +50,7 @@ function resolveAsset(basePath: string, domainName: string, assetName: string): 
 
 function buildAssetUrl(baseUrl: string, route: string, domainName: string, assetPath: string): string {
 	const trimmedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-	const normalizedRoute = route
-		? route.startsWith('/') ? route : `/${route}`
-		: '';
+	const normalizedRoute = route ? (route.startsWith('/') ? route : `/${route}`) : '';
 	const encodedDomain = encodeURIComponent(domainName);
 	const encodedPath = assetPath
 		.split('/')

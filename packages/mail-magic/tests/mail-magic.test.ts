@@ -81,16 +81,13 @@ describe('mail-magic API', () => {
 	});
 
 	test('stores templates via the API', async () => {
-		const res = await api
-			.post('/api/v1/tx/template')
-			.set('Authorization', `Bearer apikey-${ctx.userToken}`)
-			.send({
+		const res = await api.post('/api/v1/tx/template').set('Authorization', `Bearer apikey-${ctx.userToken}`).send({
 			name: 'custom',
 			domain: ctx.domainName,
 			sender: 'sender@example.test',
 			subject: 'Custom',
 			template: '<p>Custom {{ name }}</p>'
-			});
+		});
 
 		expect(res.status).toBe(200);
 

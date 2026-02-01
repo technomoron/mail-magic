@@ -3,10 +3,11 @@ import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import { convert } from 'html-to-text';
 import nunjucks from 'nunjucks';
 
-import { assert_domain_and_user } from './auth.js';
 import { api_txmail } from '../models/txmail.js';
 import { mailApiServer } from '../server.js';
 import { buildRequestMeta } from '../util.js';
+
+import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 

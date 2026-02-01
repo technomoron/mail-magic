@@ -4,11 +4,12 @@ import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-serv
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import nunjucks from 'nunjucks';
 
-import { assert_domain_and_user } from './auth.js';
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { mailApiServer } from '../server.js';
 import { buildRequestMeta, normalizeSlug } from '../util.js';
+
+import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
