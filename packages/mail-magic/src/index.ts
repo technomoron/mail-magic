@@ -124,7 +124,11 @@ function mountAssetRoute(server: mailApiServer, store: mailStore): void {
 }
 
 function ensureApiNotFoundLast(server: mailApiServer): void {
-	const anyServer = server as unknown as { apiNotFoundHandler?: unknown; app?: { _router?: { stack?: any[] } } };
+	type RouterLayer = { handle?: unknown };
+	const anyServer = server as unknown as {
+		apiNotFoundHandler?: unknown;
+		app?: { _router?: { stack?: RouterLayer[] } };
+	};
 	const handler = anyServer.apiNotFoundHandler;
 	const stack = anyServer.app?._router?.stack;
 	if (!handler || !Array.isArray(stack)) {

@@ -3,7 +3,6 @@ import path from 'path';
 
 import { ApiError, ApiModule, ApiRoute } from '@technomoron/api-server-base';
 
-import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_txmail } from '../models/txmail.js';
 import { mailApiServer } from '../server.js';
@@ -12,6 +11,7 @@ import { decodeComponent, sendFileAsync } from '../util.js';
 import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
+import type { Request, Response } from 'express';
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -170,7 +170,7 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 }
 
 export function createAssetHandler(server: mailApiServer) {
-	return async (req: any, res: any) => {
+	return async (req: Request, res: Response) => {
 		const domain = decodeComponent(req?.params?.domain);
 		if (!domain || !DOMAIN_PATTERN.test(domain)) {
 			res.status(404).end();
