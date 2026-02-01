@@ -34,7 +34,17 @@ export type TestContext = {
 	domainName: string;
 	userToken: string;
 	apiUrl: string;
+	apiBasePath: string;
+	assetRoute: string;
+	assetPublicBase: string;
 	cleanup: () => Promise<void>;
+};
+
+export type TestContextOptions = {
+	apiUrl?: string;
+	apiBasePath?: string;
+	assetRoute?: string;
+	assetPublicBase?: string;
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -230,7 +240,7 @@ async function startSmtpServer(): Promise<SmtpCapture> {
 	};
 }
 
-export async function createTestContext(): Promise<TestContext> {
+export async function createTestContext(options: TestContextOptions = {}): Promise<TestContext> {
 	const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mail-magic-test-'));
 	const configPath = path.join(tempDir, 'config');
 	fs.mkdirSync(configPath, { recursive: true });
@@ -245,7 +255,10 @@ export async function createTestContext(): Promise<TestContext> {
 	const uploadFile = path.join(tempDir, 'upload.txt');
 	fs.writeFileSync(uploadFile, 'upload-bytes');
 
-	const apiUrl = 'http://mail.test';
+	const apiUrl = options.apiUrl ?? 'http://mail.test';
+	const apiBasePath = options.apiBasePath ?? '/api';
+	const assetRoute = options.assetRoute ?? '/asset';
+	const assetPublicBase = options.assetPublicBase ?? '';
 
 	const envKeys = [
 		'NODE_ENV',
@@ -278,9 +291,9 @@ export async function createTestContext(): Promise<TestContext> {
 	process.env.DB_FORCE_SYNC = 'true';
 	process.env.DB_AUTO_RELOAD = 'false';
 	process.env.API_URL = apiUrl;
-	process.env.API_BASE_PATH = '/api';
-	process.env.ASSET_ROUTE = '/asset';
-	process.env.ASSET_PUBLIC_BASE = '';
+	process.env.API_BASE_PATH = apiBasePath;
+	process.env.ASSET_ROUTE = assetRoute;
+	process.env.ASSET_PUBLIC_BASE = assetPublicBase;
 	process.env.API_HOST = '127.0.0.1';
 	process.env.API_PORT = '0';
 	process.env.UPLOAD_PATH = './{domain}/uploads';
@@ -316,6 +329,9 @@ export async function createTestContext(): Promise<TestContext> {
 		domainName,
 		userToken: 'test-token',
 		apiUrl,
+		apiBasePath,
+		assetRoute,
+		assetPublicBase,
 		cleanup
 	};
 }
