@@ -1,3 +1,9 @@
+Version 1.0.15 (2026-02-01)
+
+- Made the optional admin UI/API opt-in via `ADMIN_ENABLED`, delegating admin
+  registration to the `@technomoron/mail-magic-admin` package with an
+  override path via `ADMIN_APP_PATH`.
+
 Version 1.0.14 (2026-02-01)
 
 - Consolidated the API domain/user assertion into a shared helper to keep

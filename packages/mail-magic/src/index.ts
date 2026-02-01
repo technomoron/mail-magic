@@ -1,9 +1,6 @@
-import fs from 'node:fs';
-import { createRequire } from 'node:module';
-import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
-import { AssetAPI } from './api/assets.js';
+import { AssetAPI, createAssetHandler } from './api/assets.js';
 import { FormAPI } from './api/forms.js';
 import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
@@ -19,6 +16,21 @@ export type MailMagicServerBootstrap = {
 	env: mailStore['env'];
 };
 
+function normalizeRoute(value: string, fallback = ''): string {
+	if (!value) {
+		return fallback;
+	}
+	const trimmed = value.trim();
+	if (!trimmed) {
+		return fallback;
+	}
+	const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+	if (withLeading === '/') {
+		return withLeading;
+	}
+	return withLeading.replace(/\/+$/, '');
+}
+
 function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions): MailMagicServerOptions {
 	const env = store.env;
 	return {
@@ -26,7 +38,7 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 		apiPort: env.API_PORT,
 		uploadPath: store.getUploadStagingPath(),
 		debug: env.DEBUG,
-		apiBasePath: '',
+		apiBasePath: normalizeRoute(env.API_BASE_PATH, '/api'),
 		swaggerEnabled: env.SWAGGER_ENABLED,
 		swaggerPath: env.SWAGGER_PATH,
 		...overrides
@@ -35,9 +47,17 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 
 export async function createMailMagicServer(overrides: MailMagicServerOptions = {}): Promise<MailMagicServerBootstrap> {
 	const store = await new mailStore().init();
+	if (typeof overrides.apiBasePath === 'string') {
+		store.env.API_BASE_PATH = overrides.apiBasePath;
+	}
 	const config = buildServerConfig(store, overrides);
 	const server = new mailApiServer(config, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
-	mountAdminUi(server, store);
+	mountAssetRoute(server, store);
+	if (store.env.ADMIN_ENABLED) {
+		await enableAdminFeatures(server, store);
+	} else {
+		store.print_debug('Admin UI/API disabled via ADMIN_ENABLED');
+	}
 
 	return { server, store, env: store.env };
 }
@@ -74,64 +94,48 @@ if (isDirectExecution) {
 	void bootMailMagic();
 }
 
-function resolveAdminDist(): string | null {
-	const require = createRequire(import.meta.url);
+async function enableAdminFeatures(server: mailApiServer, store: mailStore): Promise<void> {
 	try {
-		const pkgPath = require.resolve('@technomoron/mail-magic-admin/package.json');
-		const pkgDir = path.dirname(pkgPath);
-		const distPath = path.join(pkgDir, 'dist');
-		if (fs.existsSync(distPath)) {
-			return distPath;
+		const mod = (await import('@technomoron/mail-magic-admin')) as {
+			registerAdmin?: (server: mailApiServer, options?: Record<string, unknown>) => Promise<void> | void;
+			AdminAPI?: new () => unknown;
+		};
+		if (typeof mod?.registerAdmin === 'function') {
+			await mod.registerAdmin(server, {
+				apiBasePath: normalizeRoute(store.env.API_BASE_PATH, '/api'),
+				assetRoute: normalizeRoute(store.env.ASSET_ROUTE, '/asset'),
+				appPath: store.env.ADMIN_APP_PATH,
+				logger: (message: string) => store.print_debug(message)
+			});
+		} else if (mod?.AdminAPI) {
+			server.api(new mod.AdminAPI());
+		} else {
+			store.print_debug('Admin features not exported from @technomoron/mail-magic-admin');
 		}
-	} catch {
-		// ignore
+	} catch (err) {
+		store.print_debug(
+			`Unable to load admin module: ${err instanceof Error ? err.message : String(err)}`
+		);
 	}
-
-	const fallbackBase = path.dirname(fileURLToPath(import.meta.url));
-	const fallback = path.resolve(fallbackBase, '..', '..', 'mail-magic-admin', 'dist');
-	if (fs.existsSync(fallback)) {
-		return fallback;
-	}
-
-	return null;
 }
 
-function mountAdminUi(server: mailApiServer, store: mailStore): void {
-	const distPath = resolveAdminDist();
-	if (!distPath) {
-		store.print_debug('Admin UI not found, skipping static mount');
+function mountAssetRoute(server: mailApiServer, store: mailStore): void {
+	const normalizedRoute = normalizeRoute(store.env.ASSET_ROUTE, '/asset');
+	server.app.get(`${normalizedRoute}/:domain/*`, createAssetHandler(server));
+	ensureApiNotFoundLast(server);
+}
+
+function ensureApiNotFoundLast(server: mailApiServer): void {
+	const anyServer = server as unknown as { apiNotFoundHandler?: unknown; app?: { _router?: { stack?: any[] } } };
+	const handler = anyServer.apiNotFoundHandler;
+	const stack = anyServer.app?._router?.stack;
+	if (!handler || !Array.isArray(stack)) {
 		return;
 	}
-
-	const assetRoute = store.env.ASSET_ROUTE.startsWith('/') ? store.env.ASSET_ROUTE : `/${store.env.ASSET_ROUTE}`;
-	const indexPath = path.join(distPath, 'index.html');
-	const hasIndex = fs.existsSync(indexPath);
-	server.app.get('*', (req, res, next) => {
-		if (req.method !== 'GET') {
-			next();
-			return;
-		}
-		if (req.path.startsWith('/api') || req.path.startsWith(assetRoute)) {
-			next();
-			return;
-		}
-
-		const requestPath = req.path === '/' ? 'index.html' : req.path.replace(/^\//, '');
-		const resolvedPath = path.resolve(distPath, requestPath);
-		if (!resolvedPath.startsWith(`${distPath}${path.sep}`) && resolvedPath !== distPath) {
-			next();
-			return;
-		}
-
-		if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
-			res.sendFile(resolvedPath);
-			return;
-		}
-
-		if (!hasIndex) {
-			next();
-			return;
-		}
-		res.sendFile(indexPath);
-	});
+	const index = stack.findIndex((layer) => layer?.handle === handler);
+	if (index === -1 || index === stack.length - 1) {
+		return;
+	}
+	const [layer] = stack.splice(index, 1);
+	stack.push(layer);
 }

@@ -1,8 +1,10 @@
 {
   "name": "@technomoron/mail-magic-admin",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Admin UI for mail-magic (placeholder)",
   "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,10 +12,13 @@
   },
   "files": [
     "dist/**",
+    "index.js",
+    "index.d.ts",
     "package.json",
     "README.md"
   ],
   "dependencies": {
+    "@technomoron/api-server-base": "2.0.0-beta.15",
     "vue": "^3.5.0"
   },
   "devDependencies": {
