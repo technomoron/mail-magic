@@ -3,9 +3,8 @@ import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import { convert } from 'html-to-text';
 import nunjucks from 'nunjucks';
 
-import { api_domain } from '../models/domain.js';
+import { assert_domain_and_user } from './auth.js';
 import { api_txmail } from '../models/txmail.js';
-import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
 import { buildRequestMeta } from '../util.js';
 
@@ -47,32 +46,10 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		return { valid, invalid };
 	}
 
-	async assert_domain_and_user(apireq: mailApiRequest) {
-		const { domain, locale } = apireq.req.body;
-
-		if (!domain) {
-			throw new ApiError({ code: 401, message: 'Missing domain' });
-		}
-		const user = await api_user.findOne({ where: { token: apireq.token } });
-		if (!user) {
-			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
-		}
-		const dbdomain = await api_domain.findOne({ where: { name: domain } });
-		if (!dbdomain) {
-			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
-		}
-		if (dbdomain.user_id !== user.user_id) {
-			throw new ApiError({ code: 403, message: `Domain ${domain} is not owned by this user` });
-		}
-		apireq.domain = dbdomain;
-		apireq.locale = locale || 'en';
-		apireq.user = user;
-	}
-
 	// Store a template in the database
 
 	private async post_template(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
-		await this.assert_domain_and_user(apireq);
+		await assert_domain_and_user(apireq);
 
 		const { template, sender = '', name, subject = '', locale = '' } = apireq.req.body;
 
@@ -118,9 +95,9 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 	// Send a template using posted arguments.
 
 	private async post_send(apireq: mailApiRequest): Promise<[number, Record<string, unknown>]> {
-		await this.assert_domain_and_user(apireq);
-
 		const { name, rcpt, domain = '', locale = '', vars = {}, replyTo, reply_to, headers } = apireq.req.body;
+
+		await assert_domain_and_user(apireq);
 
 		if (!name || !rcpt || !domain) {
 			throw new ApiError({ code: 400, message: 'name/rcpt/domain required' });

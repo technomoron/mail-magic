@@ -1,3 +1,8 @@
+Version 1.0.14 (2026-02-01)
+
+- Consolidated the API domain/user assertion into a shared helper to keep
+  validation logic consistent across modules.
+
 Version 1.0.13 (2026-01-31)
 
 - Fixed the per-package release script name and tag format used to trigger

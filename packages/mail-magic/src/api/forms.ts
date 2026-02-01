@@ -4,9 +4,9 @@ import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-serv
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import nunjucks from 'nunjucks';
 
+import { assert_domain_and_user } from './auth.js';
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
-import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
 import { buildRequestMeta, normalizeSlug } from '../util.js';
 
@@ -21,30 +21,8 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		return undefined;
 	}
 
-	private async assertDomainAndUser(apireq: mailApiRequest): Promise<void> {
-		const { domain, locale } = apireq.req.body;
-
-		if (!domain) {
-			throw new ApiError({ code: 401, message: 'Missing domain' });
-		}
-		const user = await api_user.findOne({ where: { token: apireq.token } });
-		if (!user) {
-			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
-		}
-		const dbdomain = await api_domain.findOne({ where: { name: domain } });
-		if (!dbdomain) {
-			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
-		}
-		if (dbdomain.user_id !== user.user_id) {
-			throw new ApiError({ code: 403, message: `Domain ${domain} is not owned by this user` });
-		}
-		apireq.domain = dbdomain;
-		apireq.locale = locale || 'en';
-		apireq.user = user;
-	}
-
 	private async postFormTemplate(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
-		await this.assertDomainAndUser(apireq);
+		await assert_domain_and_user(apireq);
 
 		const {
 			template,

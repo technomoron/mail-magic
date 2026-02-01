@@ -3,10 +3,10 @@ import path from 'path';
 
 import { ApiError, ApiModule, ApiRoute } from '@technomoron/api-server-base';
 
+import { assert_domain_and_user } from './auth.js';
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_txmail } from '../models/txmail.js';
-import { api_user } from '../models/user.js';
 import { mailApiServer } from '../server.js';
 import { decodeComponent, sendFileAsync } from '../util.js';
 
@@ -28,26 +28,6 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 			}
 		}
 		return '';
-	}
-
-	private async assertDomainAndUser(apireq: mailApiRequest): Promise<void> {
-		const domainName = this.getBodyValue(apireq.req.body ?? {}, 'domain');
-		if (!domainName) {
-			throw new ApiError({ code: 401, message: 'Missing domain' });
-		}
-		const user = await api_user.findOne({ where: { token: apireq.token } });
-		if (!user) {
-			throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
-		}
-		const dbdomain = await api_domain.findOne({ where: { name: domainName } });
-		if (!dbdomain) {
-			throw new ApiError({ code: 401, message: `Unable to look up the domain ${domainName}` });
-		}
-		if (dbdomain.user_id !== user.user_id) {
-			throw new ApiError({ code: 403, message: `Domain ${domainName} is not owned by this user` });
-		}
-		apireq.domain = dbdomain;
-		apireq.user = user;
 	}
 
 	private normalizeSubdir(value: string): string {
@@ -148,7 +128,7 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 	}
 
 	private async postAssets(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
-		await this.assertDomainAndUser(apireq);
+		await assert_domain_and_user(apireq);
 
 		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
 		if (!rawFiles.length) {
