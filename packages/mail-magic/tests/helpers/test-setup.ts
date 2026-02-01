@@ -245,7 +245,7 @@ export async function createTestContext(): Promise<TestContext> {
 	const uploadFile = path.join(tempDir, 'upload.txt');
 	fs.writeFileSync(uploadFile, 'upload-bytes');
 
-	const apiUrl = 'http://mail.test/api';
+	const apiUrl = 'http://mail.test';
 
 	const envKeys = [
 		'NODE_ENV',
@@ -255,7 +255,9 @@ export async function createTestContext(): Promise<TestContext> {
 		'DB_FORCE_SYNC',
 		'DB_AUTO_RELOAD',
 		'API_URL',
+		'API_BASE_PATH',
 		'ASSET_ROUTE',
+		'ASSET_PUBLIC_BASE',
 		'API_HOST',
 		'API_PORT',
 		'UPLOAD_PATH',
@@ -276,7 +278,9 @@ export async function createTestContext(): Promise<TestContext> {
 	process.env.DB_FORCE_SYNC = 'true';
 	process.env.DB_AUTO_RELOAD = 'false';
 	process.env.API_URL = apiUrl;
+	process.env.API_BASE_PATH = '/api';
 	process.env.ASSET_ROUTE = '/asset';
+	process.env.ASSET_PUBLIC_BASE = '';
 	process.env.API_HOST = '127.0.0.1';
 	process.env.API_PORT = '0';
 	process.env.UPLOAD_PATH = './{domain}/uploads';
@@ -288,7 +292,7 @@ export async function createTestContext(): Promise<TestContext> {
 	process.env.SMTP_PASSWORD = '';
 	process.env.DEBUG = 'false';
 
-	const bootstrap = await createMailMagicServer({ apiBasePath: '' });
+	const bootstrap = await createMailMagicServer();
 
 	const cleanup = async () => {
 		await new Promise<void>((resolve) => {

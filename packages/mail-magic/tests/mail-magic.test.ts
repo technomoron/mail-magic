@@ -63,14 +63,14 @@ describe('mail-magic API', () => {
 	});
 
 	test('serves assets from the public route and blocks traversal', async () => {
-		const assetPath = `/api/asset/${ctx.domainName}/files/banner.png`;
+		const assetPath = `/asset/${ctx.domainName}/files/banner.png`;
 		const res = await api.get(assetPath);
 		expect(res.status).toBe(200);
 		expect(res.headers['cache-control']).toContain('max-age=300');
 		expect(res.headers['content-type']).toContain('image/png');
 		expect(res.body.toString()).toBe('banner-bytes');
 
-		const bad = await api.get(`/api/asset/${ctx.domainName}/%2e%2e/secret.txt`);
+		const bad = await api.get(`/asset/${ctx.domainName}/%2e%2e/secret.txt`);
 		expect(bad.status).toBe(404);
 	});
 
@@ -81,13 +81,16 @@ describe('mail-magic API', () => {
 	});
 
 	test('stores templates via the API', async () => {
-		const res = await api.post('/api/v1/tx/template').set('Authorization', `Bearer apikey-${ctx.userToken}`).send({
+		const res = await api
+			.post('/api/v1/tx/template')
+			.set('Authorization', `Bearer apikey-${ctx.userToken}`)
+			.send({
 			name: 'custom',
 			domain: ctx.domainName,
 			sender: 'sender@example.test',
 			subject: 'Custom',
 			template: '<p>Custom {{ name }}</p>'
-		});
+			});
 
 		expect(res.status).toBe(200);
 

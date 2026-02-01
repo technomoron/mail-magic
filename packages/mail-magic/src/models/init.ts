@@ -50,7 +50,9 @@ function resolveAsset(basePath: string, domainName: string, assetName: string): 
 
 function buildAssetUrl(baseUrl: string, route: string, domainName: string, assetPath: string): string {
 	const trimmedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-	const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
+	const normalizedRoute = route
+		? route.startsWith('/') ? route : `/${route}`
+		: '';
 	const encodedDomain = encodeURIComponent(domainName);
 	const encodedPath = assetPath
 		.split('/')
@@ -67,6 +69,7 @@ function extractAndReplaceAssets(
 		basePath: string;
 		domainName: string;
 		apiUrl: string;
+		assetBaseUrl: string;
 		assetRoute: string;
 	}
 ): { html: string; assets: StoredFile[] } {
@@ -99,7 +102,8 @@ function extractAndReplaceAssets(
 			throw new Error(`Asset path escapes domain assets directory: ${fullPath}`);
 		}
 		const normalizedAssetPath = relativeToAssets.split(path.sep).join('/');
-		const assetUrl = buildAssetUrl(opts.apiUrl, opts.assetRoute, opts.domainName, normalizedAssetPath);
+		const baseUrl = opts.assetBaseUrl?.trim() ? opts.assetBaseUrl : opts.apiUrl;
+		const assetUrl = buildAssetUrl(baseUrl, opts.assetRoute, opts.domainName, normalizedAssetPath);
 		return `src="${assetUrl}"`;
 	});
 
@@ -153,6 +157,7 @@ async function _load_template(
 			basePath: baseConfigPath,
 			domainName: domain.name,
 			apiUrl: store.env.API_URL,
+			assetBaseUrl: store.env.ASSET_PUBLIC_BASE,
 			assetRoute: store.env.ASSET_ROUTE
 		});
 

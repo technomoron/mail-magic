@@ -3,6 +3,8 @@ Version 1.0.15 (2026-02-01)
 - Made the optional admin UI/API opt-in via `ADMIN_ENABLED`, delegating admin
   registration to the `@technomoron/mail-magic-admin` package with an
   override path via `ADMIN_APP_PATH`.
+- Serve public assets directly from `ASSET_ROUTE` (outside the API base path)
+  and allow asset URLs to use `ASSET_PUBLIC_BASE` when rendering templates.
 
 Version 1.0.14 (2026-02-01)
 

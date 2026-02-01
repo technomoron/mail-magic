@@ -11,7 +11,6 @@ import { mailApiServer } from '../server.js';
 import { decodeComponent, sendFileAsync } from '../util.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
-import type { ApiRequest } from '@technomoron/api-server-base';
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -157,24 +156,40 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		return [200, { Status: 'OK' }];
 	}
 
-	private async getAsset(apiReq: ApiRequest): Promise<[number, null]> {
-		const domain = decodeComponent(apiReq.req.params.domain);
+	override defineRoutes(): ApiRoute[] {
+		return [
+			{
+				method: 'post',
+				path: '/v1/assets',
+				handler: (apiReq) => this.postAssets(apiReq as mailApiRequest),
+				auth: { type: 'yes', req: 'any' }
+			}
+		];
+	}
+}
+
+export function createAssetHandler(server: mailApiServer) {
+	return async (req: any, res: any) => {
+		const domain = decodeComponent(req?.params?.domain);
 		if (!domain || !DOMAIN_PATTERN.test(domain)) {
-			throw new ApiError({ code: 404, message: 'Asset not found' });
+			res.status(404).end();
+			return;
 		}
 
-		const rawPath = apiReq.req.params[0] ?? '';
+		const rawPath = req?.params?.[0] ?? '';
 		const segments = rawPath
 			.split('/')
 			.filter(Boolean)
 			.map((segment: string) => decodeComponent(segment));
 		if (!segments.length || segments.some((segment) => !SEGMENT_PATTERN.test(segment))) {
-			throw new ApiError({ code: 404, message: 'Asset not found' });
+			res.status(404).end();
+			return;
 		}
 
-		const assetsRoot = path.join(this.server.storage.configpath, domain, 'assets');
+		const assetsRoot = path.join(server.storage.configpath, domain, 'assets');
 		if (!fs.existsSync(assetsRoot)) {
-			throw new ApiError({ code: 404, message: 'Asset not found' });
+			res.status(404).end();
+			return;
 		}
 		const resolvedRoot = fs.realpathSync(assetsRoot);
 		const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
@@ -183,27 +198,25 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		try {
 			const stats = await fs.promises.stat(candidate);
 			if (!stats.isFile()) {
-				throw new ApiError({ code: 404, message: 'Asset not found' });
+				res.status(404).end();
+				return;
 			}
 		} catch {
-			throw new ApiError({ code: 404, message: 'Asset not found' });
+			res.status(404).end();
+			return;
 		}
 
 		let realCandidate: string;
 		try {
 			realCandidate = await fs.promises.realpath(candidate);
 		} catch {
-			throw new ApiError({ code: 404, message: 'Asset not found' });
+			res.status(404).end();
+			return;
 		}
 		if (!realCandidate.startsWith(normalizedRoot)) {
-			throw new ApiError({ code: 404, message: 'Asset not found' });
+			res.status(404).end();
+			return;
 		}
-
-		const { res } = apiReq;
-		const originalStatus = res.status.bind(res);
-		const originalJson = res.json.bind(res);
-		res.status = ((code: number) => (res.headersSent ? res : originalStatus(code))) as typeof res.status;
-		res.json = ((body: unknown) => (res.headersSent ? res : originalJson(body))) as typeof res.json;
 
 		res.type(path.extname(realCandidate));
 		res.set('Cache-Control', 'public, max-age=300');
@@ -211,33 +224,12 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		try {
 			await sendFileAsync(res, realCandidate);
 		} catch (err) {
-			this.server.storage.print_debug(
+			server.storage.print_debug(
 				`Failed to serve asset ${domain}/${segments.join('/')}: ${err instanceof Error ? err.message : String(err)}`
 			);
 			if (!res.headersSent) {
-				throw new ApiError({ code: 500, message: 'Failed to stream asset' });
+				res.status(500).end();
 			}
 		}
-
-		return [200, null];
-	}
-
-	override defineRoutes(): ApiRoute[] {
-		const route = this.server.storage.env.ASSET_ROUTE;
-		const normalizedRoute = route.startsWith('/') ? route : `/${route}`;
-		return [
-			{
-				method: 'post',
-				path: '/v1/assets',
-				handler: (apiReq) => this.postAssets(apiReq as mailApiRequest),
-				auth: { type: 'yes', req: 'any' }
-			},
-			{
-				method: 'get',
-				path: `${normalizedRoute}/:domain/*`,
-				handler: (apiReq) => this.getAsset(apiReq),
-				auth: { type: 'none', req: 'any' }
-			}
-		];
-	}
+	};
 }

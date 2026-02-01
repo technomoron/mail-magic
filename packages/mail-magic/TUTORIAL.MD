@@ -58,7 +58,7 @@ myorg-config/
 
 > **Tip:** If you want to share partials between templates, keep file names aligned (e.g. identical `header.njk` content under both `form-template/partials/` and `tx-template/partials/`).
 
-> **Assets vs inline:** Any file you want to serve as an external URL must live under `myorg.com/assets/`. The template helper `asset('logo.png')` will become `/asset/myorg.com/logo.png`. Use `asset('logo.png', true)` when you need the file embedded as a CID attachment instead.
+> **Assets vs inline:** Any file you want to serve as an external URL must live under `myorg.com/assets/`. The template helper `asset('logo.png')` will become `http://localhost:3776/asset/myorg.com/logo.png` by default. You can change the base via `ASSET_PUBLIC_BASE` (or `API_URL`) and the path via `ASSET_ROUTE`. Use `asset('logo.png', true)` when you need the file embedded as a CID attachment instead.
 
 ---
 
