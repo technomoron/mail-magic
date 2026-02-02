@@ -10,6 +10,9 @@ import { pushTemplate, pushTemplateDir } from './cli-helpers';
 import TemplateClient from './mail-magic-client';
 import { do_the_template_thing } from './preprocess';
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type JsonObject = Record<string, JsonValue>;
+
 const program = new Command();
 const envDefaults = loadCliEnv();
 const defaultToken = resolveToken(envDefaults);
@@ -68,6 +71,26 @@ const getTemplateData = async (): Promise<string> => {
 	}
 };
 
+const isPlainObject = (value: unknown): value is JsonObject =>
+	typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const parseVarsOption = (input: string | undefined): JsonObject => {
+	if (!input) {
+		return {};
+	}
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(input);
+	} catch (error) {
+		const message = error instanceof Error ? error.message : String(error);
+		throw new Error(`Invalid JSON for --vars: ${message}`);
+	}
+	if (!isPlainObject(parsed)) {
+		throw new Error('--vars must be a JSON object');
+	}
+	return parsed;
+};
+
 program
 	.command('template')
 	.description('Store a template on the server')
@@ -84,7 +107,7 @@ program
 				domain: program.opts().domain,
 				part: !!program.opts().part
 			};
-			const result = await client.storeTemplate(templateData);
+			await client.storeTemplate(templateData);
 			console.log('Template updated');
 		} catch (error) {
 			if (error instanceof Error) {
@@ -102,8 +125,7 @@ program
 	.action(async () => {
 		const client = new TemplateClient(program.opts().api, program.opts().token);
 		try {
-			const template = await getTemplateData();
-			const vars: any = program.opts().vars ? JSON.parse(program.opts().vars) : '{}';
+			const vars = parseVarsOption(program.opts().vars);
 			const templateData = {
 				name: program.opts().name,
 				rcpt: program.opts().rcpt,
@@ -111,7 +133,7 @@ program
 				locale: program.opts().locale,
 				vars
 			};
-			const result = await client.sendTemplate(templateData);
+			await client.sendTemplate(templateData);
 			console.log('Template sent');
 		} catch (error) {
 			if (error instanceof Error) {
@@ -126,7 +148,7 @@ program
 program
 	.command('version')
 	.description('Show current client version')
-	.action(async (cmdOptions) => {
+	.action(async () => {
 		console.log('1.0.19');
 	});
 

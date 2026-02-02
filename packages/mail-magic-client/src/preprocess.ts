@@ -16,7 +16,6 @@ interface ExtendedTemplate extends nunjucks.Template {
 
 interface ExtendedEnvironment extends nunjucks.Environment {
 	filters: {
-		[key: string]: (...args: any[]) => any;
 		protect_variables: (content: string) => string;
 		restore_variables: (content: string) => string;
 	};
@@ -31,6 +30,16 @@ interface CompileCfg {
 	css_content: string | null;
 	inline_includes: boolean;
 }
+
+type NunjucksParser = {
+	nextToken: () => { value: string };
+	parseSignature: (token: unknown, allowArgs: boolean) => unknown;
+	advanceAfterBlockEnd: (value: string) => void;
+};
+
+type NunjucksNodes = {
+	CallExtension: new (extension: unknown, methodName: string, args: unknown) => unknown;
+};
 
 const cfg: CompileCfg = {
 	env: null,
@@ -76,15 +85,14 @@ function inlineIncludes(content: string, baseDir: string, srcRoot: string, stack
 class PreprocessExtension {
 	tags: string[] = ['process_layout'];
 
-	// types from nunjucks are not exported for parser/nodes; use any
-	parse(parser: any, nodes: any) {
+	parse(parser: NunjucksParser, nodes: NunjucksNodes): unknown {
 		const token = parser.nextToken();
 		const args = parser.parseSignature(null, true);
 		parser.advanceAfterBlockEnd(token.value);
 		return new nodes.CallExtension(this, 'run', args);
 	}
 
-	run(_context: any, tplname: string) {
+	run(_context: unknown, tplname: string): string {
 		const template = cfg.env!.getTemplate(tplname);
 		const src = template.tmplStr;
 
@@ -153,8 +161,8 @@ function process_template(tplname: string, writeOutput = true) {
 			});
 
 			// <container> -> <table>
-			$('container').each(function (this: any) {
-				const $container = $(this);
+			$('container').each((_index, element) => {
+				const $container = $(element);
 				const $table = $('<table/>').attr({
 					align: 'center',
 					class: $container.attr('class') || '',
@@ -170,8 +178,8 @@ function process_template(tplname: string, writeOutput = true) {
 			});
 
 			// <row> -> <tr>
-			$('row').each(function (this: any) {
-				const $row = $(this);
+			$('row').each((_index, element) => {
+				const $row = $(element);
 				const background = $row.attr('background') || '';
 				const $tr = $('<tr/>').attr({ class: $row.attr('class') || '' });
 				if (background) $tr.css('background', background);
@@ -180,8 +188,8 @@ function process_template(tplname: string, writeOutput = true) {
 			});
 
 			// <columns> -> <td>
-			$('columns').each(function (this: any) {
-				const $columns = $(this);
+			$('columns').each((_index, element) => {
+				const $columns = $(element);
 				const padding = $columns.attr('padding') || '0';
 				const $td = $('<td/>').attr({
 					class: $columns.attr('class') || '',
@@ -192,8 +200,8 @@ function process_template(tplname: string, writeOutput = true) {
 			});
 
 			// <button> -> <a>
-			$('button').each(function (this: any) {
-				const $button = $(this);
+			$('button').each((_index, element) => {
+				const $button = $(element);
 				const href = $button.attr('href') || '#';
 				const buttonClass = $button.attr('class') || '';
 				const $a = $('<a/>').attr({

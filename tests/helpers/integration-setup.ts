@@ -7,8 +7,8 @@ import { simpleParser } from 'mailparser';
 import { SMTPServer } from 'smtp-server';
 import request from 'supertest';
 
-import TemplateClient from '../../packages/mail-magic-client/src/mail-magic-client.js';
 import { createMailMagicServer } from '../../packages/mail-magic/src/index.js';
+import TemplateClient from '../../packages/mail-magic-client/src/mail-magic-client.js';
 
 import type { ParsedMail } from 'mailparser';
 import type { Server } from 'node:http';

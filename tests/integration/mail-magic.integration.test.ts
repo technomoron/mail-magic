@@ -3,7 +3,6 @@ import path from 'node:path';
 
 import { api_form } from '../../packages/mail-magic/src/models/form.js';
 import { api_txmail } from '../../packages/mail-magic/src/models/txmail.js';
-
 import { createIntegrationContext } from '../helpers/integration-setup.js';
 
 import type { IntegrationContext } from '../helpers/integration-setup.js';
@@ -198,16 +197,13 @@ describe('mail-magic integration', () => {
 	});
 
 	test('rejects template updates for the wrong domain token', async () => {
-		const txRes = await ctx.api
-			.post('/api/v1/tx/template')
-			.set('Authorization', 'Bearer apikey-beta-token')
-			.send({
-				domain: ctx.domainAlpha,
-				name: 'denied',
-				sender: 'Alpha <noreply@alpha.example.test>',
-				subject: 'Denied',
-				template: '<p>Denied</p>'
-			});
+		const txRes = await ctx.api.post('/api/v1/tx/template').set('Authorization', 'Bearer apikey-beta-token').send({
+			domain: ctx.domainAlpha,
+			name: 'denied',
+			sender: 'Alpha <noreply@alpha.example.test>',
+			subject: 'Denied',
+			template: '<p>Denied</p>'
+		});
 
 		expect(txRes.status).toBe(403);
 
@@ -316,13 +312,7 @@ describe('mail-magic integration', () => {
 
 		expect(templateRes.status).toBe(200);
 
-		const templateDest = path.join(
-			ctx.configPath,
-			ctx.domainAlpha,
-			'tx-template',
-			'en',
-			'asset-template.txt'
-		);
+		const templateDest = path.join(ctx.configPath, ctx.domainAlpha, 'tx-template', 'en', 'asset-template.txt');
 		expect(fs.existsSync(templateDest)).toBe(true);
 	});
 

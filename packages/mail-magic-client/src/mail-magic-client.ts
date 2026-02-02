@@ -4,6 +4,10 @@ import path from 'path';
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import nunjucks from 'nunjucks';
 
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type RequestBody = JsonValue | object;
+
 interface templateData {
 	template: string;
 	domain: string;
@@ -30,7 +34,7 @@ interface sendTemplateData {
 	rcpt: string;
 	domain: string;
 	locale?: string;
-	vars?: object;
+	vars?: Record<string, unknown>;
 	replyTo?: string;
 	headers?: Record<string, string>;
 	attachments?: AttachmentInput[];
@@ -42,7 +46,7 @@ interface sendFormData {
 	recipient?: string;
 	domain?: string;
 	locale?: string;
-	vars?: object;
+	vars?: Record<string, unknown>;
 	replyTo?: string;
 	fields?: Record<string, unknown>;
 	attachments?: AttachmentInput[];
@@ -78,7 +82,7 @@ class templateClient {
 		}
 	}
 
-	async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', command: string, body?: any): Promise<T> {
+	async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', command: string, body?: RequestBody): Promise<T> {
 		const url = `${this.baseURL}${command}`;
 		const options: RequestInit = {
 			method,
@@ -106,15 +110,15 @@ class templateClient {
 		return this.request<T>('GET', command);
 	}
 
-	async post<T>(command: string, body: any): Promise<T> {
+	async post<T>(command: string, body: RequestBody): Promise<T> {
 		return this.request<T>('POST', command, body);
 	}
 
-	async put<T>(command: string, body: any): Promise<T> {
+	async put<T>(command: string, body: RequestBody): Promise<T> {
 		return this.request<T>('PUT', command, body);
 	}
 
-	async delete<T>(command: string, body?: any): Promise<T> {
+	async delete<T>(command: string, body?: RequestBody): Promise<T> {
 		return this.request<T>('DELETE', command, body);
 	}
 
@@ -140,7 +144,7 @@ class templateClient {
 	private validateTemplate(template: string): void {
 		try {
 			const env = new nunjucks.Environment(new nunjucks.FileSystemLoader(['./templates']));
-			const t = env.renderString(template, {});
+			env.renderString(template, {});
 		} catch (error) {
 			if (error instanceof Error) {
 				throw new Error(`Template validation failed: ${error.message}`);
@@ -208,7 +212,7 @@ class templateClient {
 		throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
 	}
 
-	async storeTemplate(td: templateData): Promise<any> {
+	async storeTemplate(td: templateData): Promise<unknown> {
 		if (!td.template) {
 			throw new Error('No template data provided');
 		}
@@ -219,7 +223,7 @@ class templateClient {
 		return this.storeTxTemplate(td);
 	}
 
-	async sendTemplate(std: sendTemplateData): Promise<any> {
+	async sendTemplate(std: sendTemplateData): Promise<unknown> {
 		if (!std.name || !std.rcpt) {
 			throw new Error('Invalid request body; name/rcpt required');
 		}
@@ -227,7 +231,7 @@ class templateClient {
 		return this.sendTxMessage(std);
 	}
 
-	async storeTxTemplate(td: templateData): Promise<any> {
+	async storeTxTemplate(td: templateData): Promise<unknown> {
 		if (!td.template) {
 			throw new Error('No template data provided');
 		}
@@ -238,12 +242,12 @@ class templateClient {
 		return this.post('/api/v1/tx/template', td);
 	}
 
-	async sendTxMessage(std: sendTemplateData): Promise<any> {
+	async sendTxMessage(std: sendTemplateData): Promise<unknown> {
 		if (!std.name || !std.rcpt) {
 			throw new Error('Invalid request body; name/rcpt required');
 		}
 
-		const { valid, invalid } = this.validateEmails(std.rcpt);
+		const { invalid } = this.validateEmails(std.rcpt);
 		if (invalid.length > 0) {
 			throw new Error('Invalid email address(es): ' + invalid.join(','));
 		}
@@ -278,7 +282,7 @@ class templateClient {
 		return this.post('/api/v1/tx/message', body);
 	}
 
-	async storeFormTemplate(data: formTemplateData): Promise<any> {
+	async storeFormTemplate(data: formTemplateData): Promise<unknown> {
 		if (!data.template) {
 			throw new Error('No template data provided');
 		}
@@ -296,12 +300,12 @@ class templateClient {
 		return this.post('/api/v1/form/template', data);
 	}
 
-	async sendFormMessage(data: sendFormData): Promise<any> {
+	async sendFormMessage(data: sendFormData): Promise<unknown> {
 		if (!data.formid) {
 			throw new Error('Invalid request body; formid required');
 		}
 
-		const fields = data.fields || {};
+		const fields: Record<string, unknown> = data.fields || {};
 		const baseFields: Record<string, unknown> = {
 			formid: data.formid,
 			secret: data.secret,
@@ -331,7 +335,7 @@ class templateClient {
 		return this.post('/api/v1/form/message', baseFields);
 	}
 
-	async uploadAssets(data: uploadAssetsData): Promise<any> {
+	async uploadAssets(data: uploadAssetsData): Promise<unknown> {
 		if (!data.domain) {
 			throw new Error('domain is required');
 		}

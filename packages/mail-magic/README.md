@@ -1,6 +1,8 @@
 # @technomoron/mail-magic
 
-Mail Magic is a TypeScript service for managing, templating, and delivering transactional emails. It exposes a small REST API built on `@technomoron/api-server-base`, persists data with Sequelize/SQLite, and renders outbound messages with Nunjucks templates.
+Mail Magic is a TypeScript service for managing, templating, and delivering transactional emails. It exposes a small
+REST API built on `@technomoron/api-server-base`, persists data with Sequelize/SQLite, and renders outbound messages
+with Nunjucks templates.
 
 ## Features
 
@@ -16,7 +18,8 @@ Mail Magic is a TypeScript service for managing, templating, and delivering tran
 1. Clone the repository: `git clone git@github.com:technomoron/mail-magic.git`
 2. Install dependencies: `npm install`
 3. Create your environment file: copy `.env-dist` to `.env` and adjust values
-4. Populate the config directory (defaults to `./data/`; see `config-example/` for a reference layout). You can point `CONFIG_PATH` at `./config` to use the bundled sample data.
+4. Populate the config directory (defaults to `./data/`; see `config-example/` for a reference layout). You can point
+   `CONFIG_PATH` at `./config` to use the bundled sample data.
 5. Build the project: `npm run build`
 6. Start the API server: `npm run start`
 
@@ -24,22 +27,38 @@ During development you can run `npm run dev` for a watch mode that recompiles on
 
 ## Configuration
 
-- **Environment variables** are defined in `src/store/envloader.ts`. Important settings include SMTP credentials, API host/port, the config directory path, database options, and `ADMIN_ENABLED`/`ADMIN_APP_PATH` to control the admin UI/API.
-- **Config directory** (`CONFIG_PATH`) contains JSON seed data (`init-data.json`), optional API key files, and template assets. Each domain now lives directly under the config root (for example `data/example.com/form-template/…`). Use an absolute path or a relative one like `../data` when you want the config outside the repo. Review `config-example/` for the recommended layout, in particular the `form-template/` and `tx-template/` folders used for compiled Nunjucks templates.
-- **Database** defaults to SQLite (`maildata.db`). You can switch dialects by updating the environment options if your deployment requires another database.
-- **Uploads** default to `<CONFIG_PATH>/<domain>/uploads` via `UPLOAD_PATH=./{domain}/uploads`. Set a fixed path if you prefer a shared upload directory.
+- **Environment variables** are defined in `src/store/envloader.ts`. Important settings include SMTP credentials, API
+  host/port, the config directory path, database options, and `ADMIN_ENABLED`/`ADMIN_APP_PATH` to control the admin
+  UI/API.
+- **Config directory** (`CONFIG_PATH`) contains JSON seed data (`init-data.json`), optional API key files, and template
+  assets. Each domain now lives directly under the config root (for example `data/example.com/form-template/…`). Use an
+  absolute path or a relative one like `../data` when you want the config outside the repo. Review `config-example/` for
+  the recommended layout, in particular the `form-template/` and `tx-template/` folders used for compiled Nunjucks
+  templates.
+- **Database** defaults to SQLite (`maildata.db`). You can switch dialects by updating the environment options if your
+  deployment requires another database.
+- **Uploads** default to `<CONFIG_PATH>/<domain>/uploads` via `UPLOAD_PATH=./{domain}/uploads`. Set a fixed path if you
+  prefer a shared upload directory.
 
-When `DB_AUTO_RELOAD` is enabled the service watches `init-data.json` and refreshes templates and forms without a restart.
+When `DB_AUTO_RELOAD` is enabled the service watches `init-data.json` and refreshes templates and forms without a
+restart.
 
 ### Admin UI
 
-The server mounts the admin UI at `/` only when `ADMIN_ENABLED` is true and the `@technomoron/mail-magic-admin` package is installed. You can point `ADMIN_APP_PATH` at a dist folder (or its parent) to override the package-provided build. The admin API module is loaded from the admin package as well. This is a placeholder Vue app today, but it is already wired so future admin features can live there without changing the server routing.
+The server mounts the admin UI at `/` only when `ADMIN_ENABLED` is true and the `@technomoron/mail-magic-admin` package
+is installed. You can point `ADMIN_APP_PATH` at a dist folder (or its parent) to override the package-provided build.
+The admin API module is loaded from the admin package as well. This is a placeholder Vue app today, but it is already
+wired so future admin features can live there without changing the server routing.
 
 ### Template assets and inline resources
 
-- Keep any non-inline files (images, attachments, etc.) under `<CONFIG_PATH>/<domain>/assets`. Mail Magic rewrites `asset('logo.png')` using `ASSET_ROUTE` (default `/asset`) and a base URL from `ASSET_PUBLIC_BASE` (or `API_URL` if unset). The default output looks like `http://localhost:3776/asset/<domain>/logo.png`.
-- Pass `true` as the second argument when you want to embed a file as an inline CID attachment: `asset('logo.png', true)` stores the file in Nodemailer and rewrites the HTML to reference `cid:logo.png`.
-- Avoid mixing template-type folders for assets; everything that should be linked externally belongs in the shared `<domain>/assets` tree so it can be served for both form and transactional templates.
+- Keep any non-inline files (images, attachments, etc.) under `<CONFIG_PATH>/<domain>/assets`. Mail Magic rewrites
+  `asset('logo.png')` using `ASSET_ROUTE` (default `/asset`) and a base URL from `ASSET_PUBLIC_BASE` (or `API_URL` if
+  unset). The default output looks like `http://localhost:3776/asset/<domain>/logo.png`.
+- Pass `true` as the second argument when you want to embed a file as an inline CID attachment:
+  `asset('logo.png', true)` stores the file in Nodemailer and rewrites the HTML to reference `cid:logo.png`.
+- Avoid mixing template-type folders for assets; everything that should be linked externally belongs in the shared
+  `<domain>/assets` tree so it can be served for both form and transactional templates.
 
 ## API Overview
 
@@ -52,7 +71,8 @@ The server mounts the admin UI at `/` only when `ADMIN_ENABLED` is true and the 
 
 All routes are mounted under `API_BASE_PATH` (default `/api`), so the full path is typically `/api/v1/...`.
 
-All authenticated routes expect an API token associated with a configured user. Attachments can be uploaded alongside the `/v1/tx/message` request and are forwarded by Nodemailer.
+All authenticated routes expect an API token associated with a configured user. Attachments can be uploaded alongside
+the `/v1/tx/message` request and are forwarded by Nodemailer.
 
 ## Available Scripts
 

@@ -1,25 +1,25 @@
 {
-  "user": [
-    {
-      "user_id": 1,
-      "idname": "example",
-      "token": "example-token",
-      "name": "Example User",
-      "email": "noreply@example.test",
-      "domain": 1,
-      "locale": "en"
-    }
-  ],
-  "domain": [
-    {
-      "domain_id": 1,
-      "user_id": 1,
-      "name": "example.test",
-      "sender": "Example <noreply@example.test>",
-      "locale": "en",
-      "is_default": true
-    }
-  ],
-  "template": [],
-  "form": []
+	"user": [
+		{
+			"user_id": 1,
+			"idname": "example",
+			"token": "example-token",
+			"name": "Example User",
+			"email": "noreply@example.test",
+			"domain": 1,
+			"locale": "en"
+		}
+	],
+	"domain": [
+		{
+			"domain_id": 1,
+			"user_id": 1,
+			"name": "example.test",
+			"sender": "Example <noreply@example.test>",
+			"locale": "en",
+			"is_default": true
+		}
+	],
+	"template": [],
+	"form": []
 }

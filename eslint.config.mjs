@@ -3,7 +3,6 @@ import tsParser from '@typescript-eslint/parser';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
 import pluginImport from 'eslint-plugin-import';
 import jsoncParser from 'jsonc-eslint-parser';
-
 const TS_FILE_GLOBS = ['**/*.{ts,tsx,mts,cts,vue}'];
 const TS_PLUGIN_FILE_GLOBS = ['**/*.{ts,tsx,mts,cts,js,mjs,cjs,vue}'];
 const VUE_FILE_GLOBS = ['**/*.vue'];
@@ -21,9 +20,9 @@ const vueSpecificBlocks = hasVueSupport
 					vue: pluginVue
 				},
 				rules: {
-					'vue/html-indent': 'off',
-					'vue/max-attributes-per-line': 'off',
-					'vue/first-attribute-linebreak': 'off',
+					'vue/html-indent': 'off', // Let Prettier handle indentation
+					'vue/max-attributes-per-line': 'off', // Let Prettier handle line breaks
+					'vue/first-attribute-linebreak': 'off', // Let Prettier handle attribute positioning
 					'vue/singleline-html-element-content-newline': 'off',
 					'vue/html-self-closing': [
 						'error',
@@ -35,7 +34,7 @@ const vueSpecificBlocks = hasVueSupport
 							}
 						}
 					],
-					'vue/multi-word-component-names': 'off',
+					'vue/multi-word-component-names': 'off', // Disable multi-word name restriction
 					'vue/attribute-hyphenation': ['error', 'always']
 				}
 			}
@@ -45,18 +44,25 @@ const vueSpecificBlocks = hasVueSupport
 export default [
 	{
 		ignores: [
+			'node_modules',
 			'**/node_modules/**',
+			'dist',
 			'**/dist/**',
+			'.output',
 			'**/.output/**',
+			'.nuxt',
 			'**/.nuxt/**',
-			'**/.netlify/**',
-			'**/coverage/**',
+			'.nitro',
+			'**/.nitro/**',
+			'.netlify',
+			'node_modules/.netlify',
+			'4000/.nuxt',
+			'coverage',
 			'**/*.d.ts',
-			'**/configure-eslint.cjs',
-			'**/configure-eslint.js',
-			'**/*.config.js',
-			'**/*.config.ts',
-			'**/public/**'
+			'configure-eslint.cjs',
+			'configure-eslint.js',
+			'*.config.js',
+			'public'
 		]
 	},
 	{
@@ -72,7 +78,7 @@ export default [
 			parser: jsoncParser
 		},
 		rules: {
-			quotes: ['error', 'double']
+			quotes: ['error', 'double'] // Enforce double quotes in JSON
 		}
 	},
 	{

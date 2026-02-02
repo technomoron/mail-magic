@@ -1,6 +1,6 @@
 {
-	"tabWidth": 4,
 	"useTabs": true,
+	"tabWidth": 4,
 	"singleQuote": true,
 	"semi": true,
 	"trailingComma": "none",
@@ -10,5 +10,6 @@
 	"printWidth": 120,
 	"vueIndentScriptAndStyle": false,
 	"htmlWhitespaceSensitivity": "ignore",
-	"singleAttributePerLine": false
+	"singleAttributePerLine": false,
+	"proseWrap": "always"
 }
