@@ -182,7 +182,7 @@ export function createAssetHandler(server: mailApiServer) {
 			.split('/')
 			.filter(Boolean)
 			.map((segment: string) => decodeComponent(segment));
-		if (!segments.length || segments.some((segment) => !SEGMENT_PATTERN.test(segment))) {
+		if (!segments.length || segments.some((segment: string) => !SEGMENT_PATTERN.test(segment))) {
 			res.status(404).end();
 			return;
 		}

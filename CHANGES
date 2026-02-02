@@ -1,0 +1,8 @@
+Version 0.0.0 (2026-02-02)
+
+- Added a pnpm-aware workspace wrapper with npm fallback so root and package
+  builds run under either package manager.
+- Centralized pnpm build-script allowlist at the workspace root and documented
+  pnpm-first development with npm for CI/publishing.
+- Added a workspace-wide pnpm definition and type stubs to keep optional admin
+  integration building without a hard dependency.

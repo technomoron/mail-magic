@@ -5,16 +5,16 @@
 		"packages/*"
 	],
 	"scripts": {
-		"build": "npm -ws --if-present run build",
-		"client": "npm -w packages/mail-magic-client run build",
-		"server": "npm -w packages/mail-magic run build",
-		"admin": "npm -w packages/mail-magic-admin run build",
-		"test:client": "npm -w packages/mail-magic-client test",
-		"test:server": "npm -w packages/mail-magic test",
+		"build": "node ./bin/pmwrap -ws --if-present run build",
+		"client": "node ./bin/pmwrap -w packages/mail-magic-client run build",
+		"server": "node ./bin/pmwrap -w packages/mail-magic run build",
+		"admin": "node ./bin/pmwrap -w packages/mail-magic-admin run build",
+		"test:client": "node ./bin/pmwrap -w packages/mail-magic-client test",
+		"test:server": "node ./bin/pmwrap -w packages/mail-magic test",
 		"test:function": "vitest run",
-		"test": "npm run test:server && npm run test:client && npm run test:function",
-		"lint": "npm -ws --if-present run lint",
-		"format": "npm -ws --if-present run format",
+		"test": "node ./bin/pmwrap run test:server && node ./bin/pmwrap run test:client && node ./bin/pmwrap run test:function",
+		"lint": "node ./bin/pmwrap -ws --if-present run lint",
+		"format": "node ./bin/pmwrap -ws --if-present run format",
 		"release": "bash .do-release.sh"
 	},
 	"devDependencies": {
@@ -24,5 +24,13 @@
 		"smtp-server": "^3.18.0",
 		"supertest": "^7.1.4",
 		"vitest": "^4.0.16"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"core-js",
+			"@scarf/scarf",
+			"esbuild",
+			"sqlite3"
+		]
 	}
 }

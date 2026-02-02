@@ -1,0 +1,99 @@
+#!/usr/bin/env node
+"use strict";
+
+const { spawnSync } = require("node:child_process");
+
+function detectPackageManager() {
+	const forced = process.env.PMWRAP_PM;
+	if (forced) {
+		return forced;
+	}
+
+	const pnpmCheck = spawnSync("pnpm", ["--version"], { stdio: "ignore" });
+	if (!pnpmCheck.error && pnpmCheck.status === 0) {
+		return "pnpm";
+	}
+
+	return "npm";
+}
+
+function normalizeFilter(value) {
+	if (value.startsWith("./") || value.startsWith("../") || value.startsWith("/")) {
+		return value;
+	}
+	if (value.includes("/") || value.includes("\\")) {
+		return `./${value}`;
+	}
+	return value;
+}
+
+function translateArgsForPnpm(args) {
+	let hasWorkspaces = false;
+	const filters = [];
+	const passthrough = [];
+
+	for (let i = 0; i < args.length; i += 1) {
+		const arg = args[i];
+		if (arg === "-ws" || arg === "--ws" || arg === "--workspaces") {
+			hasWorkspaces = true;
+			continue;
+		}
+		if (arg === "-w" || arg === "--workspace") {
+			const value = args[i + 1];
+			if (!value) {
+				throw new Error(`pmwrap: missing value for ${arg}`);
+			}
+			filters.push(value);
+			i += 1;
+			continue;
+		}
+		if (arg.startsWith("--workspace=")) {
+			filters.push(arg.slice("--workspace=".length));
+			continue;
+		}
+		passthrough.push(arg);
+	}
+
+	const translated = [];
+	if (hasWorkspaces) {
+		translated.push("-r");
+	}
+	for (const filter of filters) {
+		translated.push("--filter", normalizeFilter(filter));
+	}
+	translated.push(...passthrough);
+	return translated;
+}
+
+function run() {
+	const args = process.argv.slice(2);
+	if (args.length === 0) {
+		console.error("Usage: pmwrap <npm-style args>");
+		process.exit(1);
+	}
+
+	const packageManager = detectPackageManager();
+	let command = packageManager;
+	let commandArgs = args;
+
+	if (packageManager === "pnpm") {
+		try {
+			commandArgs = translateArgsForPnpm(args);
+		} catch (error) {
+			console.error(error.message || String(error));
+			process.exit(1);
+		}
+	} else if (packageManager !== "npm") {
+		console.error(`pmwrap: unsupported package manager '${packageManager}'`);
+		process.exit(1);
+	}
+
+	const result = spawnSync(command, commandArgs, { stdio: "inherit" });
+	if (result.error) {
+		console.error(`pmwrap: failed to run ${command}: ${result.error.message}`);
+		process.exit(1);
+	}
+	process.exit(result.status ?? 1);
+}
+
+run();
