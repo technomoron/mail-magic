@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic-admin",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "Admin UI for mail-magic (placeholder)",
 	"type": "module",
 	"main": "index.js",
