@@ -1,4 +1,4 @@
-Version 0.0.0 (2026-02-02)
+Version 1.0.x (2026-02-02)
 
 - Added a pnpm-aware workspace wrapper with npm fallback so root and package
   builds run under either package manager.
