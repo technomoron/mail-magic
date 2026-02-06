@@ -11,7 +11,7 @@ import { decodeComponent, sendFileAsync } from '../util.js';
 import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
@@ -170,7 +170,16 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 }
 
 export function createAssetHandler(server: mailApiServer) {
-	return async (req: Request, res: Response) => {
+	return async (req: Request, res: Response, next?: NextFunction) => {
+		if (req.method && req.method !== 'GET' && req.method !== 'HEAD') {
+			if (next) {
+				next();
+				return;
+			}
+			res.status(405).end();
+			return;
+		}
+
 		const domain = decodeComponent(req?.params?.domain);
 		if (!domain || !DOMAIN_PATTERN.test(domain)) {
 			res.status(404).end();

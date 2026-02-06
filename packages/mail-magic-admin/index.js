@@ -49,7 +49,7 @@ function resolveCandidate(candidate) {
 	return null;
 }
 
-function resolveAdminDist(appPath, logger) {
+export function resolveAdminDist(appPath, logger) {
 	if (appPath) {
 		const resolved = path.isAbsolute(appPath) ? appPath : path.resolve(process.cwd(), appPath);
 		const picked = resolveCandidate(resolved);
@@ -69,8 +69,9 @@ function resolveAdminDist(appPath, logger) {
 	return distPath;
 }
 
-function mountAdminUi(server, distPath, apiBasePath, assetRoute, logger) {
-	if (!server?.app) {
+function mountAdminUi(server, distPath, apiBasePath, assetRoute, logger, fallbackOnly = false) {
+	const canUseExpress = typeof server?.useExpress === 'function';
+	if (!canUseExpress && !server?.app) {
 		if (logger) {
 			logger('Admin UI mount skipped: server.app not available');
 		}
@@ -87,8 +88,8 @@ function mountAdminUi(server, distPath, apiBasePath, assetRoute, logger) {
 		return false;
 	}
 
-	server.app.get('*', (req, res, next) => {
-		if (req.method !== 'GET') {
+	const handler = (req, res, next) => {
+		if (req.method !== 'GET' && req.method !== 'HEAD') {
 			next();
 			return;
 		}
@@ -107,6 +108,10 @@ function mountAdminUi(server, distPath, apiBasePath, assetRoute, logger) {
 		try {
 			const stats = fs.statSync(resolvedPath);
 			if (stats.isFile()) {
+				if (fallbackOnly) {
+					next();
+					return;
+				}
 				res.sendFile(resolvedPath);
 				return;
 			}
@@ -115,7 +120,14 @@ function mountAdminUi(server, distPath, apiBasePath, assetRoute, logger) {
 		}
 
 		res.sendFile(indexPath);
-	});
+	};
+
+	if (canUseExpress) {
+		server.useExpress(handler);
+		return true;
+	}
+
+	server.app.get('*', handler);
 
 	return true;
 }
@@ -143,7 +155,14 @@ export function registerAdmin(server, options = {}) {
 
 	const distPath = resolveAdminDist(options.appPath, logger);
 	const uiMounted = distPath
-		? mountAdminUi(server, distPath, options.apiBasePath, options.assetRoute, logger)
+		? mountAdminUi(
+				server,
+				distPath,
+				options.apiBasePath,
+				options.assetRoute,
+				logger,
+				Boolean(options.staticFallback)
+			)
 		: false;
 
 	return { api: apiRegistered, ui: uiMounted, distPath: distPath ?? null };

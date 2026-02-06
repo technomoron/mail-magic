@@ -5,6 +5,7 @@ export type AdminRegisterOptions = {
 	assetRoute?: string;
 	appPath?: string;
 	logger?: (message: string) => void;
+	staticFallback?: boolean;
 };
 
 export declare class AdminAPI extends ApiModule {
@@ -20,3 +21,5 @@ export declare function registerAdmin(
 	server: ApiServer,
 	options?: AdminRegisterOptions
 ): { api: boolean; ui: boolean; distPath: string | null };
+
+export declare function resolveAdminDist(appPath?: string, logger?: (message: string) => void): string | null;
