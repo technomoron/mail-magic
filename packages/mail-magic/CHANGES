@@ -1,3 +1,11 @@
+Version 1.0.23 (2026-02-07)
+
+- Added a form recipient allowlist table plus `POST /api/v1/form/recipient` to map a
+  public recipient `idname` to an email address (with optional display name),
+  scoped per domain and optionally per `form_key`.
+- `POST /api/v1/form/message` now supports `recipient_idname` so public forms can
+  select a configured recipient without exposing email addresses client-side.
+
 Version 1.0.22 (2026-02-07)
 
 - Added opt-in anti-abuse controls for public form submissions, including:

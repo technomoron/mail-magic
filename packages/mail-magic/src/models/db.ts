@@ -4,6 +4,7 @@ import { mailStore } from './../store/store.js';
 import { init_api_domain, api_domain } from './domain.js';
 import { init_api_form, api_form } from './form.js';
 import { importData } from './init.js';
+import { init_api_recipient, api_recipient } from './recipient.js';
 import { init_api_txmail, api_txmail } from './txmail.js';
 import { init_api_user, api_user, migrateLegacyApiTokens } from './user.js';
 
@@ -14,6 +15,7 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 	await init_api_domain(db);
 	await init_api_txmail(db);
 	await init_api_form(db);
+	await init_api_recipient(db);
 
 	// User ↔ Domain
 	api_user.hasMany(api_domain, {
@@ -65,6 +67,16 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 		as: 'forms'
 	});
 	api_form.belongsTo(api_domain, {
+		foreignKey: 'domain_id',
+		as: 'domain'
+	});
+
+	// Domain ↔ Recipient (form recipient allowlist)
+	api_domain.hasMany(api_recipient, {
+		foreignKey: 'domain_id',
+		as: 'recipients'
+	});
+	api_recipient.belongsTo(api_domain, {
 		foreignKey: 'domain_id',
 		as: 'domain'
 	});

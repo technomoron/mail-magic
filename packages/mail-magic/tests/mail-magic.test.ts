@@ -170,4 +170,49 @@ describe('mail-magic API', () => {
 		const filenames = message.attachments.map((att) => att.filename ?? '');
 		expect(filenames).toContain('upload.txt');
 	});
+
+	test('allows public recipient selection by idname (with optional display name)', async () => {
+		const templateRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'journalist-contact',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Journalist Contact',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		expect(templateRes.status).toBe(200);
+		const form_key = templateRes.body.data.form_key as string;
+		expect(typeof form_key).toBe('string');
+		expect(form_key.length).toBeGreaterThan(0);
+
+		const rcptRes = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				form_key,
+				idname: 'alice',
+				email: 'Alice Author <alice@example.test>'
+			});
+		expect(rcptRes.status).toBe(200);
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			form_key,
+			recipient_idname: 'alice',
+			msg: 'world'
+		});
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const to = message.to?.value?.[0];
+		expect(to?.address).toBe('alice@example.test');
+		expect(to?.name).toBe('Alice Author');
+
+		const html = typeof message.html === 'string' ? message.html : String(message.html ?? '');
+		expect(html).toContain('Hello world');
+	});
 });

@@ -9,6 +9,7 @@ import { Op } from 'sequelize';
 
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
+import { api_recipient } from '../models/recipient.js';
 import { mailApiServer } from '../server.js';
 import { buildRequestMeta, normalizeSlug } from '../util.js';
 
@@ -132,6 +133,121 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			return (parsed as ParsedMailbox).address;
 		}
 		return undefined;
+	}
+
+	private parseMailbox(value: string): ParsedMailbox | undefined {
+		const parsed = emailAddresses.parseOneAddress(value);
+		if (!parsed) {
+			return undefined;
+		}
+		const mailbox = parsed as ParsedMailbox;
+		if (!mailbox?.address) {
+			return undefined;
+		}
+		return mailbox;
+	}
+
+	private async postFormRecipient(
+		apireq: mailApiRequest
+	): Promise<[number, { Status: string; created: boolean; form_key: string }]> {
+		await assert_domain_and_user(apireq);
+
+		const body = (apireq.req.body ?? {}) as Record<string, unknown>;
+		const idnameRaw = getBodyValue(body, 'idname', 'recipient_idname', 'recipientIdname');
+		const emailRaw = getBodyValue(body, 'email');
+		const nameRaw = getBodyValue(body, 'name');
+		const formKeyRaw = getBodyValue(body, 'form_key', 'formKey', 'formkey');
+		const formid = getBodyValue(body, 'formid');
+		const localeRaw = getBodyValue(body, 'locale');
+
+		if (!idnameRaw) {
+			throw new ApiError({ code: 400, message: 'Missing recipient identifier (idname)' });
+		}
+		const idname = normalizeSlug(idnameRaw);
+		if (!idname) {
+			throw new ApiError({ code: 400, message: 'Invalid recipient identifier (idname)' });
+		}
+
+		if (!emailRaw) {
+			throw new ApiError({ code: 400, message: 'Missing recipient email address' });
+		}
+		const mailbox = this.parseMailbox(emailRaw);
+		if (!mailbox) {
+			throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
+		}
+		const email = mailbox.address;
+		if (/[\r\n]/.test(email)) {
+			throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
+		}
+
+		const name = String(nameRaw || mailbox.name || '')
+			.trim()
+			.slice(0, 200);
+		if (/[\r\n]/.test(name)) {
+			throw new ApiError({ code: 400, message: 'Invalid recipient name' });
+		}
+
+		const user = apireq.user!;
+		const domain = apireq.domain!;
+
+		let form_key = '';
+		if (formKeyRaw) {
+			const form = await api_form.findOne({ where: { form_key: formKeyRaw } });
+			if (!form || form.domain_id !== domain.domain_id || form.user_id !== user.user_id) {
+				throw new ApiError({ code: 404, message: 'No such form_key for this domain' });
+			}
+			form_key = form.form_key ?? '';
+		} else if (formid) {
+			const locale = localeRaw ? normalizeSlug(localeRaw) : '';
+			if (locale) {
+				const form = await api_form.findOne({
+					where: { user_id: user.user_id, domain_id: domain.domain_id, locale, idname: formid }
+				});
+				if (!form) {
+					throw new ApiError({ code: 404, message: 'No such form for this domain/locale' });
+				}
+				form_key = form.form_key ?? '';
+			} else {
+				const matches = await api_form.findAll({
+					where: { user_id: user.user_id, domain_id: domain.domain_id, idname: formid },
+					limit: 2
+				});
+				if (matches.length === 0) {
+					throw new ApiError({ code: 404, message: 'No such form for this domain' });
+				}
+				if (matches.length > 1) {
+					throw new ApiError({
+						code: 409,
+						message: 'Form identifier is ambiguous; provide locale or form_key'
+					});
+				}
+				form_key = matches[0].form_key ?? '';
+			}
+		}
+
+		const record = {
+			domain_id: domain.domain_id,
+			form_key,
+			idname,
+			email,
+			name
+		};
+
+		let created = false;
+		try {
+			const [, wasCreated] = await api_recipient.upsert(record, {
+				returning: true,
+				conflictFields: ['domain_id', 'form_key', 'idname']
+			});
+			created = wasCreated ?? false;
+		} catch (error: unknown) {
+			throw new ApiError({
+				code: 500,
+				message: this.server!.guessExceptionText(error, 'Unknown Sequelize Error on upsert recipient')
+			});
+		}
+
+		return [200, { Status: 'OK', created, form_key }];
 	}
 
 	private async postFormTemplate(
@@ -259,6 +375,15 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			const localeRaw = getBodyValue(body, 'locale');
 			const secret = getBodyValue(body, 'secret');
 			const recipient = getBodyValue(body, 'recipient');
+			const recipientIdnameRaw = getBodyValue(
+				body,
+				'recipient_idname',
+				'recipientIdname',
+				'recipient_slug',
+				'recipientSlug',
+				'recipient_key',
+				'recipientKey'
+			);
 			const replyTo = getBodyValue(body, 'replyTo', 'reply_to');
 			const vars = body.vars ?? {};
 
@@ -409,6 +534,36 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				}
 			}
 
+			if (recipientIdnameRaw && !normalizeSlug(recipientIdnameRaw)) {
+				throw new ApiError({ code: 400, message: 'Invalid recipient identifier (recipient_idname)' });
+			}
+			const recipientIdname = normalizeSlug(recipientIdnameRaw);
+			let resolvedRecipient: api_recipient | null = null;
+			if (!normalizedRecipient && recipientIdname) {
+				const scopeFormKey = form.form_key ?? '';
+				if (scopeFormKey) {
+					resolvedRecipient = await api_recipient.findOne({
+						where: {
+							domain_id: form.domain_id,
+							form_key: scopeFormKey,
+							idname: recipientIdname
+						}
+					});
+				}
+				if (!resolvedRecipient) {
+					resolvedRecipient = await api_recipient.findOne({
+						where: {
+							domain_id: form.domain_id,
+							form_key: '',
+							idname: recipientIdname
+						}
+					});
+				}
+				if (!resolvedRecipient) {
+					throw new ApiError({ code: 404, message: 'Unknown recipient identifier' });
+				}
+			}
+
 			let parsedVars: unknown = vars ?? {};
 			if (typeof vars === 'string') {
 				try {
@@ -439,9 +594,30 @@ export class FormAPI extends ApiModule<mailApiServer> {
 
 			const meta = buildRequestMeta(apireq.req);
 
+			const mappedEmailAddress = resolvedRecipient ? this.validateEmail(resolvedRecipient.email) : undefined;
+			if (resolvedRecipient && !mappedEmailAddress) {
+				throw new ApiError({ code: 500, message: 'Recipient mapping has an invalid email address' });
+			}
+			const mappedName = resolvedRecipient?.name ? String(resolvedRecipient.name).trim().slice(0, 200) : '';
+			if (mappedName && /[\r\n]/.test(mappedName)) {
+				throw new ApiError({ code: 500, message: 'Recipient mapping has an invalid name' });
+			}
+
+			const to = resolvedRecipient
+				? mappedName
+					? { name: mappedName, address: mappedEmailAddress! }
+					: mappedEmailAddress!
+				: normalizedRecipient || form.recipient;
+
+			const rcptEmailForTemplate = resolvedRecipient
+				? mappedEmailAddress!
+				: normalizedRecipient || form.recipient;
+
 			const context = {
 				...thevars,
-				_rcpt_email_: recipient,
+				_rcpt_email_: rcptEmailForTemplate,
+				_rcpt_name_: mappedName,
+				_rcpt_idname_: recipientIdname,
 				_attachments_: attachmentMap,
 				_vars_: thevars,
 				_fields_: apireq.req.body,
@@ -454,7 +630,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 
 			const mailOptions = {
 				from: form.sender,
-				to: normalizedRecipient || form.recipient,
+				to,
 				subject: form.subject,
 				html,
 				attachments,
@@ -480,6 +656,12 @@ export class FormAPI extends ApiModule<mailApiServer> {
 
 	override defineRoutes(): ApiRoute[] {
 		return [
+			{
+				method: 'post',
+				path: '/v1/form/recipient',
+				handler: (req) => this.postFormRecipient(req as mailApiRequest),
+				auth: { type: 'yes', req: 'any' }
+			},
 			{
 				method: 'post',
 				path: '/v1/form/template',
