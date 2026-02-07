@@ -277,7 +277,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			_meta_: meta
 		};
 
-		nunjucks.configure({ autoescape: true });
+		nunjucks.configure({ autoescape: this.server.storage.env.AUTOESCAPE_HTML });
 		const html = nunjucks.renderString(form.template, context);
 
 		const mailOptions = {

@@ -92,6 +92,11 @@ export const envOptions = defineEnvOptions({
 		default: false,
 		type: 'boolean'
 	},
+	AUTOESCAPE_HTML: {
+		description: 'Enable Nunjucks HTML autoescape when rendering templates',
+		default: true,
+		type: 'boolean'
+	},
 	SMTP_HOST: {
 		description: 'Hostname of SMTP sending host',
 		default: 'localhost'
