@@ -186,11 +186,13 @@ export function createAssetHandler(server: mailApiServer) {
 			return;
 		}
 
-		const rawPath = typeof req?.params?.[0] === 'string' ? req.params[0] : '';
-		const segments = rawPath
-			.split('/')
-			.filter(Boolean)
-			.map((segment: string) => decodeComponent(segment));
+		const rawPathParam = (req?.params as unknown as { path?: unknown })?.path ?? req?.params?.[0];
+		const rawSegments = Array.isArray(rawPathParam)
+			? rawPathParam
+			: typeof rawPathParam === 'string'
+				? rawPathParam.split('/').filter(Boolean)
+				: [];
+		const segments = rawSegments.map((segment: unknown) => decodeComponent(typeof segment === 'string' ? segment : ''));
 		if (!segments.length || segments.some((segment: string) => !SEGMENT_PATTERN.test(segment))) {
 			res.status(404).end();
 			return;

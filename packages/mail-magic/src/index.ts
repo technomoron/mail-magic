@@ -90,23 +90,21 @@ export async function createMailMagicServer(overrides: MailMagicServerOptions = 
 	const assetHandler = createAssetHandler(server);
 	const assetMounts = new Set<string>();
 	assetMounts.add(assetPrefix);
-	// Integration tests (and API_URL defaults) expect assets to also be reachable under the API base path.
-	if (apiBasePrefix && assetPrefix && !assetPrefix.startsWith(`${apiBasePrefix}/`)) {
-		assetMounts.add(`${apiBasePrefix}${assetPrefix}`);
-	}
-	for (const prefix of assetMounts) {
-		server.app.get(`${prefix}/:domain/*`, assetHandler);
-		server.app.head(`${prefix}/:domain/*`, assetHandler);
-	}
-	// api-server-base installs an API 404 handler early in its constructor (mounted under `apiBasePath`).
-	// Since we add some non-API routes under that same prefix (like `/api/asset/...`) after construction,
-	// we need to push the 404 handler back to the end of the router stack.
-	(server as unknown as { ensureApiNotFoundOrdering?: () => void }).ensureApiNotFoundOrdering?.();
+		// Integration tests (and API_URL defaults) expect assets to also be reachable under the API base path.
+		if (apiBasePrefix && assetPrefix && !assetPrefix.startsWith(`${apiBasePrefix}/`)) {
+			assetMounts.add(`${apiBasePrefix}${assetPrefix}`);
+		}
+		for (const prefix of assetMounts) {
+			// Express 5 (path-to-regexp v8) requires wildcard params to be named.
+			// Use ApiServer.useExpress() so mounts under `apiBasePath` are installed on the API router
+			// (and remain reachable before the API 404 handler).
+			server.useExpress(`${prefix}/:domain/*path`, assetHandler);
+		}
 
-	if (store.env.ADMIN_ENABLED) {
-		await enableAdminFeatures(server, store, adminUiPath);
-	} else {
-		store.print_debug('Admin UI/API disabled via ADMIN_ENABLED');
+		if (store.env.ADMIN_ENABLED) {
+			await enableAdminFeatures(server, store, adminUiPath);
+		} else {
+			store.print_debug('Admin UI/API disabled via ADMIN_ENABLED');
 	}
 
 	return { server, store, env: store.env };

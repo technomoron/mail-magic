@@ -5,6 +5,9 @@ Version 1.0.x (2026-02-07)
 - Fixed asset caching headers by passing `maxAge` to Express `sendFile()`, and
   mounted the public asset handler under both `/asset/...` and `/api/asset/...`
   (when `API_BASE_PATH` is in use) to preserve existing expectations.
+- Upgraded `@technomoron/api-server-base` to `2.0.0-beta.18` and adjusted
+  `/api/...` custom route mounting to stay reachable with the new API 404
+  handling.
 
 Version 1.0.x (2026-02-02)
 
