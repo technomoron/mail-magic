@@ -225,6 +225,7 @@ describe('mail-magic integration', () => {
 	test('requires form secret when configured', async () => {
 		const res = await ctx.api
 			.post('/api/v1/form/message')
+			.field('domain', ctx.domainAlpha)
 			.field('formid', 'contact')
 			.field('name', 'Sam')
 			.field('email', 'sam@example.test');
@@ -272,6 +273,7 @@ describe('mail-magic integration', () => {
 
 		const sendRes = await ctx.api
 			.post('/api/v1/form/message')
+			.field('domain', ctx.domainAlpha)
 			.field('formid', 'client-form')
 			.field('secret', 'client-secret')
 			.field('name', 'Ada');
@@ -316,7 +318,7 @@ describe('mail-magic integration', () => {
 		expect(fs.existsSync(templateDest)).toBe(true);
 	});
 
-	test('sends all transactional messages and one form per idname', async () => {
+	test('sends all transactional messages and form messages', async () => {
 		const expectedSubjects = new Set<string>();
 		for (const entry of initData.template) {
 			expectedSubjects.add(entry.subject);
@@ -346,13 +348,7 @@ describe('mail-magic integration', () => {
 			}
 		}
 
-		// Form API uses idname lookup only, so we send one entry per idname to avoid ambiguity.
-		const seenForms = new Set<string>();
 		for (const entry of initData.form) {
-			if (seenForms.has(entry.idname)) {
-				continue;
-			}
-			seenForms.add(entry.idname);
 			expectedSubjects.add(entry.subject);
 
 			const domain = domainsById.get(entry.domain_id);
@@ -364,6 +360,7 @@ describe('mail-magic integration', () => {
 			const request = ctx.api
 				.post('/api/v1/form/message')
 				.set('x-forwarded-for', '203.0.113.10')
+				.field('domain', domain.name)
 				.field('formid', entry.idname)
 				.field('locale', entry.locale)
 				.field('vars', JSON.stringify({}));
@@ -386,7 +383,7 @@ describe('mail-magic integration', () => {
 			}
 		}
 
-		const expectedCount = initData.template.length + seenForms.size;
+		const expectedCount = initData.template.length + initData.form.length;
 		await ctx.smtp.waitForMessages(expectedCount, 15000);
 		expect(ctx.smtp.messages.length).toBeGreaterThanOrEqual(expectedCount);
 

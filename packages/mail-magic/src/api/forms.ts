@@ -2,7 +2,9 @@ import path from 'path';
 
 import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-server-base';
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
+import { nanoid } from 'nanoid';
 import nunjucks from 'nunjucks';
+import { Op } from 'sequelize';
 
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
@@ -13,6 +15,19 @@ import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
+function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
+	for (const key of keys) {
+		const value = body[key];
+		if (Array.isArray(value) && value.length > 0) {
+			return String(value[0]);
+		}
+		if (value !== undefined && value !== null) {
+			return String(value);
+		}
+	}
+	return '';
+}
+
 export class FormAPI extends ApiModule<mailApiServer> {
 	private validateEmail(email: string): string | undefined {
 		const parsed = emailAddresses.parseOneAddress(email);
@@ -22,7 +37,9 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		return undefined;
 	}
 
-	private async postFormTemplate(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
+	private async postFormTemplate(
+		apireq: mailApiRequest
+	): Promise<[number, { Status: string; created: boolean; form_key: string }]> {
 		await assert_domain_and_user(apireq);
 
 		const {
@@ -66,7 +83,23 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			filename += '.njk';
 		}
 
+		let form_key = '';
+		try {
+			const existing = await api_form.findOne({
+				where: {
+					user_id: user.user_id,
+					domain_id: domain.domain_id,
+					locale: localeSlug,
+					idname
+				}
+			});
+			form_key = existing?.form_key || nanoid();
+		} catch {
+			form_key = nanoid();
+		}
+
 		const record = {
+			form_key,
 			user_id: user.user_id,
 			domain_id: domain.domain_id,
 			locale: localeSlug,
@@ -81,12 +114,15 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			files: []
 		};
 
+		let created = false;
 		try {
-			const [form, created] = await api_form.upsert(record, {
+			const [form, wasCreated] = await api_form.upsert(record, {
 				returning: true,
 				conflictFields: ['user_id', 'domain_id', 'locale', 'idname']
 			});
-			this.server.storage.print_debug(`Form template upserted: ${form.idname} (created=${created})`);
+			created = wasCreated ?? false;
+			form_key = form.form_key || form_key;
+			this.server.storage.print_debug(`Form template upserted: ${form.idname} (created=${wasCreated})`);
 		} catch (error: unknown) {
 			throw new ApiError({
 				code: 500,
@@ -94,17 +130,84 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			});
 		}
 
-		return [200, { Status: 'OK' }];
+		return [200, { Status: 'OK', created, form_key }];
 	}
 
 	private async postSendForm(apireq: ApiRequest): Promise<[number, Record<string, unknown>]> {
-		const { formid, secret, recipient, vars = {}, replyTo, reply_to } = apireq.req.body;
+		const body = (apireq.req.body ?? {}) as Record<string, unknown>;
+		const formid = getBodyValue(body, 'formid');
+		const form_key = getBodyValue(body, 'form_key', 'formkey', 'formKey');
+		const domainName = getBodyValue(body, 'domain');
+		const localeRaw = getBodyValue(body, 'locale');
+		const secret = getBodyValue(body, 'secret');
+		const recipient = getBodyValue(body, 'recipient');
+		const replyTo = getBodyValue(body, 'replyTo', 'reply_to');
+		const vars = body.vars ?? {};
 
-		if (!formid) {
+		if (!form_key && !formid) {
 			throw new ApiError({ code: 404, message: 'Missing formid field in form' });
 		}
 
-		const form = await api_form.findOne({ where: { idname: formid } });
+		let form: api_form | null = null;
+		if (form_key) {
+			form = await api_form.findOne({ where: { form_key } });
+			if (!form) {
+				throw new ApiError({ code: 404, message: 'No such form_key' });
+			}
+		} else {
+			if (!domainName) {
+				throw new ApiError({ code: 400, message: 'Missing domain (or form_key)' });
+			}
+
+			const domains = await api_domain.findAll({ where: { name: domainName } });
+			if (domains.length === 0) {
+				throw new ApiError({ code: 404, message: `No such domain: ${domainName}` });
+			}
+
+			const domainIds = domains.map((domain) => domain.domain_id);
+			const domainWhere = { [Op.in]: domainIds };
+
+			if (localeRaw) {
+				const locale = normalizeSlug(localeRaw);
+				form = await api_form.findOne({
+					where: {
+						idname: formid,
+						domain_id: domainWhere,
+						locale
+					}
+				});
+			} else if (domains.length === 1) {
+				const locale = normalizeSlug(domains[0].locale || '');
+				if (locale) {
+					form = await api_form.findOne({
+						where: {
+							idname: formid,
+							domain_id: domainWhere,
+							locale
+						}
+					});
+				}
+			}
+
+			if (!form) {
+				const matches = await api_form.findAll({
+					where: {
+						idname: formid,
+						domain_id: domainWhere
+					},
+					limit: 2
+				});
+				if (matches.length === 1) {
+					form = matches[0];
+				} else if (matches.length > 1) {
+					throw new ApiError({
+						code: 409,
+						message: 'Form identifier is ambiguous; provide locale or form_key'
+					});
+				}
+			}
+		}
+
 		if (!form) {
 			throw new ApiError({ code: 404, message: `No such form: ${formid}` });
 		}
@@ -120,15 +223,14 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		}
 		let normalizedReplyTo: string | undefined;
 		let normalizedRecipient: string | undefined;
-		const replyToValue = (replyTo || reply_to) as string | undefined;
-		if (replyToValue) {
-			normalizedReplyTo = this.validateEmail(replyToValue);
+		if (replyTo) {
+			normalizedReplyTo = this.validateEmail(replyTo);
 			if (!normalizedReplyTo) {
 				throw new ApiError({ code: 400, message: 'Invalid reply-to email address' });
 			}
 		}
 		if (recipient) {
-			normalizedRecipient = this.validateEmail(String(recipient));
+			normalizedRecipient = this.validateEmail(recipient);
 			if (!normalizedRecipient) {
 				throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
 			}

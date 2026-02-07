@@ -1,3 +1,8 @@
+Version 1.0.25 (2026-02-07)
+
+- `sendFormMessage()` now requires `domain` when sending by `formid`, and also
+  supports sending by `form_key`.
+
 Version 1.0.23 (2026-01-31)
 
 - Fixed the per-package release script name and tag format used to trigger

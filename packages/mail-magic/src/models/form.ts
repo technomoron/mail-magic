@@ -1,5 +1,6 @@
 import path from 'path';
 
+import { nanoid } from 'nanoid';
 import { Sequelize, Model, DataTypes } from 'sequelize';
 import { z } from 'zod';
 
@@ -8,6 +9,7 @@ import { user_and_domain, normalizeSlug } from '../util.js';
 
 export const api_form_schema = z.object({
 	form_id: z.number().int().nonnegative(),
+	form_key: z.string().min(1).nullable().optional(),
 	user_id: z.number().int().nonnegative(),
 	domain_id: z.number().int().nonnegative(),
 	locale: z.string().default(''),
@@ -34,6 +36,7 @@ export type api_form_type = z.infer<typeof api_form_schema>;
 
 export class api_form extends Model {
 	declare form_id: number;
+	declare form_key: string | null;
 	declare user_id: number;
 	declare domain_id: number;
 	declare locale: string;
@@ -56,6 +59,11 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				autoIncrement: true,
 				allowNull: false,
 				primaryKey: true
+			},
+			form_key: {
+				type: DataTypes.STRING,
+				allowNull: true,
+				defaultValue: null
 			},
 			user_id: {
 				type: DataTypes.INTEGER,
@@ -147,6 +155,10 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 			indexes: [
 				{
 					unique: true,
+					fields: ['form_key']
+				},
+				{
+					unique: true,
 					fields: ['user_id', 'domain_id', 'locale', 'idname']
 				}
 			]
@@ -195,8 +207,14 @@ export async function upsert_form(record: api_form_type): Promise<api_form> {
 	let instance: api_form | null = null;
 	instance = await api_form.findByPk(record.form_id);
 	if (instance) {
+		if (!instance.form_key && !record.form_key) {
+			record.form_key = nanoid();
+		}
 		await instance.update(record);
 	} else {
+		if (!record.form_key) {
+			record.form_key = nanoid();
+		}
 		instance = await api_form.create(record);
 	}
 	if (!instance) {

@@ -118,6 +118,7 @@ describe('TemplateClient', () => {
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await client.sendFormMessage({
 			formid: 'contact',
+			domain: 'example.test',
 			secret: 's3cret',
 			fields: { name: 'Sam', email: 'sam@example.test' }
 		});
@@ -127,6 +128,7 @@ describe('TemplateClient', () => {
 		expect(url).toBe('http://localhost:4000/api/v1/form/message');
 		const body = JSON.parse(String(options.body));
 		expect(body.formid).toBe('contact');
+		expect(body.domain).toBe('example.test');
 		expect(body.name).toBe('Sam');
 	});
 
@@ -159,6 +161,7 @@ describe('TemplateClient', () => {
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await client.sendFormMessage({
 			formid: 'contact',
+			domain: 'example.test',
 			secret: 's3cret',
 			fields: { name: 'Sam' },
 			attachments: [{ path: attachmentPath, field: 'file1' }]

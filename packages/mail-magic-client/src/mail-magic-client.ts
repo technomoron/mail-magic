@@ -41,7 +41,8 @@ interface sendTemplateData {
 }
 
 interface sendFormData {
-	formid: string;
+	formid?: string;
+	form_key?: string;
 	secret?: string;
 	recipient?: string;
 	domain?: string;
@@ -301,13 +302,17 @@ class templateClient {
 	}
 
 	async sendFormMessage(data: sendFormData): Promise<unknown> {
-		if (!data.formid) {
-			throw new Error('Invalid request body; formid required');
+		if (!data.form_key && !data.formid) {
+			throw new Error('Invalid request body; formid or form_key required');
+		}
+		if (!data.form_key && !data.domain) {
+			throw new Error('Invalid request body; domain required when sending by formid');
 		}
 
 		const fields: Record<string, unknown> = data.fields || {};
 		const baseFields: Record<string, unknown> = {
 			formid: data.formid,
+			form_key: data.form_key,
 			secret: data.secret,
 			recipient: data.recipient,
 			domain: data.domain,
@@ -321,6 +326,7 @@ class templateClient {
 			const { formData } = this.createAttachmentPayload(data.attachments);
 			this.appendFields(formData, {
 				formid: data.formid,
+				form_key: data.form_key,
 				secret: data.secret,
 				recipient: data.recipient,
 				domain: data.domain,

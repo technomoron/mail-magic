@@ -1,3 +1,11 @@
+Version 1.0.18 (2026-02-07)
+
+- Added a stable `form_key` (generated via nanoid) to uniquely identify forms and
+  return it from `POST /api/v1/form/template`.
+- Updated `POST /api/v1/form/message` form lookup to use `form_key` (preferred),
+  otherwise require `domain` + `formid` (+ optional `locale`) to avoid ambiguous
+  cross-domain/locale matches.
+
 Version 1.0.17 (2026-02-07)
 
 - Reduced sensitive logging by disabling env dumps unless `DEBUG` is enabled,

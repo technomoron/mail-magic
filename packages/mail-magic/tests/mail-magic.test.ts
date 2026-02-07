@@ -137,6 +137,7 @@ describe('mail-magic API', () => {
 
 	test('rejects form submissions without the secret', async () => {
 		const res = await api.post('/api/v1/form/message').send({
+			domain: ctx!.domainName,
 			formid: 'contact',
 			name: 'Ada',
 			email: 'ada@example.test'
@@ -149,6 +150,7 @@ describe('mail-magic API', () => {
 		const res = await api
 			.post('/api/v1/form/message')
 			.set('x-forwarded-for', '203.0.113.10')
+			.field('domain', ctx!.domainName)
 			.field('formid', 'contact')
 			.field('secret', 's3cret')
 			.field('recipient', 'receiver@example.test')

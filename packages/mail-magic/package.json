@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic",
-	"version": "1.0.17",
+	"version": "1.0.18",
 	"main": "dist/index.js",
 	"type": "module",
 	"bin": {
@@ -49,6 +49,7 @@
 		"dotenv": "^16.4.5",
 		"email-addresses": "^5.0.0",
 		"html-to-text": "^9.0.5",
+		"nanoid": "^5.1.6",
 		"nodemailer": "^6.10.1",
 		"nunjucks": "^3.2.4",
 		"sequelize": "^6.37.7",
