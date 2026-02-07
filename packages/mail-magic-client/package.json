@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic-client",
-	"version": "1.0.25",
+	"version": "1.0.26",
 	"description": "Client library for mail-magic",
 	"main": "dist/cjs/mail-magic-client.js",
 	"types": "dist/cjs/mail-magic-client.d.ts",

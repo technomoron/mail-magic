@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
+import path from 'path';
 import readline from 'readline';
 
 import { Command } from 'commander';
@@ -18,6 +19,16 @@ const envDefaults = loadCliEnv();
 const defaultToken = resolveToken(envDefaults);
 
 const apiDefault = envDefaults.api || 'http://localhost:3000';
+
+function resolvePackageVersion(): string {
+	try {
+		const raw = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8');
+		const data = JSON.parse(raw) as { version?: string };
+		return typeof data.version === 'string' && data.version ? data.version : 'unknown';
+	} catch {
+		return 'unknown';
+	}
+}
 
 program.option('-a, --api <api>', 'Base API endpoint', apiDefault);
 if (defaultToken) {
@@ -149,7 +160,7 @@ program
 	.command('version')
 	.description('Show current client version')
 	.action(async () => {
-		console.log('1.0.19');
+		console.log(resolvePackageVersion());
 	});
 
 program

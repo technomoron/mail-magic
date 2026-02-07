@@ -1,3 +1,9 @@
+Version 1.0.26 (2026-02-07)
+
+- Fix `GET` requests to omit request bodies and only set `Content-Type` when
+  sending JSON payloads.
+- `mm-cli version` now reports the package version instead of a hardcoded string.
+
 Version 1.0.25 (2026-02-07)
 
 - `sendFormMessage()` now requires `domain` when sending by `formid`, and also

@@ -85,14 +85,19 @@ class templateClient {
 
 	async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', command: string, body?: RequestBody): Promise<T> {
 		const url = `${this.baseURL}${command}`;
+		const headers: Record<string, string> = {
+			Accept: 'application/json',
+			Authorization: `Bearer apikey-${this.apiKey}`
+		};
 		const options: RequestInit = {
 			method,
-			headers: {
-				'Content-Type': 'application/json',
-				Authorization: `Bearer apikey-${this.apiKey}`
-			},
-			body: body ? JSON.stringify(body) : '{}'
+			headers
 		};
+		// Avoid GET bodies (they're non-standard and can break under some proxies).
+		if (method !== 'GET' && body !== undefined) {
+			headers['Content-Type'] = 'application/json';
+			options.body = JSON.stringify(body);
+		}
 		//        console.log(JSON.stringify({ options, url }));
 		const response = await fetch(url, options);
 		const j = await response.json();

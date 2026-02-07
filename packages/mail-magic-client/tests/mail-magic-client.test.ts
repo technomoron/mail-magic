@@ -67,6 +67,21 @@ describe('TemplateClient', () => {
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
+	it('omits request bodies for GET requests', async () => {
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		await client.get('/api/v1/ping');
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('http://localhost:4000/api/v1/ping');
+		expect(options.method).toBe('GET');
+		expect(options.body).toBeUndefined();
+		const headers = options.headers as Record<string, string>;
+		expect(headers.Authorization).toBe('Bearer apikey-test-token');
+		expect(headers['Content-Type']).toBeUndefined();
+		expect(headers.Accept).toBe('application/json');
+	});
+
 	it('sends transactional templates with valid recipients', async () => {
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await client.sendTemplate({
