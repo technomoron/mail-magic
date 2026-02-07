@@ -32,7 +32,9 @@ export type TestContext = {
 	uploadFile: string;
 	uploadsPath: string;
 	domainName: string;
+	otherDomainName: string;
 	userToken: string;
+	otherUserToken: string;
 	apiUrl: string;
 	apiBasePath: string;
 	assetRoute: string;
@@ -134,6 +136,14 @@ function writeFixtureConfig(configPath: string, domainName: string) {
 				name: 'Test User',
 				email: 'testuser@example.test',
 				domain: 1
+			},
+			{
+				user_id: 2,
+				idname: 'otheruser',
+				token: 'other-token',
+				name: 'Other User',
+				email: 'otheruser@example.test',
+				domain: 2
 			}
 		],
 		domain: [
@@ -142,6 +152,13 @@ function writeFixtureConfig(configPath: string, domainName: string) {
 				user_id: 1,
 				name: domainName,
 				sender: 'Test Sender <sender@example.test>',
+				is_default: true
+			},
+			{
+				domain_id: 2,
+				user_id: 2,
+				name: 'other.test',
+				sender: 'Other Sender <other@example.test>',
 				is_default: true
 			}
 		],
@@ -246,6 +263,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 	fs.mkdirSync(configPath, { recursive: true });
 
 	const domainName = 'example.test';
+	const otherDomainName = 'other.test';
 	writeFixtureConfig(configPath, domainName);
 
 	const smtp = await startSmtpServer();
@@ -347,7 +365,9 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		uploadFile,
 		uploadsPath,
 		domainName,
+		otherDomainName,
 		userToken: 'test-token',
+		otherUserToken: 'other-token',
 		apiUrl,
 		apiBasePath,
 		assetRoute,
