@@ -15,10 +15,10 @@ export class mailApiServer extends ApiServer {
 	}
 
 	override async getApiKey<ApiKey>(token: string): Promise<ApiKey | null> {
-		this.storage.print_debug(`Looking up api key ${token}`);
+		this.storage.print_debug('Looking up api key');
 		const user = await api_user.findOne({ where: { token: token } });
 		if (!user) {
-			this.storage.print_debug(`Unable to find user for token ${token}`);
+			this.storage.print_debug('Unable to find user for api key');
 			return null;
 		} else {
 			return { uid: user.user_id } as ApiKey;

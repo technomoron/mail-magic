@@ -152,7 +152,13 @@ export class mailStore implements ImailStore {
 	}
 
 	async init(): Promise<this> {
-		const env = (this.env = await EnvLoader.createConfigProxy(envOptions, { debug: true }));
+		const loaderDebug = (() => {
+			const raw = String(process.env.DEBUG ?? '')
+				.trim()
+				.toLowerCase();
+			return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
+		})();
+		const env = (this.env = await EnvLoader.createConfigProxy(envOptions, { debug: loaderDebug }));
 		EnvLoader.genTemplate(envOptions, '.env-dist');
 		const p = env.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);

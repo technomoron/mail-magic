@@ -166,7 +166,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		for (const file of rawFiles) {
 			attachmentMap[file.fieldname] = file.originalname;
 		}
-		this.server.storage.print_debug(`Template vars: ${JSON.stringify({ vars, thevars }, undefined, 2)}`);
+		this.server.storage.print_debug(`Template vars keys: ${Object.keys(thevars).join(', ')}`);
 
 		const meta = buildRequestMeta(apireq.req);
 		const replyToValue = (replyTo || reply_to) as string | undefined;

@@ -192,7 +192,9 @@ export function createAssetHandler(server: mailApiServer) {
 			: typeof rawPathParam === 'string'
 				? rawPathParam.split('/').filter(Boolean)
 				: [];
-		const segments = rawSegments.map((segment: unknown) => decodeComponent(typeof segment === 'string' ? segment : ''));
+		const segments = rawSegments.map((segment: unknown) =>
+			decodeComponent(typeof segment === 'string' ? segment : '')
+		);
 		if (!segments.length || segments.some((segment: string) => !SEGMENT_PATTERN.test(segment))) {
 			res.status(404).end();
 			return;

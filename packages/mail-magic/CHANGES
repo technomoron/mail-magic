@@ -1,3 +1,11 @@
+Version 1.0.17 (2026-02-07)
+
+- Reduced sensitive logging by disabling env dumps unless `DEBUG` is enabled,
+  removing API tokens from debug output and API errors, and redacting DB
+  credentials in debug logs.
+- Fixed TypeScript build issues by aligning Express typings and updating
+  Express-related utility types.
+
 Version 1.0.15 (2026-02-01)
 
 - Made the optional admin UI/API opt-in via `ADMIN_ENABLED`, delegating admin

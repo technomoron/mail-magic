@@ -28,7 +28,7 @@ export async function assert_domain_and_user(apireq: mailApiRequest): Promise<vo
 	}
 	const user = await api_user.findOne({ where: { token: apireq.token } });
 	if (!user) {
-		throw new ApiError({ code: 401, message: `Invalid/Unknown API Key/Token '${apireq.token}'` });
+		throw new ApiError({ code: 401, message: 'Invalid/Unknown API Key/Token' });
 	}
 	const dbdomain = await api_domain.findOne({ where: { name: domain } });
 	if (!dbdomain) {

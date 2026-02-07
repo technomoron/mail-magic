@@ -115,7 +115,7 @@ export function decodeComponent(value: string | string[] | undefined): string {
 	if (!value) {
 		return '';
 	}
-	const decoded = Array.isArray(value) ? value[0] ?? '' : value;
+	const decoded = Array.isArray(value) ? (value[0] ?? '') : value;
 	if (!decoded) {
 		return '';
 	}

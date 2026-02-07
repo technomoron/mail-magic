@@ -101,7 +101,14 @@ export async function connect_api_db(store: mailStore): Promise<Sequelize> {
 		dbparams.username = env.DB_USER;
 		dbparams.password = env.DB_PASS;
 	}
-	store.print_debug(`Database params are:\n${JSON.stringify(dbparams, undefined, 2)}`);
+	const debugDbParams: Record<string, unknown> = { ...dbparams };
+	if (typeof debugDbParams.password === 'string' && debugDbParams.password) {
+		debugDbParams.password = '<redacted>';
+	}
+	if (typeof debugDbParams.username === 'string' && debugDbParams.username) {
+		debugDbParams.username = '<redacted>';
+	}
+	store.print_debug(`Database params are:\n${JSON.stringify(debugDbParams, undefined, 2)}`);
 	const db = new Sequelize(dbparams);
 	await db.authenticate();
 

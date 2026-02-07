@@ -197,10 +197,7 @@ export async function upsert_form(record: api_form_type): Promise<api_form> {
 	if (instance) {
 		await instance.update(record);
 	} else {
-		console.log('CREATE', JSON.stringify(record, undefined, 2));
-
 		instance = await api_form.create(record);
-		console.log(`INSTANCE IS ${instance}`);
 	}
 	if (!instance) {
 		throw new Error(`Unable to update/create form ${record.form_id}`);
