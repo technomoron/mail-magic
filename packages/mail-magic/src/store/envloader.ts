@@ -16,14 +16,19 @@ export const envOptions = defineEnvOptions({
 		default: '0.0.0.0'
 	},
 	DB_AUTO_RELOAD: {
-		description: 'Reload init-data.db automatically on change',
-		type: 'boolean',
-		default: true
-	},
-	DB_FORCE_SYNC: {
-		description: 'Whether to force sync on table definitions (ALTER TABLE)',
+		description: 'Reload init-data.json automatically on change',
 		type: 'boolean',
 		default: false
+	},
+	DB_FORCE_SYNC: {
+		description: 'Drop and recreate database tables on startup (DANGEROUS)',
+		type: 'boolean',
+		default: false
+	},
+	DB_SYNC_ALTER: {
+		description: 'Alter existing tables on startup to match models (requires write access to the DB)',
+		type: 'boolean',
+		default: true
 	},
 	API_URL: {
 		description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',

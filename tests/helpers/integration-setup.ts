@@ -23,6 +23,7 @@ const ENV_KEYS = [
 	'DB_NAME',
 	'DB_TYPE',
 	'DB_FORCE_SYNC',
+	'DB_SYNC_ALTER',
 	'DB_AUTO_RELOAD',
 	'API_URL',
 	'ASSET_ROUTE',
@@ -203,6 +204,7 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 	process.env.DB_NAME = path.join(tempDir, 'mailmagic-test.db');
 	process.env.DB_TYPE = 'sqlite';
 	process.env.DB_FORCE_SYNC = 'true';
+	process.env.DB_SYNC_ALTER = 'true';
 	process.env.DB_AUTO_RELOAD = 'false';
 	process.env.API_URL = apiUrl;
 	process.env.ASSET_ROUTE = '/asset';

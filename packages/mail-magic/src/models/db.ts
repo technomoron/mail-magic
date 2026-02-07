@@ -82,8 +82,9 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 	});
 
 	await db.query('PRAGMA foreign_keys = OFF');
-	store.print_debug(`Force alter tables: ${store.env.DB_FORCE_SYNC}`);
-	await db.sync({ alter: true, force: store.env.DB_FORCE_SYNC });
+	const alter = Boolean(store.env.DB_SYNC_ALTER);
+	store.print_debug(`DB sync: alter=${alter} force=${store.env.DB_FORCE_SYNC}`);
+	await db.sync({ alter, force: store.env.DB_FORCE_SYNC });
 	await db.query('PRAGMA foreign_keys = ON');
 
 	await importData(store);

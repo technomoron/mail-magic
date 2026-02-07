@@ -284,6 +284,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		'DB_NAME',
 		'DB_TYPE',
 		'DB_FORCE_SYNC',
+		'DB_SYNC_ALTER',
 		'DB_AUTO_RELOAD',
 		'API_URL',
 		'API_BASE_PATH',
@@ -317,6 +318,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 	process.env.DB_NAME = path.join(tempDir, 'mailmagic-test.db');
 	process.env.DB_TYPE = 'sqlite';
 	process.env.DB_FORCE_SYNC = 'true';
+	process.env.DB_SYNC_ALTER = 'true';
 	process.env.DB_AUTO_RELOAD = 'false';
 	process.env.API_URL = apiUrl;
 	process.env.API_BASE_PATH = apiBasePath;

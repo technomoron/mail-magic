@@ -1,3 +1,8 @@
+Version 1.0.25 (2026-02-07)
+
+- Default `DB_AUTO_RELOAD` to false to avoid unexpected config reloads in production.
+- Added `DB_SYNC_ALTER` to control Sequelize `sync({ alter: ... })` on startup.
+
 Version 1.0.24 (2026-02-07)
 
 - Validate imported domain names against a safe pattern to prevent config path
