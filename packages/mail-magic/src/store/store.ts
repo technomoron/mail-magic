@@ -152,13 +152,13 @@ export class mailStore implements ImailStore {
 	}
 
 	async init(): Promise<this> {
-		const loaderDebug = (() => {
-			const raw = String(process.env.DEBUG ?? '')
-				.trim()
-				.toLowerCase();
-			return raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on';
-		})();
-		const env = (this.env = await EnvLoader.createConfigProxy(envOptions, { debug: loaderDebug }));
+		// Load env config only via EnvLoader + envOptions (avoid ad-hoc `process.env` parsing here).
+		// If DEBUG is enabled, re-load with EnvLoader debug output enabled.
+		let env = await EnvLoader.createConfigProxy(envOptions, { debug: false });
+		if (env.DEBUG) {
+			env = await EnvLoader.createConfigProxy(envOptions, { debug: true });
+		}
+		this.env = env;
 		EnvLoader.genTemplate(envOptions, '.env-dist');
 		const p = env.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);

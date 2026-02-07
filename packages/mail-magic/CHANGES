@@ -1,3 +1,8 @@
+Version 1.0.20 (2026-02-07)
+
+- Centralized env parsing in `mailStore` (no direct `process.env` reads in core
+  server code).
+
 Version 1.0.19 (2026-02-07)
 
 - Store API tokens as HMAC-SHA256 (with required `API_TOKEN_PEPPER`) instead of
