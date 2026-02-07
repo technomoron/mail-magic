@@ -53,6 +53,36 @@ it('pushes a compiled template with inlined partials', async () => {
 	fs.rmSync(fixture.root, { recursive: true, force: true });
 });
 
+it('rejects includes that escape the template root', async () => {
+	const fixture = setupTemplateFixture();
+	const storeTxTemplate = vi.fn(async () => ({ Status: 'OK' }));
+
+	// Create a file outside the templates root that a malicious include could try to read.
+	fs.writeFileSync(path.join(fixture.root, 'secret.njk'), '<p>secret</p>');
+	fs.writeFileSync(
+		path.join(fixture.templates, 'welcome.njk'),
+		'{% extends "base.njk" %}{% block body %}{% include "../secret.njk" %}Hi{% endblock %}'
+	);
+
+	await expect(
+		pushTemplate(
+			{
+				api: 'http://localhost:3000',
+				token: 'test-token',
+				domain: 'example.test',
+				template: 'welcome',
+				input: fixture.templates,
+				css: fixture.cssPath
+			},
+			{ storeTxTemplate }
+		)
+	).rejects.toThrow('escapes template root');
+
+	expect(storeTxTemplate).not.toHaveBeenCalled();
+
+	fs.rmSync(fixture.root, { recursive: true, force: true });
+});
+
 it('pushes a config-style directory with templates and assets', async () => {
 	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-config-'));
 	const domain = 'alpha.example.test';

@@ -61,7 +61,13 @@ function resolveCssPath(cssPath: string): string {
 	return path.isAbsolute(cssPath) ? cssPath : path.join(process.cwd(), cssPath);
 }
 
-function inlineIncludes(content: string, baseDir: string, srcRoot: string, stack: Set<string>): string {
+function inlineIncludes(
+	content: string,
+	baseDir: string,
+	srcRoot: string,
+	normalizedSrcRoot: string,
+	stack: Set<string>
+): string {
 	const includeExp = /\{%\s*include\s+['"]([^'"]+)['"][^%]*%\}/g;
 	return content.replace(includeExp, (_match, includePath: string) => {
 		const cleaned = includePath.replace(/^\/+/, '');
@@ -71,12 +77,18 @@ function inlineIncludes(content: string, baseDir: string, srcRoot: string, stack
 			throw new Error(`Include not found: ${includePath}`);
 		}
 		const resolved = fs.realpathSync(found);
+		if (!resolved.startsWith(normalizedSrcRoot)) {
+			throw new Error(`Include path escapes template root: ${includePath}`);
+		}
+		if (!fs.statSync(resolved).isFile()) {
+			throw new Error(`Include is not a file: ${includePath}`);
+		}
 		if (stack.has(resolved)) {
 			throw new Error(`Circular include detected for ${includePath}`);
 		}
 		stack.add(resolved);
 		const raw = fs.readFileSync(resolved, 'utf8');
-		const inlined = inlineIncludes(raw, path.dirname(resolved), srcRoot, stack);
+		const inlined = inlineIncludes(raw, path.dirname(resolved), srcRoot, normalizedSrcRoot, stack);
 		stack.delete(resolved);
 		return inlined;
 	});
@@ -136,6 +148,8 @@ function process_template(tplname: string, writeOutput = true) {
 
 	try {
 		const srcRoot = resolvePathRoot(cfg.src_dir);
+		const resolvedSrcRoot = fs.realpathSync(srcRoot);
+		const normalizedSrcRoot = resolvedSrcRoot.endsWith(path.sep) ? resolvedSrcRoot : resolvedSrcRoot + path.sep;
 		const templateFile = path.join(srcRoot, `${tplname}.njk`);
 
 		// 1) Resolve template inheritance
@@ -143,7 +157,7 @@ function process_template(tplname: string, writeOutput = true) {
 
 		// 1.5) Inline partials/includes so the server doesn't need a loader
 		const mergedWithPartials = cfg.inline_includes
-			? inlineIncludes(mergedTemplate, path.dirname(templateFile), srcRoot, new Set<string>())
+			? inlineIncludes(mergedTemplate, path.dirname(templateFile), srcRoot, normalizedSrcRoot, new Set<string>())
 			: mergedTemplate;
 
 		// 2) Protect variables/flow
