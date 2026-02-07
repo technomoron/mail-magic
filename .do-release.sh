@@ -156,15 +156,18 @@ for target in "${publish_targets[@]}"; do
 	IFS="|" read -r pkg_dir repo_root name version <<< "$target"
 
 	echo "Publishing ${name}@${version} from ${pkg_dir}"
-	npm --prefix "$pkg_dir" run build --if-present
+	(
+		cd "$pkg_dir"
+		npm run build --if-present
 
-	if echo "$version" | grep -q "-"; then
-		tag_name="$(echo "$version" | sed 's/^[0-9.]*-\([A-Za-z0-9]*\).*/\1/')"
-		echo "Prerelease detected. Publishing with tag '${tag_name}'"
-		npm --prefix "$pkg_dir" publish --tag "$tag_name" --access public
-	else
-		npm --prefix "$pkg_dir" publish --access public
-	fi
+		if echo "$version" | grep -q "-"; then
+			tag_name="$(echo "$version" | sed 's/^[0-9.]*-\([A-Za-z0-9]*\).*/\1/')"
+			echo "Prerelease detected. Publishing with tag '${tag_name}'"
+			npm publish --tag "$tag_name" --access public
+		else
+			npm publish --access public
+		fi
+	)
 
 	git -C "$repo_root" tag -a "${name}@${version}" -m "Release ${name} ${version}"
 done
