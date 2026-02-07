@@ -122,5 +122,17 @@ export const envOptions = defineEnvOptions({
 	UPLOAD_PATH: {
 		description: 'Path for attached files. Use {domain} to scope per domain.',
 		default: './{domain}/uploads'
+	},
+	API_TOKEN_PEPPER: {
+		description:
+			'Server-side pepper used to HMAC API tokens before DB lookup. Keep it stable to preserve existing API keys.',
+		required: true,
+		transform: (raw: string) => {
+			const value = String(raw ?? '').trim();
+			if (value.length < 16) {
+				throw new Error('API_TOKEN_PEPPER must be at least 16 characters');
+			}
+			return value;
+		}
 	}
 });

@@ -15,6 +15,7 @@ process.env.API_HOST ??= '127.0.0.1';
 process.env.API_PORT ??= '3776';
 process.env.API_URL ??= `http://${process.env.API_HOST}:${process.env.API_PORT}/api`;
 process.env.ASSET_ROUTE ??= '/asset';
+process.env.API_TOKEN_PEPPER ??= 'example-token-pepper-value';
 process.env.UPLOAD_PATH ??= './{domain}/uploads';
 process.env.SMTP_HOST ??= '127.0.0.1';
 process.env.SMTP_PORT ??= '1025';

@@ -271,6 +271,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		'API_BASE_PATH',
 		'ASSET_ROUTE',
 		'ASSET_PUBLIC_BASE',
+		'API_TOKEN_PEPPER',
 		'API_HOST',
 		'API_PORT',
 		'UPLOAD_PATH',
@@ -294,6 +295,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 	process.env.API_BASE_PATH = apiBasePath;
 	process.env.ASSET_ROUTE = assetRoute;
 	process.env.ASSET_PUBLIC_BASE = assetPublicBase;
+	process.env.API_TOKEN_PEPPER = 'test-token-pepper-value';
 	process.env.API_HOST = '127.0.0.1';
 	process.env.API_PORT = '0';
 	process.env.UPLOAD_PATH = './{domain}/uploads';

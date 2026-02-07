@@ -26,7 +26,14 @@ export async function assert_domain_and_user(apireq: mailApiRequest): Promise<vo
 	if (!domain) {
 		throw new ApiError({ code: 401, message: 'Missing domain' });
 	}
-	const user = await api_user.findOne({ where: { token: apireq.token } });
+
+	const rawUid = apireq.getRealUid();
+	const uid = rawUid === null ? null : Number(rawUid);
+	if (!uid || Number.isNaN(uid)) {
+		throw new ApiError({ code: 401, message: 'Invalid/Unknown API Key/Token' });
+	}
+
+	const user = await api_user.findByPk(uid);
 	if (!user) {
 		throw new ApiError({ code: 401, message: 'Invalid/Unknown API Key/Token' });
 	}

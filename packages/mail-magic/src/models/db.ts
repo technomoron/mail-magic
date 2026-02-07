@@ -5,7 +5,7 @@ import { init_api_domain, api_domain } from './domain.js';
 import { init_api_form, api_form } from './form.js';
 import { importData } from './init.js';
 import { init_api_txmail, api_txmail } from './txmail.js';
-import { init_api_user, api_user } from './user.js';
+import { init_api_user, api_user, migrateLegacyApiTokens } from './user.js';
 
 import type { Dialect, Options } from 'sequelize';
 
@@ -75,6 +75,15 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 	await db.query('PRAGMA foreign_keys = ON');
 
 	await importData(store);
+
+	try {
+		const { migrated, cleared } = await migrateLegacyApiTokens(store.env.API_TOKEN_PEPPER);
+		if (migrated || cleared) {
+			store.print_debug(`Migrated ${migrated} legacy API token(s) and cleared ${cleared} plaintext token(s).`);
+		}
+	} catch (err) {
+		store.print_debug(`Failed to migrate legacy API tokens: ${err instanceof Error ? err.message : String(err)}`);
+	}
 	store.print_debug('API Database Initialized...');
 }
 

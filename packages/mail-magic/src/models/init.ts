@@ -11,7 +11,7 @@ import { user_and_domain } from '../util.js';
 import { api_domain, api_domain_schema } from './domain.js';
 import { api_form_schema, api_form_type, upsert_form } from './form.js';
 import { api_txmail_schema, api_txmail_type, upsert_txmail } from './txmail.js';
-import { api_user, api_user_schema } from './user.js';
+import { apiTokenToHmac, api_user, api_user_schema } from './user.js';
 
 interface LoadedTemplate {
 	html: string;
@@ -196,9 +196,18 @@ export async function importData(store: mailStore) {
 		if (records.user) {
 			store.print_debug('Creating user records');
 			for (const record of records.user) {
-				const { domain, ...userWithoutDomain } = record;
+				const { domain, token, token_hmac, ...userWithoutDomain } = record;
 
-				await api_user.upsert({ ...userWithoutDomain, domain: null });
+				let resolvedTokenHmac: string;
+				if (typeof token_hmac === 'string' && token_hmac) {
+					resolvedTokenHmac = token_hmac;
+				} else if (typeof token === 'string' && token) {
+					resolvedTokenHmac = apiTokenToHmac(token, store.env.API_TOKEN_PEPPER);
+				} else {
+					throw new Error(`User ${record.user_id} is missing token or token_hmac`);
+				}
+
+				await api_user.upsert({ ...userWithoutDomain, token: '', token_hmac: resolvedTokenHmac, domain: null });
 				if (typeof domain === 'number') {
 					pendingUserDomains.push({ user_id: record.user_id, domain });
 				}

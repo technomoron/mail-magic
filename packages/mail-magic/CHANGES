@@ -1,3 +1,8 @@
+Version 1.0.19 (2026-02-07)
+
+- Store API tokens as HMAC-SHA256 (with required `API_TOKEN_PEPPER`) instead of
+  plaintext, and migrate legacy plaintext tokens on startup.
+
 Version 1.0.18 (2026-02-07)
 
 - Added a stable `form_key` (generated via nanoid) to uniquely identify forms and

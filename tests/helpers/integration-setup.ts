@@ -28,6 +28,7 @@ const ENV_KEYS = [
 	'ASSET_ROUTE',
 	'API_HOST',
 	'API_PORT',
+	'API_TOKEN_PEPPER',
 	'UPLOAD_PATH',
 	'SMTP_HOST',
 	'SMTP_PORT',
@@ -198,6 +199,7 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 	process.env.ASSET_ROUTE = '/asset';
 	process.env.API_HOST = '127.0.0.1';
 	process.env.API_PORT = String(port);
+	process.env.API_TOKEN_PEPPER = 'integration-token-pepper-value';
 	process.env.UPLOAD_PATH = './{domain}/uploads';
 	process.env.SMTP_HOST = '127.0.0.1';
 	process.env.SMTP_PORT = String(smtp.port);
