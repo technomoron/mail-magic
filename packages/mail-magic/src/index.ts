@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { AssetAPI, createAssetHandler } from './api/assets.js';
@@ -17,8 +15,6 @@ export type MailMagicServerBootstrap = {
 	store: mailStore;
 	env: mailStore['env'];
 };
-
-const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 
 function normalizeRoute(value: string, fallback = ''): string {
 	if (!value) {

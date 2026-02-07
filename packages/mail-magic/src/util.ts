@@ -14,7 +14,7 @@ import type { Response } from 'express';
  *
  * Examples:
  *   normalizeSlug("Hello World!")    -> "hello-world"
- *   normalizeSlug("  Áccêntš  ")     -> "ccnt"
+ *   normalizeSlug("  Áccêntš  ")     -> "cc-nt"
  *   normalizeSlug("My--Slug__Test")  -> "my-slug__test"
  */
 export function normalizeSlug(input: string): string {

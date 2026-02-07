@@ -7,7 +7,7 @@ export const envOptions = defineEnvOptions({
 		default: 'development'
 	},
 	API_PORT: {
-		description: 'Defines the port on which the app listens. Default 3780',
+		description: 'Defines the port on which the app listens. Default 3776',
 		default: '3776',
 		type: 'number'
 	},

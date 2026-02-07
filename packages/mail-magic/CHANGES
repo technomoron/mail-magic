@@ -1,3 +1,7 @@
+Version 1.0.26 (2026-02-07)
+
+- Fix env/docs polish and remove unused code flagged by ESLint.
+
 Version 1.0.25 (2026-02-07)
 
 - Default `DB_AUTO_RELOAD` to false to avoid unexpected config reloads in production.
