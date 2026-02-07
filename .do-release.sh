@@ -53,7 +53,8 @@ version_is_newer() {
 	local current="$1"
 	local previous="$2"
 	node - "$current" "$previous" <<'NODE'
-const [current, previous] = process.argv.slice(1);
+// When running `node - <args...>`, argv[1] is the script name ('-'), so args start at argv[2].
+const [current, previous] = process.argv.slice(2);
 const normalize = (v) => v.replace(/^v/, "");
 const parse = (v) => {
 	const [main, pre] = normalize(v).split("-");
