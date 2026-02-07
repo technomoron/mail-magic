@@ -1,3 +1,8 @@
+Version 1.0.24 (2026-02-07)
+
+- Validate imported domain names against a safe pattern to prevent config path
+  traversal via malformed domain identifiers.
+
 Version 1.0.23 (2026-02-07)
 
 - Added a form recipient allowlist table plus `POST /api/v1/form/recipient` to map a
