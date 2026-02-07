@@ -1,3 +1,10 @@
+Version 1.0.22 (2026-02-07)
+
+- Added opt-in anti-abuse controls for public form submissions, including:
+  `UPLOAD_MAX`, in-memory IP rate limiting, optional CAPTCHA verification
+  (Turnstile/hCaptcha/reCAPTCHA) with per-form `captcha_required`, optional
+  attachment count limits, and optional upload cleanup.
+
 Version 1.0.21 (2026-02-07)
 
 - Added `AUTOESCAPE_HTML` (default: true) to control Nunjucks HTML autoescaping

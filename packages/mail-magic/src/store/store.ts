@@ -159,6 +159,9 @@ export class mailStore implements ImailStore {
 			env = await EnvLoader.createConfigProxy(envOptions, { debug: true });
 		}
 		this.env = env;
+		if (this.env.FORM_CAPTCHA_REQUIRED && !String(this.env.FORM_CAPTCHA_SECRET ?? '').trim()) {
+			throw new Error('FORM_CAPTCHA_SECRET must be set when FORM_CAPTCHA_REQUIRED=true');
+		}
 		EnvLoader.genTemplate(envOptions, '.env-dist');
 		const p = env.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);

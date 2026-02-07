@@ -52,6 +52,7 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 		apiHost: env.API_HOST,
 		apiPort: env.API_PORT,
 		uploadPath: store.getUploadStagingPath(),
+		uploadMax: env.UPLOAD_MAX,
 		debug: env.DEBUG,
 		apiBasePath: normalizeRoute(env.API_BASE_PATH, '/api'),
 		swaggerEnabled: env.SWAGGER_ENABLED,

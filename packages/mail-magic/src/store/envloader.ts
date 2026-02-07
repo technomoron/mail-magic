@@ -128,6 +128,45 @@ export const envOptions = defineEnvOptions({
 		description: 'Path for attached files. Use {domain} to scope per domain.',
 		default: './{domain}/uploads'
 	},
+	UPLOAD_MAX: {
+		description: 'Maximum upload size per file (bytes) when uploads are enabled',
+		default: 30 * 1024 * 1024,
+		type: 'number'
+	},
+	FORM_RATE_LIMIT_WINDOW_SEC: {
+		description: 'Rate limit window for unauthenticated form submissions (seconds)',
+		default: 0,
+		type: 'number'
+	},
+	FORM_RATE_LIMIT_MAX: {
+		description: 'Max unauthenticated form submissions per client IP per window (0 disables rate limiting)',
+		default: 0,
+		type: 'number'
+	},
+	FORM_MAX_ATTACHMENTS: {
+		description: 'Max number of uploaded files accepted by /v1/form/message (-1 unlimited, 0 disables attachments)',
+		default: -1,
+		type: 'number'
+	},
+	FORM_KEEP_UPLOADS: {
+		description: 'Keep uploaded form files on disk after processing (success or failure)',
+		default: true,
+		type: 'boolean'
+	},
+	FORM_CAPTCHA_PROVIDER: {
+		description: 'CAPTCHA provider used to verify tokens for /v1/form/message',
+		options: ['turnstile', 'hcaptcha', 'recaptcha'],
+		default: 'turnstile'
+	},
+	FORM_CAPTCHA_SECRET: {
+		description: 'CAPTCHA secret used by the server to verify tokens (enables captcha checks when set)',
+		default: ''
+	},
+	FORM_CAPTCHA_REQUIRED: {
+		description: 'Require a CAPTCHA token for /v1/form/message when captcha is enabled',
+		default: false,
+		type: 'boolean'
+	},
 	API_TOKEN_PEPPER: {
 		description:
 			'Server-side pepper used to HMAC API tokens before DB lookup. Keep it stable to preserve existing API keys.',

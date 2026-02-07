@@ -29,7 +29,16 @@ const ENV_KEYS = [
 	'API_HOST',
 	'API_PORT',
 	'API_TOKEN_PEPPER',
+	'AUTOESCAPE_HTML',
 	'UPLOAD_PATH',
+	'UPLOAD_MAX',
+	'FORM_RATE_LIMIT_WINDOW_SEC',
+	'FORM_RATE_LIMIT_MAX',
+	'FORM_MAX_ATTACHMENTS',
+	'FORM_KEEP_UPLOADS',
+	'FORM_CAPTCHA_PROVIDER',
+	'FORM_CAPTCHA_SECRET',
+	'FORM_CAPTCHA_REQUIRED',
 	'SMTP_HOST',
 	'SMTP_PORT',
 	'SMTP_SECURE',
@@ -200,7 +209,16 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 	process.env.API_HOST = '127.0.0.1';
 	process.env.API_PORT = String(port);
 	process.env.API_TOKEN_PEPPER = 'integration-token-pepper-value';
+	process.env.AUTOESCAPE_HTML = 'true';
 	process.env.UPLOAD_PATH = './{domain}/uploads';
+	process.env.UPLOAD_MAX = String(30 * 1024 * 1024);
+	process.env.FORM_RATE_LIMIT_WINDOW_SEC = '0';
+	process.env.FORM_RATE_LIMIT_MAX = '0';
+	process.env.FORM_MAX_ATTACHMENTS = '-1';
+	process.env.FORM_KEEP_UPLOADS = 'true';
+	process.env.FORM_CAPTCHA_PROVIDER = 'turnstile';
+	process.env.FORM_CAPTCHA_SECRET = '';
+	process.env.FORM_CAPTCHA_REQUIRED = 'false';
 	process.env.SMTP_HOST = '127.0.0.1';
 	process.env.SMTP_PORT = String(smtp.port);
 	process.env.SMTP_SECURE = 'false';

@@ -21,6 +21,7 @@ export const api_form_schema = z.object({
 	filename: z.string().default(''),
 	slug: z.string().default(''),
 	secret: z.string().default(''),
+	captcha_required: z.boolean().default(false),
 	files: z
 		.array(
 			z.object({
@@ -48,6 +49,7 @@ export class api_form extends Model {
 	declare filename: string;
 	declare slug: string;
 	declare secret: string;
+	declare captcha_required: boolean;
 	declare files: StoredFile[];
 }
 
@@ -133,6 +135,11 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				type: DataTypes.STRING,
 				allowNull: false,
 				defaultValue: ''
+			},
+			captcha_required: {
+				type: DataTypes.BOOLEAN,
+				allowNull: false,
+				defaultValue: false
 			},
 			files: {
 				type: DataTypes.TEXT,
