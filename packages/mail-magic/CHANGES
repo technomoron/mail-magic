@@ -5,6 +5,8 @@ Version 1.0.23 (2026-02-07)
   scoped per domain and optionally per `form_key`.
 - `POST /api/v1/form/message` now supports `recipient_idname` so public forms can
   select a configured recipient without exposing email addresses client-side.
+- Added integration tests covering recipient allowlist fallbacks, overrides, locale scoping,
+  validation, and ownership checks.
 
 Version 1.0.22 (2026-02-07)
 

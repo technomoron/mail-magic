@@ -215,4 +215,250 @@ describe('mail-magic API', () => {
 		const html = typeof message.html === 'string' ? message.html : String(message.html ?? '');
 		expect(html).toContain('Hello world');
 	});
+
+	test('falls back to domain-wide recipient mapping when no form-specific mapping exists', async () => {
+		const templateRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'domainwide-fallback',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Domainwide Fallback',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		expect(templateRes.status).toBe(200);
+		const form_key = templateRes.body.data.form_key as string;
+
+		const rcptRes = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'desk',
+				email: 'Desk <desk@example.test>'
+			});
+		expect(rcptRes.status).toBe(200);
+		expect(rcptRes.body.data.form_key).toBe('');
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			form_key,
+			recipient_idname: 'desk',
+			msg: 'hi'
+		});
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const to = message.to?.value?.[0];
+		expect(to?.address).toBe('desk@example.test');
+		expect(to?.name).toBe('Desk');
+	});
+
+	test('prefers form-scoped recipient mapping over domain-wide mapping', async () => {
+		const templateRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'override-precedence',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Override Precedence',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		expect(templateRes.status).toBe(200);
+		const form_key = templateRes.body.data.form_key as string;
+
+		const domainWide = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'editor',
+				email: 'domainwide@example.test'
+			});
+		expect(domainWide.status).toBe(200);
+
+		const formScoped = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				form_key,
+				idname: 'editor',
+				email: 'formspecific@example.test'
+			});
+		expect(formScoped.status).toBe(200);
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			form_key,
+			recipient_idname: 'editor',
+			msg: 'ping'
+		});
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const to = message.to?.value?.[0];
+		expect(to?.address).toBe('formspecific@example.test');
+	});
+
+	test('rejects unknown recipient_idname on public form submission', async () => {
+		const templateRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'unknown-recipient',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Unknown Recipient',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		expect(templateRes.status).toBe(200);
+		const form_key = templateRes.body.data.form_key as string;
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			form_key,
+			recipient_idname: 'does-not-exist',
+			msg: 'hello'
+		});
+		expect(sendRes.status).toBe(404);
+	});
+
+	test('supports recipient upsert via formid + locale (and rejects ambiguous formid without locale)', async () => {
+		const enRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'localized-form',
+				locale: 'en',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Localized Form',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		const frRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'localized-form',
+				locale: 'fr',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Localized Form',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		expect(enRes.status).toBe(200);
+		expect(frRes.status).toBe(200);
+		const enFormKey = enRes.body.data.form_key as string;
+
+		const ambiguous = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				formid: 'localized-form',
+				idname: 'writer',
+				email: 'writer@example.test'
+			});
+		expect(ambiguous.status).toBe(409);
+
+		const rcptRes = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				formid: 'localized-form',
+				locale: 'en',
+				idname: 'writer',
+				email: 'Writer <writer@example.test>'
+			});
+		expect(rcptRes.status).toBe(200);
+		expect(rcptRes.body.data.form_key).toBe(enFormKey);
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			form_key: enFormKey,
+			recipient_idname: 'writer',
+			msg: 'hello'
+		});
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const to = message.to?.value?.[0];
+		expect(to?.address).toBe('writer@example.test');
+		expect(to?.name).toBe('Writer');
+	});
+
+	test('validates recipient upserts (auth, ownership, inputs, and form_key scoping)', async () => {
+		const missingAuth = await api.post('/api/v1/form/recipient').send({
+			domain: ctx!.domainName,
+			idname: 'x',
+			email: 'x@example.test'
+		});
+		expect(missingAuth.status).toBe(401);
+
+		const wrongOwner = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.otherDomainName,
+				idname: 'x',
+				email: 'x@example.test'
+			});
+		expect(wrongOwner.status).toBe(403);
+
+		const badEmail = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'bad-email',
+				email: 'not-an-email'
+			});
+		expect(badEmail.status).toBe(400);
+
+		const badName = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'bad-name',
+				email: 'valid@example.test',
+				name: 'Bad\nName'
+			});
+		expect(badName.status).toBe(400);
+
+		const templateRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'scoping-form',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Scoping Form',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+		expect(templateRes.status).toBe(200);
+		const form_key = templateRes.body.data.form_key as string;
+
+		const wrongDomainFormKey = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.otherUserToken}`)
+			.send({
+				domain: ctx!.otherDomainName,
+				form_key,
+				idname: 'desk',
+				email: 'desk@example.test'
+			});
+		expect(wrongDomainFormKey.status).toBe(404);
+	});
 });
