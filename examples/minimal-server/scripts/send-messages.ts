@@ -53,6 +53,7 @@ async function sendForm(client: TemplateClient): Promise<void> {
 	});
 
 	await client.sendFormMessage({
+		domain,
 		formid: formId,
 		secret: formSecret,
 		fields: {
