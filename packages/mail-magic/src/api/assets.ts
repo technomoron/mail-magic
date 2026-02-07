@@ -229,10 +229,11 @@ export function createAssetHandler(server: mailApiServer) {
 		}
 
 		res.type(path.extname(realCandidate));
-		res.set('Cache-Control', 'public, max-age=300');
 
 		try {
-			await sendFileAsync(res, realCandidate);
+			// Express' `sendFile()` sets Cache-Control based on `maxAge` (in ms). Setting the header
+			// before calling `sendFile()` can be overwritten by Express defaults.
+			await sendFileAsync(res, realCandidate, { maxAge: 300_000 });
 		} catch (err) {
 			server.storage.print_debug(
 				`Failed to serve asset ${domain}/${segments.join('/')}: ${err instanceof Error ? err.message : String(err)}`

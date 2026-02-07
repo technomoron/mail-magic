@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { AssetAPI } from './api/assets.js';
+import { AssetAPI, createAssetHandler } from './api/assets.js';
 import { FormAPI } from './api/forms.js';
 import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
@@ -46,31 +46,6 @@ function mergeStaticDirs(
 	return merged;
 }
 
-function buildAssetStaticDirs(store: mailStore): Record<string, string> {
-	const staticDirs: Record<string, string> = {};
-	const assetRoute = normalizeRoute(store.env.ASSET_ROUTE, '/asset');
-	const assetPrefix = assetRoute === '/' ? '' : assetRoute;
-	const configRoot = store.configpath;
-	let entries: fs.Dirent[];
-	try {
-		entries = fs.readdirSync(configRoot, { withFileTypes: true });
-	} catch {
-		return staticDirs;
-	}
-	for (const entry of entries) {
-		if (!entry.isDirectory()) {
-			continue;
-		}
-		const name = entry.name;
-		if (!DOMAIN_PATTERN.test(name)) {
-			continue;
-		}
-		const mount = `${assetPrefix}/${name}`;
-		staticDirs[mount] = path.join(configRoot, name, 'assets');
-	}
-	return staticDirs;
-}
-
 function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions): MailMagicServerOptions {
 	const env = store.env;
 	return {
@@ -90,7 +65,8 @@ export async function createMailMagicServer(overrides: MailMagicServerOptions = 
 	if (typeof overrides.apiBasePath === 'string') {
 		store.env.API_BASE_PATH = overrides.apiBasePath;
 	}
-	const baseStaticDirs = buildAssetStaticDirs(store);
+	const baseStaticDirs: Record<string, string> = {};
+
 	let adminUiPath: string | null = null;
 	if (store.env.ADMIN_ENABLED) {
 		adminUiPath = await resolveAdminUiPath(store);
@@ -102,8 +78,31 @@ export async function createMailMagicServer(overrides: MailMagicServerOptions = 
 		...overrides,
 		staticDirs: mergeStaticDirs(baseStaticDirs, overrides.staticDirs as Record<string, string> | undefined)
 	};
+
 	const config = buildServerConfig(store, mergedOverrides);
 	const server = new mailApiServer(config, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
+
+	// Serve domain assets from a public route with traversal protection and caching.
+	const assetRoute = normalizeRoute(store.env.ASSET_ROUTE, '/asset');
+	const assetPrefix = assetRoute === '/' ? '' : assetRoute;
+	const apiBasePath = normalizeRoute(store.env.API_BASE_PATH, '/api');
+	const apiBasePrefix = apiBasePath === '/' ? '' : apiBasePath;
+	const assetHandler = createAssetHandler(server);
+	const assetMounts = new Set<string>();
+	assetMounts.add(assetPrefix);
+	// Integration tests (and API_URL defaults) expect assets to also be reachable under the API base path.
+	if (apiBasePrefix && assetPrefix && !assetPrefix.startsWith(`${apiBasePrefix}/`)) {
+		assetMounts.add(`${apiBasePrefix}${assetPrefix}`);
+	}
+	for (const prefix of assetMounts) {
+		server.app.get(`${prefix}/:domain/*`, assetHandler);
+		server.app.head(`${prefix}/:domain/*`, assetHandler);
+	}
+	// api-server-base installs an API 404 handler early in its constructor (mounted under `apiBasePath`).
+	// Since we add some non-API routes under that same prefix (like `/api/asset/...`) after construction,
+	// we need to push the 404 handler back to the end of the router stack.
+	(server as unknown as { ensureApiNotFoundOrdering?: () => void }).ensureApiNotFoundOrdering?.();
+
 	if (store.env.ADMIN_ENABLED) {
 		await enableAdminFeatures(server, store, adminUiPath);
 	} else {

@@ -122,16 +122,30 @@ export function decodeComponent(value: string | undefined): string {
 }
 
 export function sendFileAsync(
-	res: { sendFile: (path: string, cb: (err?: Error | null) => void) => void },
-	file: string
+	res: {
+		sendFile: {
+			(path: string, cb: (err?: Error | null) => void): void;
+			(path: string, options: unknown, cb: (err?: Error | null) => void): void;
+		};
+	},
+	file: string,
+	options?: unknown
 ): Promise<void> {
 	return new Promise((resolve, reject) => {
-		res.sendFile(file, (err) => {
+		const cb = (err?: Error | null) => {
 			if (err) {
 				reject(err);
 			} else {
 				resolve();
 			}
-		});
+		};
+
+		if (options !== undefined) {
+			// Express will set Cache-Control based on `maxAge` etc; callers can still override.
+			(res as unknown as { sendFile: (path: string, options: unknown, cb: typeof cb) => void }).sendFile(file, options, cb);
+			return;
+		}
+
+		res.sendFile(file, cb);
 	});
 }
