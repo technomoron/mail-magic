@@ -11,6 +11,7 @@ This file captures workspace-level changes (tooling, repo layout, etc) and is no
 
 - Reorganized docs: moved `packages/mail-magic/IDEAS.md` to `docs/IDEAS.md`, and moved package config examples/tutorial
   under `packages/mail-magic/docs/`.
+- Added `docs/OVERVIEW.md` with a plain-language introduction to Mail Magic concepts and features.
 
 ## 2026-02-07
 
