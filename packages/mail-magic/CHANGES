@@ -1,3 +1,7 @@
+Version 1.0.30 (2026-02-08)
+
+- Add regression coverage for Nunjucks HTML autoescape behavior and the `|safe` filter.
+
 Version 1.0.29 (2026-02-08)
 
 - Add regression coverage for CAPTCHA verification flows on the public form endpoint.
