@@ -1,4 +1,13 @@
-Version 1.0.x (2026-02-07)
+# Workspace Notes
+
+Mail Magic is a monorepo. Release notes are tracked per package:
+
+- `packages/mail-magic/CHANGES`
+- `packages/mail-magic-client/CHANGES`
+
+This file captures workspace-level changes (tooling, repo layout, etc) and is not used for npm releases.
+
+## 2026-02-07
 
 - Documented new optional environment knobs in `.env-dist`, including
   `API_BASE_PATH`, `ASSET_PUBLIC_BASE`, `ADMIN_ENABLED`, and `ADMIN_APP_PATH`.
@@ -9,7 +18,7 @@ Version 1.0.x (2026-02-07)
   `/api/...` custom route mounting to stay reachable with the new API 404
   handling.
 
-Version 1.0.x (2026-02-02)
+## 2026-02-02
 
 - Added a pnpm-aware workspace wrapper with npm fallback so root and package
   builds run under either package manager.

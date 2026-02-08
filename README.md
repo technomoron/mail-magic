@@ -1,12 +1,34 @@
-# mail-magic monorepo
+# mail-magic (monorepo)
 
-This repo contains:
+This repository contains:
 
-- packages/mail-magic (server)
-- packages/mail-magic-client (client)
-- packages/mail-magic-admin (Vue admin UI placeholder, served from the server `/`)
+- `packages/mail-magic` - server (`@technomoron/mail-magic`)
+- `packages/mail-magic-client` - client library + CLI (`@technomoron/mail-magic-client`)
+- `packages/mail-magic-admin` - admin UI placeholder (`@technomoron/mail-magic-admin`)
 
-Each package keeps its own README and release notes.
+Package documentation:
 
-Development is optimized for pnpm (faster installs/hoisting), while CI and publishing use npm. If pnpm is unavailable on
-a build host, npm is the fallback.
+- `packages/mail-magic/README.md`
+- `packages/mail-magic/TUTORIAL.MD`
+- `packages/mail-magic-client/README.md`
+
+Development is optimized for `pnpm` (faster installs/hoisting). CI/publishing can use npm as a fallback.
+
+## Quick Start
+
+```bash
+pnpm install
+pnpm test
+pnpm cleanbuild
+```
+
+## Example Server
+
+Start a local mail-magic server using a tiny config directory and SQLite DB:
+
+```bash
+npx tsx examples/minimal-server/server.ts
+```
+
+See `examples/minimal-server/README.md` for scripts that store templates, send messages, and demonstrate public form
+recipient allowlists.
