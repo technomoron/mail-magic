@@ -7,6 +7,11 @@ Mail Magic is a monorepo. Release notes are tracked per package:
 
 This file captures workspace-level changes (tooling, repo layout, etc) and is not used for npm releases.
 
+## 2026-02-08
+
+- Reorganized docs: moved `packages/mail-magic/IDEAS.md` to `docs/IDEAS.md`, and moved package config examples/tutorial
+  under `packages/mail-magic/docs/`.
+
 ## 2026-02-07
 
 - Documented new optional environment knobs in `.env-dist`, including

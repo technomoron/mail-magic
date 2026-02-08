@@ -135,28 +135,23 @@ describe('mail-magic API', () => {
 		}
 	});
 
-	test('rejects form submissions without the secret', async () => {
+	test('requires _mm_form_key for public form submissions', async () => {
 		const res = await api.post('/api/v1/form/message').send({
-			domain: ctx!.domainName,
-			formid: 'contact',
 			name: 'Ada',
 			email: 'ada@example.test'
 		});
 
-		expect(res.status).toBe(401);
+		expect(res.status).toBe(400);
 	});
 
 	test('accepts form submissions and delivers mail', async () => {
 		const res = await api
 			.post('/api/v1/form/message')
 			.set('x-forwarded-for', '203.0.113.10')
-			.field('domain', ctx!.domainName)
-			.field('formid', 'contact')
-			.field('secret', 's3cret')
-			.field('recipient', 'receiver@example.test')
+			.field('_mm_form_key', ctx!.contactFormKey)
 			.field('name', 'Ada')
 			.field('email', 'ada@example.test')
-			.attach('file1', ctx.uploadFile);
+			.attach('_mm_file1', ctx.uploadFile);
 
 		expect(res.status).toBe(200);
 
@@ -166,6 +161,10 @@ describe('mail-magic API', () => {
 		expect(html).toContain('Name: Ada');
 		expect(html).toContain('Email: ada@example.test');
 		expect(html).toContain('IP: 203.0.113.10');
+
+		const replyTo = message.replyTo?.value?.[0];
+		expect(replyTo?.address).toBe('ada@example.test');
+		expect(replyTo?.name).toBe('Ada');
 
 		const filenames = message.attachments.map((att) => att.filename ?? '');
 		expect(filenames).toContain('upload.txt');
@@ -201,8 +200,8 @@ describe('mail-magic API', () => {
 		expect(rcptRes.status).toBe(200);
 
 		const sendRes = await api.post('/api/v1/form/message').send({
-			form_key,
-			recipient_idname: 'alice',
+			_mm_form_key: form_key,
+			_mm_recipients: ['alice'],
 			msg: 'world'
 		});
 		expect(sendRes.status).toBe(200);
@@ -244,8 +243,8 @@ describe('mail-magic API', () => {
 		expect(rcptRes.body.data.form_key).toBe('');
 
 		const sendRes = await api.post('/api/v1/form/message').send({
-			form_key,
-			recipient_idname: 'desk',
+			_mm_form_key: form_key,
+			_mm_recipients: ['desk'],
 			msg: 'hi'
 		});
 		expect(sendRes.status).toBe(200);
@@ -294,8 +293,8 @@ describe('mail-magic API', () => {
 		expect(formScoped.status).toBe(200);
 
 		const sendRes = await api.post('/api/v1/form/message').send({
-			form_key,
-			recipient_idname: 'editor',
+			_mm_form_key: form_key,
+			_mm_recipients: ['editor'],
 			msg: 'ping'
 		});
 		expect(sendRes.status).toBe(200);
@@ -305,7 +304,7 @@ describe('mail-magic API', () => {
 		expect(to?.address).toBe('formspecific@example.test');
 	});
 
-	test('rejects unknown recipient_idname on public form submission', async () => {
+	test('rejects unknown recipient idnames on public form submission', async () => {
 		const templateRes = await api
 			.post('/api/v1/form/template')
 			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
@@ -322,8 +321,8 @@ describe('mail-magic API', () => {
 		const form_key = templateRes.body.data.form_key as string;
 
 		const sendRes = await api.post('/api/v1/form/message').send({
-			form_key,
-			recipient_idname: 'does-not-exist',
+			_mm_form_key: form_key,
+			_mm_recipients: ['does-not-exist'],
 			msg: 'hello'
 		});
 		expect(sendRes.status).toBe(404);
@@ -385,8 +384,8 @@ describe('mail-magic API', () => {
 		expect(rcptRes.body.data.form_key).toBe(enFormKey);
 
 		const sendRes = await api.post('/api/v1/form/message').send({
-			form_key: enFormKey,
-			recipient_idname: 'writer',
+			_mm_form_key: enFormKey,
+			_mm_recipients: ['writer'],
 			msg: 'hello'
 		});
 		expect(sendRes.status).toBe(200);

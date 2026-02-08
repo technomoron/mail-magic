@@ -33,6 +33,7 @@ export type TestContext = {
 	uploadsPath: string;
 	domainName: string;
 	otherDomainName: string;
+	contactFormKey: string;
 	userToken: string;
 	otherUserToken: string;
 	apiUrl: string;
@@ -70,7 +71,7 @@ function restoreEnv(snapshot: EnvSnapshot) {
 	}
 }
 
-function writeFixtureConfig(configPath: string, domainName: string) {
+function writeFixtureConfig(configPath: string, domainName: string, contactFormKey: string) {
 	const domainRoot = path.join(configPath, domainName);
 	const assetsRoot = path.join(domainRoot, 'assets');
 	const txRoot = path.join(domainRoot, 'tx-template');
@@ -179,6 +180,7 @@ function writeFixtureConfig(configPath: string, domainName: string) {
 		form: [
 			{
 				form_id: 1,
+				form_key: contactFormKey,
 				user_id: 1,
 				domain_id: 1,
 				locale: '',
@@ -189,7 +191,9 @@ function writeFixtureConfig(configPath: string, domainName: string) {
 				template: '',
 				filename: '',
 				slug: '',
-				secret: 's3cret',
+				secret: '',
+				replyto_email: '',
+				replyto_from_fields: true,
 				files: []
 			}
 		]
@@ -264,7 +268,8 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 
 	const domainName = 'example.test';
 	const otherDomainName = 'other.test';
-	writeFixtureConfig(configPath, domainName);
+	const contactFormKey = 'contact-form-key';
+	writeFixtureConfig(configPath, domainName, contactFormKey);
 
 	const smtp = await startSmtpServer();
 
@@ -368,6 +373,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		uploadsPath,
 		domainName,
 		otherDomainName,
+		contactFormKey,
 		userToken: 'test-token',
 		otherUserToken: 'other-token',
 		apiUrl,

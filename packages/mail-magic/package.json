@@ -8,9 +8,9 @@
 	},
 	"files": [
 		"dist",
+		"docs",
 		"README.md",
-		"CHANGES",
-		"TUTORIAL.MD"
+		"CHANGES"
 	],
 	"repository": {
 		"type": "git",

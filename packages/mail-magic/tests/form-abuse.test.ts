@@ -53,9 +53,7 @@ describe('form anti-abuse controls', () => {
 		ctx.store.env.FORM_RATE_LIMIT_MAX = 1;
 
 		const first = await api.post('/api/v1/form/message').set('x-forwarded-for', '203.0.113.50').send({
-			domain: ctx.domainName,
-			formid: 'contact',
-			secret: 's3cret',
+			_mm_form_key: ctx.contactFormKey,
 			name: 'Ada',
 			email: 'ada@example.test'
 		});
@@ -63,9 +61,7 @@ describe('form anti-abuse controls', () => {
 		await ctx.smtp.waitForMessage();
 
 		const second = await api.post('/api/v1/form/message').set('x-forwarded-for', '203.0.113.50').send({
-			domain: ctx.domainName,
-			formid: 'contact',
-			secret: 's3cret',
+			_mm_form_key: ctx.contactFormKey,
 			name: 'Ada',
 			email: 'ada@example.test'
 		});
@@ -81,12 +77,10 @@ describe('form anti-abuse controls', () => {
 
 		const res = await api
 			.post('/api/v1/form/message')
-			.field('domain', ctx.domainName)
-			.field('formid', 'contact')
-			.field('secret', 's3cret')
+			.field('_mm_form_key', ctx.contactFormKey)
 			.field('name', 'Ada')
 			.field('email', 'ada@example.test')
-			.attach('file1', ctx.uploadFile);
+			.attach('_mm_file1', ctx.uploadFile);
 
 		expect(res.status).toBe(413);
 	});
@@ -99,13 +93,11 @@ describe('form anti-abuse controls', () => {
 
 		const res = await api
 			.post('/api/v1/form/message')
-			.field('domain', ctx.domainName)
-			.field('formid', 'contact')
-			.field('secret', 's3cret')
+			.field('_mm_form_key', ctx.contactFormKey)
 			.field('name', 'Ada')
 			.field('email', 'ada@example.test')
-			.attach('file1', ctx.uploadFile)
-			.attach('file2', ctx.uploadFile);
+			.attach('_mm_file1', ctx.uploadFile)
+			.attach('_mm_file2', ctx.uploadFile);
 
 		expect(res.status).toBe(413);
 	});
@@ -122,12 +114,10 @@ describe('form anti-abuse controls', () => {
 
 		const res = await api
 			.post('/api/v1/form/message')
-			.field('domain', ctx.domainName)
-			.field('formid', 'contact')
-			.field('secret', 's3cret')
+			.field('_mm_form_key', ctx.contactFormKey)
 			.field('name', 'Ada')
 			.field('email', 'ada@example.test')
-			.attach('file1', ctx.uploadFile);
+			.attach('_mm_file1', ctx.uploadFile);
 
 		expect(res.status).toBe(413);
 

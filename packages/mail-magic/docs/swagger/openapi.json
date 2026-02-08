@@ -1,0 +1,1321 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "Mail Magic API",
+		"version": "1.0.32",
+		"description": "OpenAPI definition for the Mail Magic server. Authenticated endpoints require an API key provided as `Authorization: Bearer apikey-<token>`."
+	},
+	"servers": [
+		{
+			"url": "http://localhost:3776",
+			"description": "Local development server"
+		}
+	],
+	"tags": [
+		{
+			"name": "base",
+			"description": "Base endpoints provided by the server runtime."
+		},
+		{
+			"name": "transactional",
+			"description": "Transactional template endpoints (/v1/tx/*)."
+		},
+		{
+			"name": "forms",
+			"description": "Form template and submission endpoints (/v1/form/*)."
+		},
+		{
+			"name": "assets",
+			"description": "Asset upload endpoints."
+		},
+		{
+			"name": "public-assets",
+			"description": "Publicly served domain assets under ASSET_ROUTE."
+		},
+		{
+			"name": "swagger",
+			"description": "Swagger/OpenAPI spec endpoint (enabled via SWAGGER_ENABLED / SWAGGER_PATH)."
+		}
+	],
+	"paths": {
+		"/api/v1/ping": {
+			"get": {
+				"tags": ["base"],
+				"summary": "Health check",
+				"description": "Auth: none. Returns ApiResponse<PingResponseData> with health and version metadata.",
+				"security": [],
+				"responses": {
+					"200": {
+						"description": "Server is reachable.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/PingResponseData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/tx/template": {
+			"post": {
+				"tags": ["transactional"],
+				"summary": "Upsert transactional template",
+				"description": "Auth: API key. Stores (upserts) a transactional template for a domain.",
+				"security": [
+					{
+						"apiKeyBearer": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TxTemplateUpsertRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Template stored.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/StatusOkData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/tx/message": {
+			"post": {
+				"tags": ["transactional"],
+				"summary": "Send transactional message",
+				"description": "Auth: API key. Sends one or more emails using a stored template. File uploads are supported via multipart/form-data; uploaded file fields may be named arbitrarily (e.g. `file1`, `attachment`, etc).",
+				"security": [
+					{
+						"apiKeyBearer": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TxSendRequest"
+							}
+						},
+						"multipart/form-data": {
+							"schema": {
+								"$ref": "#/components/schemas/TxSendMultipartRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Email(s) sent.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/TxSendResponseData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Template not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Upload too large.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/form/recipient": {
+			"post": {
+				"tags": ["forms"],
+				"summary": "Upsert form recipient mapping",
+				"description": "Auth: API key. Creates or updates a named recipient mapping for a domain (optionally scoped to a form_key).",
+				"security": [
+					{
+						"apiKeyBearer": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FormRecipientUpsertRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Recipient mapping stored.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/FormRecipientUpsertResponseData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Conflict / ambiguity.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/form/template": {
+			"post": {
+				"tags": ["forms"],
+				"summary": "Upsert form template",
+				"description": "Auth: API key. Stores (upserts) a form template for a domain.",
+				"security": [
+					{
+						"apiKeyBearer": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FormTemplateUpsertRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Form template stored.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/FormTemplateUpsertResponseData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/form/message": {
+			"post": {
+				"tags": ["forms"],
+				"summary": "Submit form message",
+				"description": "Auth: none. Submits a form and triggers email delivery. Supports multipart/form-data for attachments.",
+				"security": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FormMessageRequest"
+							}
+						},
+						"multipart/form-data": {
+							"schema": {
+								"$ref": "#/components/schemas/FormMessageMultipartRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Delivered (or accepted).",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/FormMessageResponseData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized / bad secret.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden / CAPTCHA failed.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Form not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Ambiguous form id.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Too many/large attachments.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Rate limited.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/assets": {
+			"post": {
+				"tags": ["assets"],
+				"summary": "Upload assets",
+				"description": "Auth: API key. Upload one or more files to the domain asset directory or to a specific template directory. Requires multipart/form-data.",
+				"security": [
+					{
+						"apiKeyBearer": []
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"$ref": "#/components/schemas/AssetsUploadMultipartRequest"
+							}
+						}
+					}
+				},
+				"responses": {
+					"200": {
+						"description": "Assets uploaded.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/StatusOkData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Bad request.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Forbidden.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Template not found.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"413": {
+						"description": "Upload too large.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/asset/{domain}/{path}": {
+			"get": {
+				"tags": ["public-assets"],
+				"summary": "Fetch a public asset",
+				"description": "Public route for domain assets. The `{path}` parameter can contain slashes.",
+				"security": [],
+				"parameters": [
+					{
+						"name": "domain",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Domain name."
+					},
+					{
+						"name": "path",
+						"in": "path",
+						"required": true,
+						"allowReserved": true,
+						"schema": {
+							"type": "string"
+						},
+						"description": "Asset path under the domain assets directory (may contain `/`)."
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Asset bytes.",
+						"content": {
+							"application/octet-stream": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found."
+					},
+					"500": {
+						"description": "Server error."
+					}
+				}
+			}
+		},
+		"/api/asset/{domain}/{path}": {
+			"get": {
+				"tags": ["public-assets"],
+				"summary": "Fetch a public asset (under API base path)",
+				"description": "Compatibility route for assets reachable under API_BASE_PATH + ASSET_ROUTE.",
+				"security": [],
+				"parameters": [
+					{
+						"name": "domain",
+						"in": "path",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"name": "path",
+						"in": "path",
+						"required": true,
+						"allowReserved": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Asset bytes.",
+						"content": {
+							"application/octet-stream": {
+								"schema": {
+									"type": "string",
+									"format": "binary"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found."
+					},
+					"500": {
+						"description": "Server error."
+					}
+				}
+			}
+		},
+		"/api/swagger": {
+			"get": {
+				"tags": ["swagger"],
+				"summary": "Get OpenAPI spec",
+				"description": "Returns the OpenAPI spec JSON when Swagger is enabled. This endpoint is not wrapped in ApiResponse.",
+				"security": [],
+				"responses": {
+					"200": {
+						"description": "OpenAPI JSON.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Spec unavailable."
+					}
+				}
+			}
+		}
+	},
+	"components": {
+		"securitySchemes": {
+			"apiKeyBearer": {
+				"type": "http",
+				"scheme": "bearer",
+				"description": "API key via Authorization: Bearer apikey-<secret>."
+			}
+		},
+		"schemas": {
+			"ApiResponse": {
+				"type": "object",
+				"description": "ApiResponse<T> standard envelope used by API endpoints. T is carried in the data field.",
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"code": {
+						"type": "integer"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"nullable": true
+					},
+					"errors": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "string"
+						}
+					}
+				},
+				"required": ["success", "code", "message", "data", "errors"]
+			},
+			"PingResponseData": {
+				"type": "object",
+				"description": "Data payload returned by GET /api/v1/ping.",
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"status": {
+						"type": "string"
+					},
+					"apiVersion": {
+						"type": "string"
+					},
+					"minClientVersion": {
+						"type": "string"
+					},
+					"uptimeSec": {
+						"type": "number"
+					},
+					"startedAt": {
+						"type": "integer",
+						"format": "int64"
+					},
+					"timestamp": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": ["success", "status", "uptimeSec", "startedAt", "timestamp"]
+			},
+			"StatusOkData": {
+				"type": "object",
+				"properties": {
+					"Status": {
+						"type": "string",
+						"examples": ["OK"]
+					}
+				},
+				"required": ["Status"]
+			},
+			"TxTemplateUpsertRequest": {
+				"type": "object",
+				"additionalProperties": false,
+				"properties": {
+					"domain": {
+						"type": "string",
+						"description": "Domain name owned by the API key user."
+					},
+					"name": {
+						"type": "string",
+						"description": "Template name/id."
+					},
+					"template": {
+						"type": "string",
+						"description": "Nunjucks template content."
+					},
+					"sender": {
+						"type": "string",
+						"default": ""
+					},
+					"subject": {
+						"type": "string",
+						"default": ""
+					},
+					"locale": {
+						"type": "string",
+						"default": ""
+					}
+				},
+				"required": ["domain", "name", "template"]
+			},
+			"TxSendRequest": {
+				"type": "object",
+				"properties": {
+					"domain": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string",
+						"description": "Template name."
+					},
+					"rcpt": {
+						"type": "string",
+						"description": "Comma-separated recipient emails."
+					},
+					"locale": {
+						"type": "string",
+						"default": ""
+					},
+					"vars": {
+						"description": "Vars object or a JSON string.",
+						"oneOf": [
+							{
+								"type": "object"
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"subject": {
+						"type": "string",
+						"description": "Optional override when the stored template has no subject."
+					},
+					"replyTo": {
+						"type": "string"
+					},
+					"reply_to": {
+						"type": "string"
+					},
+					"headers": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "string"
+						},
+						"description": "Custom email headers."
+					}
+				},
+				"required": ["domain", "name", "rcpt"]
+			},
+			"TxSendMultipartRequest": {
+				"type": "object",
+				"description": "Multipart version of TxSendRequest. Attach files in any multipart field; `files` is a conventional field name.",
+				"properties": {
+					"domain": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"rcpt": {
+						"type": "string"
+					},
+					"locale": {
+						"type": "string"
+					},
+					"vars": {
+						"type": "string",
+						"description": "JSON string."
+					},
+					"subject": {
+						"type": "string"
+					},
+					"replyTo": {
+						"type": "string"
+					},
+					"reply_to": {
+						"type": "string"
+					},
+					"headers": {
+						"type": "string",
+						"description": "If provided, should be a JSON string object of headers."
+					},
+					"files": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"format": "binary"
+						}
+					}
+				},
+				"required": ["domain", "name", "rcpt"]
+			},
+			"TxSendResponseData": {
+				"type": "object",
+				"properties": {
+					"Status": {
+						"type": "string",
+						"examples": ["OK"]
+					},
+					"Message": {
+						"type": "string"
+					}
+				},
+				"required": ["Status"]
+			},
+			"FormRecipientUpsertRequest": {
+				"type": "object",
+				"properties": {
+					"domain": {
+						"type": "string"
+					},
+					"idname": {
+						"type": "string",
+						"description": "Recipient identifier (slug-like)."
+					},
+					"email": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"form_key": {
+						"type": "string"
+					},
+					"formid": {
+						"type": "string"
+					},
+					"locale": {
+						"type": "string"
+					}
+				},
+				"required": ["domain", "idname", "email"]
+			},
+			"FormRecipientUpsertResponseData": {
+				"type": "object",
+				"properties": {
+					"Status": {
+						"type": "string",
+						"examples": ["OK"]
+					},
+					"created": {
+						"type": "boolean"
+					},
+					"form_key": {
+						"type": "string"
+					}
+				},
+				"required": ["Status", "created", "form_key"]
+			},
+			"FormTemplateUpsertRequest": {
+				"type": "object",
+				"properties": {
+					"domain": {
+						"type": "string"
+					},
+					"idname": {
+						"type": "string",
+						"description": "Form identifier."
+					},
+					"template": {
+						"type": "string",
+						"description": "Nunjucks template."
+					},
+					"sender": {
+						"type": "string"
+					},
+					"recipient": {
+						"type": "string"
+					},
+					"subject": {
+						"type": "string",
+						"default": ""
+					},
+					"locale": {
+						"type": "string",
+						"default": ""
+					},
+					"secret": {
+						"type": "string",
+						"default": ""
+					},
+					"replyto_email": {
+						"type": "string",
+						"default": "",
+						"description": "Optional forced Reply-To value (email address or mailbox). Used when replyto_from_fields is false, or as a fallback when replyto_from_fields is true but extraction fails."
+					},
+					"replyto_from_fields": {
+						"type": "boolean",
+						"default": false,
+						"description": "When true, attempt to derive Reply-To from submitted fields (email + name/first_name/last_name). If extraction fails and replyto_email is set, replyto_email is used."
+					},
+					"allowed_fields": {
+						"description": "Optional allowlist of field names that will be exposed to the form template as `_fields_`. When omitted or empty, all non-system fields are exposed.",
+						"oneOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"captcha_required": {
+						"type": "boolean"
+					}
+				},
+				"required": ["domain", "idname", "template", "sender", "recipient"]
+			},
+			"FormTemplateUpsertResponseData": {
+				"type": "object",
+				"properties": {
+					"Status": {
+						"type": "string",
+						"examples": ["OK"]
+					},
+					"created": {
+						"type": "boolean"
+					},
+					"form_key": {
+						"type": "string"
+					}
+				},
+				"required": ["Status", "created", "form_key"]
+			},
+			"FormMessageRequest": {
+				"type": "object",
+				"description": "Public form submission payload. Requires _mm_form_key. This endpoint accepts arbitrary extra fields which are exposed to templates as `_fields_`.",
+				"properties": {
+					"_mm_form_key": {
+						"type": "string",
+						"description": "Required. Canonical form identifier."
+					},
+					"_mm_locale": {
+						"type": "string"
+					},
+					"_mm_recipients": {
+						"description": "Optional list of recipient idnames to route this message to. If omitted, the stored form default recipient is used.",
+						"oneOf": [
+							{
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"email": {
+						"type": "string",
+						"description": "Optional submitter email used to derive the email Reply-To header."
+					},
+					"name": {
+						"type": "string",
+						"description": "Optional submitter name used to derive Reply-To when present alongside email."
+					},
+					"first_name": {
+						"type": "string",
+						"description": "Optional submitter first name used to derive Reply-To when present alongside email."
+					},
+					"last_name": {
+						"type": "string",
+						"description": "Optional submitter last name used to derive Reply-To when present alongside email."
+					},
+					"_mm_file1": {
+						"type": "string",
+						"format": "binary",
+						"description": "Attachment fields must be named _mm_file* when using multipart/form-data."
+					},
+					"cf-turnstile-response": {
+						"type": "string",
+						"description": "Cloudflare Turnstile token (accepted as-is)."
+					},
+					"h-captcha-response": {
+						"type": "string",
+						"description": "hCaptcha token (accepted as-is)."
+					},
+					"g-recaptcha-response": {
+						"type": "string",
+						"description": "Google reCAPTCHA token (accepted as-is)."
+					},
+					"captcha": {
+						"type": "string",
+						"description": "Generic/legacy captcha token (accepted as-is)."
+					}
+				},
+				"required": ["_mm_form_key"],
+				"additionalProperties": true
+			},
+			"FormMessageMultipartRequest": {
+				"type": "object",
+				"description": "Multipart version of FormMessageRequest. Attachment field names must start with `_mm_file` (e.g. `_mm_file1`).",
+				"properties": {
+					"_mm_form_key": {
+						"type": "string"
+					},
+					"_mm_locale": {
+						"type": "string"
+					},
+					"_mm_recipients": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"first_name": {
+						"type": "string"
+					},
+					"last_name": {
+						"type": "string"
+					},
+					"_mm_file1": {
+						"type": "string",
+						"format": "binary"
+					},
+					"cf-turnstile-response": {
+						"type": "string"
+					},
+					"h-captcha-response": {
+						"type": "string"
+					},
+					"g-recaptcha-response": {
+						"type": "string"
+					},
+					"captcha": {
+						"type": "string"
+					}
+				},
+				"required": ["_mm_form_key"],
+				"additionalProperties": true
+			},
+			"FormMessageResponseData": {
+				"type": "object",
+				"description": "On success, data is usually an empty object. Some internal failures may return an object with an `error` string.",
+				"additionalProperties": true
+			},
+			"AssetsUploadMultipartRequest": {
+				"type": "object",
+				"properties": {
+					"domain": {
+						"type": "string"
+					},
+					"path": {
+						"type": "string",
+						"description": "Optional subdirectory under assets root."
+					},
+					"dir": {
+						"type": "string",
+						"description": "Alias for path."
+					},
+					"templateType": {
+						"type": "string",
+						"description": "If set, upload to a template directory. Valid values: tx, form."
+					},
+					"template_type": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string"
+					},
+					"template": {
+						"type": "string",
+						"description": "Template name/id (transactional) or form idname (form)."
+					},
+					"name": {
+						"type": "string"
+					},
+					"idname": {
+						"type": "string"
+					},
+					"formid": {
+						"type": "string"
+					},
+					"locale": {
+						"type": "string"
+					},
+					"files": {
+						"type": "array",
+						"items": {
+							"type": "string",
+							"format": "binary"
+						},
+						"minItems": 1
+					}
+				},
+				"required": ["domain", "files"]
+			}
+		}
+	}
+}

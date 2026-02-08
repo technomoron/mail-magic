@@ -1,6 +1,10 @@
 Version 1.0.32 (2026-02-08)
 
 - Add regression coverage for legacy plaintext API token migration to `token_hmac`.
+- Publish `docs/swagger/openapi.json` and install a local swagger handler that is stable regardless of `process.cwd()`.
+- Refactor public form submissions to use explicit `_mm_*` control fields (`_mm_form_key`, `_mm_locale`,
+  `_mm_recipients`) and stricter attachment field naming (`_mm_file*`).
+- Centralize captcha verification in `util/captcha` and add contract-style test coverage for the public form endpoint.
 
 Version 1.0.31 (2026-02-08)
 

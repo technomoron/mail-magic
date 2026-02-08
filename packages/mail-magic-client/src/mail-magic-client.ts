@@ -41,14 +41,9 @@ interface sendTemplateData {
 }
 
 interface sendFormData {
-	formid?: string;
-	form_key?: string;
-	secret?: string;
-	recipient?: string;
-	domain?: string;
-	locale?: string;
-	vars?: Record<string, unknown>;
-	replyTo?: string;
+	_mm_form_key: string;
+	_mm_locale?: string;
+	_mm_recipients?: string[] | string;
 	fields?: Record<string, unknown>;
 	attachments?: AttachmentInput[];
 }
@@ -307,37 +302,31 @@ class templateClient {
 	}
 
 	async sendFormMessage(data: sendFormData): Promise<unknown> {
-		if (!data.form_key && !data.formid) {
-			throw new Error('Invalid request body; formid or form_key required');
-		}
-		if (!data.form_key && !data.domain) {
-			throw new Error('Invalid request body; domain required when sending by formid');
+		if (!data._mm_form_key) {
+			throw new Error('Invalid request body; _mm_form_key required');
 		}
 
 		const fields: Record<string, unknown> = data.fields || {};
 		const baseFields: Record<string, unknown> = {
-			formid: data.formid,
-			form_key: data.form_key,
-			secret: data.secret,
-			recipient: data.recipient,
-			domain: data.domain,
-			locale: data.locale,
-			vars: data.vars || {},
-			replyTo: data.replyTo,
+			_mm_form_key: data._mm_form_key,
+			_mm_locale: data._mm_locale,
+			_mm_recipients: data._mm_recipients,
 			...fields
 		};
 
 		if (data.attachments && data.attachments.length > 0) {
-			const { formData } = this.createAttachmentPayload(data.attachments);
+			const normalized = data.attachments.map((attachment, idx) => {
+				const field = attachment.field || `_mm_file${idx + 1}`;
+				if (!field.startsWith('_mm_file')) {
+					throw new Error('Form attachments must use multipart field names starting with _mm_file');
+				}
+				return { ...attachment, field };
+			});
+			const { formData } = this.createAttachmentPayload(normalized);
 			this.appendFields(formData, {
-				formid: data.formid,
-				form_key: data.form_key,
-				secret: data.secret,
-				recipient: data.recipient,
-				domain: data.domain,
-				locale: data.locale,
-				vars: JSON.stringify(data.vars || {}),
-				replyTo: data.replyTo
+				_mm_form_key: data._mm_form_key,
+				_mm_locale: data._mm_locale,
+				_mm_recipients: data._mm_recipients
 			});
 			this.appendFields(formData, fields);
 			return this.postFormData('/api/v1/form/message', formData);

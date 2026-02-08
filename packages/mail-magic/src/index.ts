@@ -5,6 +5,7 @@ import { FormAPI } from './api/forms.js';
 import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
 import { mailStore } from './store/store.js';
+import { installMailMagicSwagger } from './swagger.js';
 
 import type { ApiModule, ApiServerConf } from '@technomoron/api-server-base';
 
@@ -77,7 +78,18 @@ export async function createMailMagicServer(overrides: MailMagicServerOptions = 
 	};
 
 	const config = buildServerConfig(store, mergedOverrides);
-	const server = new mailApiServer(config, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
+	// ApiServerBase's built-in swagger handler loads from process.cwd(); install our own handler so
+	// SWAGGER_ENABLED works regardless of where the .env lives (mail-magic CLI chdir's to the env dir).
+	const { swaggerEnabled, swaggerPath } = config;
+	const serverConfig = { ...config, swaggerEnabled: false, swaggerPath: '' };
+	const server = new mailApiServer(serverConfig, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
+	installMailMagicSwagger(server, {
+		apiBasePath: String(config.apiBasePath || '/api'),
+		assetRoute: String(store.env.ASSET_ROUTE || '/asset'),
+		apiUrl: String(store.env.API_URL || ''),
+		swaggerEnabled,
+		swaggerPath
+	});
 
 	// Serve domain assets from a public route with traversal protection and caching.
 	const assetRoute = normalizeRoute(store.env.ASSET_ROUTE, '/asset');

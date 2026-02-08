@@ -63,7 +63,7 @@ await fetch(`${baseUrl}/api/v1/form/message`, {
 	method: 'POST',
 	headers: { 'Content-Type': 'application/json' },
 	body: JSON.stringify({
-		form_key,
+		_mm_form_key: form_key,
 		name: 'Sam',
 		email: 'sam@example.test',
 		message: 'Hello from the website'
@@ -71,13 +71,11 @@ await fetch(`${baseUrl}/api/v1/form/message`, {
 });
 ```
 
-If you want to use the client helper (`sendFormMessage()`), pass `domain` when sending by `formid`:
+If you want to use the client helper (`sendFormMessage()`), pass `_mm_form_key` (public form key):
 
 ```ts
 await client.sendFormMessage({
-	domain: 'example.test',
-	formid: 'contact',
-	secret: 's3cret',
+	_mm_form_key: form_key,
 	fields: { name: 'Sam', email: 'sam@example.test', message: 'Hello' }
 });
 ```

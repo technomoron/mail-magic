@@ -85,8 +85,8 @@ async function main(): Promise<void> {
 
 	// Submit the form publicly (no auth required).
 	await postJson(`${baseUrl}/api/v1/form/message`, {
-		form_key,
-		recipient_idname: 'desk',
+		_mm_form_key: form_key,
+		_mm_recipients: ['desk'],
 		msg: 'Hello from the public form example'
 	});
 

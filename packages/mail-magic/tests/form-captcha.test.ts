@@ -54,7 +54,7 @@ describe('form captcha verification', () => {
 		ctx.store.env.FORM_CAPTCHA_SECRET = '';
 
 		const res = await api.post('/api/v1/form/message').send({
-			form_key,
+			_mm_form_key: form_key,
 			msg: 'hello'
 		});
 		expect(res.status).toBe(500);
@@ -67,7 +67,7 @@ describe('form captcha verification', () => {
 		ctx.store.env.FORM_CAPTCHA_SECRET = 'captcha-secret';
 
 		const res = await api.post('/api/v1/form/message').send({
-			form_key,
+			_mm_form_key: form_key,
 			msg: 'hello'
 		});
 		expect(res.status).toBe(403);
@@ -86,7 +86,7 @@ describe('form captcha verification', () => {
 		vi.stubGlobal('fetch', fetchSpy);
 
 		const res = await api.post('/api/v1/form/message').send({
-			form_key,
+			_mm_form_key: form_key,
 			'cf-turnstile-response': 'bad-token',
 			msg: 'hello'
 		});
@@ -107,7 +107,7 @@ describe('form captcha verification', () => {
 		vi.stubGlobal('fetch', fetchSpy);
 
 		const res = await api.post('/api/v1/form/message').send({
-			form_key,
+			_mm_form_key: form_key,
 			'cf-turnstile-response': 'good-token',
 			msg: 'world'
 		});

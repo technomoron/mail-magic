@@ -223,14 +223,10 @@ describe('mail-magic integration', () => {
 	});
 
 	test('requires form secret when configured', async () => {
-		const res = await ctx.api
-			.post('/api/v1/form/message')
-			.field('domain', ctx.domainAlpha)
-			.field('formid', 'contact')
-			.field('name', 'Sam')
-			.field('email', 'sam@example.test');
+		const res = await ctx.api.post('/api/v1/form/message').field('name', 'Sam').field('email', 'sam@example.test');
 
-		expect(res.status).toBe(401);
+		// Public form submissions require `_mm_form_key` (no legacy domain/formid/secret inputs).
+		expect(res.status).toBe(400);
 	});
 
 	test('client can store and send a transactional template', async () => {
@@ -270,13 +266,10 @@ describe('mail-magic integration', () => {
 			});
 
 		expect(createRes.status).toBe(200);
+		const formKey = String((createRes.body as { data?: { form_key?: unknown } })?.data?.form_key ?? '').trim();
+		expect(formKey.length).toBeGreaterThan(0);
 
-		const sendRes = await ctx.api
-			.post('/api/v1/form/message')
-			.field('domain', ctx.domainAlpha)
-			.field('formid', 'client-form')
-			.field('secret', 'client-secret')
-			.field('name', 'Ada');
+		const sendRes = await ctx.api.post('/api/v1/form/message').field('_mm_form_key', formKey).field('name', 'Ada');
 
 		expect(sendRes.status).toBe(200);
 
@@ -356,25 +349,25 @@ describe('mail-magic integration', () => {
 				throw new Error(`Missing domain for form ${entry.idname}`);
 			}
 
+			const dbForm = await api_form.findByPk(entry.form_id);
+			const formKey = String(dbForm?.form_key ?? '').trim();
+			if (!formKey) {
+				throw new Error(`Missing form_key for form ${entry.idname}`);
+			}
+
 			const fields = buildFormFields(entry.idname, entry.locale);
 			const request = ctx.api
 				.post('/api/v1/form/message')
 				.set('x-forwarded-for', '203.0.113.10')
-				.field('domain', domain.name)
-				.field('formid', entry.idname)
-				.field('locale', entry.locale)
-				.field('vars', JSON.stringify({}));
-
-			if (entry.secret) {
-				request.field('secret', entry.secret);
-			}
+				.field('_mm_form_key', formKey)
+				.field('_mm_locale', entry.locale);
 
 			for (const [key, value] of Object.entries(fields)) {
 				request.field(key, value);
 			}
 
 			if (entry.idname === 'contact') {
-				request.attach('attachment', ctx.attachmentPath);
+				request.attach('_mm_file1', ctx.attachmentPath);
 			}
 
 			const res = await request;

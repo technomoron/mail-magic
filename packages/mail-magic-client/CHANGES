@@ -1,7 +1,8 @@
 Version 1.0.28 (2026-02-08)
 
-- Refresh README examples to match current server auth and form submission semantics (token usage, `form_key`, and
-  `domain` requirement when sending by `formid`).
+- Refresh README/examples to match current server auth and public form submission semantics (`_mm_form_key`,
+  `_mm_locale`, `_mm_recipients`).
+- Update `sendFormMessage()` to require `_mm_form_key` and default attachment multipart fields to `_mm_fileN`.
 
 Version 1.0.27 (2026-02-07)
 

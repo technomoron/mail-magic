@@ -117,19 +117,19 @@ reachable under `/api/asset/...` to match older `API_URL` defaults.
 
 ## Public Forms (`form_key`) and Recipient Allowlist
 
-### Prefer `form_key` for public submissions
+### Use `form_key` (via `_mm_form_key`) for public submissions
 
 `POST /api/v1/form/template` returns a stable random ID (`data.form_key`, generated via nanoid). Public form submissions
-should use `form_key` instead of `domain + formid`, because `domain + formid` can be ambiguous across locales or
-multi-tenant setups.
+use that key as `_mm_form_key` instead of `domain + formid`, because `domain + formid` can be ambiguous across locales
+or multi-tenant setups.
 
 ### Public recipient selection without exposing email addresses
 
 For cases like "contact a journalist", you can configure named recipients (allowlist) and let the public client select
-by `recipient_idname`:
+by recipient `idname`:
 
 1. Upsert recipient mapping (authenticated): `POST /api/v1/form/recipient` `{ domain, form_key?, idname, email, name? }`
-2. Submit the public form (no auth): `POST /api/v1/form/message` `{ form_key, recipient_idname, ...fields }`
+2. Submit the public form (no auth): `POST /api/v1/form/message` `{ _mm_form_key, _mm_recipients, ...fields }`
 
 Mappings are scoped by `(domain_id, form_key, idname)`:
 
@@ -137,10 +137,10 @@ Mappings are scoped by `(domain_id, form_key, idname)`:
 - Omit `form_key` to create a domain-wide default allowlist.
 - Form-scoped mappings override domain-wide mappings for the same `idname`.
 
-### Overriding `recipient` is secret-gated
+### Recipient Overrides
 
-The `recipient` field on the public endpoint is accepted only when the form has a `secret` configured. This prevents
-turning `/v1/form/message` into an open relay.
+The public endpoint does not accept client-provided `recipient` overrides. Use server-side recipient mappings and
+`_mm_recipients` instead to avoid creating an open relay.
 
 ## Anti-Abuse Controls (Public Form Endpoint)
 
@@ -188,10 +188,11 @@ Transactional templates receive:
 
 Form templates receive:
 
-- `_fields_`: all submitted fields (including `vars`, `formid`, etc)
+- `_fields_`: all submitted non-`_mm_*` fields. When `allowed_fields` is configured on the form, `_fields_` is filtered
+  to that allowlist plus `email`/`name`/`first_name`/`last_name`.
 - `_files_`: uploaded files
 - `_attachments_`, `_vars_`, `_meta_`
-- `_rcpt_email_`, `_rcpt_name_`, `_rcpt_idname_` (when using `recipient_idname`)
+- `_rcpt_email_`, `_rcpt_name_`, `_rcpt_idname_` (when using `_mm_recipients`)
 
 ### Assets (`asset('...')`)
 

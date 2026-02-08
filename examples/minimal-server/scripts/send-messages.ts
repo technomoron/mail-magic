@@ -16,6 +16,32 @@ const formSender = process.env.MM_FORM_SENDER || 'Example Forms <forms@example.t
 const formRecipient = process.env.MM_FORM_RECIPIENT || 'owner@example.test';
 const formSecret = process.env.MM_FORM_SECRET || 'form-secret';
 
+type ApiEnvelope<T> = {
+	success: boolean;
+	code: number;
+	message?: string;
+	data: T;
+	errors?: Record<string, unknown>;
+};
+
+type FormTemplateUpsertData = {
+	Status: string;
+	created: boolean;
+	form_key: string;
+};
+
+async function postJson(url: string, body: Record<string, unknown>): Promise<void> {
+	const res = await fetch(url, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify(body)
+	});
+	if (!res.ok) {
+		const msg = (await res.text().catch(() => res.statusText)) || res.statusText;
+		throw new Error(`Request failed: ${res.status} ${msg}`);
+	}
+}
+
 const modeArg = (process.argv[2] || 'both') as Mode;
 const mode: Mode = modeArg === 'tx' || modeArg === 'form' ? modeArg : 'both';
 
@@ -41,7 +67,7 @@ async function sendTx(client: TemplateClient): Promise<void> {
 }
 
 async function sendForm(client: TemplateClient): Promise<void> {
-	await client.storeFormTemplate({
+	const stored = (await client.storeFormTemplate({
 		domain,
 		idname: formId,
 		sender: formSender,
@@ -50,17 +76,19 @@ async function sendForm(client: TemplateClient): Promise<void> {
 		locale,
 		secret: formSecret,
 		template: '<p>Contact from {{ _fields_.name }} ({{ _fields_.email }})</p>'
-	});
+	})) as ApiEnvelope<FormTemplateUpsertData>;
 
-	await client.sendFormMessage({
-		domain,
-		formid: formId,
-		secret: formSecret,
-		fields: {
-			name: 'Example User',
-			email: rcpt,
-			message: 'Hello from the example script.'
-		}
+	const form_key = String(stored?.data?.form_key ?? '').trim();
+	if (!form_key) {
+		throw new Error('Expected data.form_key in the form template response');
+	}
+
+	// Public form submission endpoint (no auth): requires `_mm_form_key`.
+	await postJson(`${baseUrl}/api/v1/form/message`, {
+		_mm_form_key: form_key,
+		name: 'Example User',
+		email: rcpt,
+		message: 'Hello from the example script.'
 	});
 
 	console.log(`Sent form message '${formId}' to ${formRecipient}`);

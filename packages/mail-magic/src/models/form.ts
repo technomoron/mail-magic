@@ -1,57 +1,99 @@
 import path from 'path';
 
 import { nanoid } from 'nanoid';
-import { Sequelize, Model, DataTypes } from 'sequelize';
+import { Sequelize, Model, DataTypes, UniqueConstraintError } from 'sequelize';
 import { z } from 'zod';
 
 import { StoredFile } from '../types.js';
 import { user_and_domain, normalizeSlug } from '../util.js';
 
-export const api_form_schema = z.object({
-	form_id: z.number().int().nonnegative(),
-	form_key: z.string().min(1).nullable().optional(),
-	user_id: z.number().int().nonnegative(),
-	domain_id: z.number().int().nonnegative(),
-	locale: z.string().default(''),
-	idname: z.string().min(1),
-	sender: z.string().min(1),
-	recipient: z.string().min(1),
-	subject: z.string(),
-	template: z.string().default(''),
-	filename: z.string().default(''),
-	slug: z.string().default(''),
-	secret: z.string().default(''),
-	captcha_required: z.boolean().default(false),
-	files: z
-		.array(
-			z.object({
-				filename: z.string(),
-				path: z.string(),
-				cid: z.string().optional()
-			})
-		)
-		.default([])
-});
+const stored_file_schema: z.ZodType<StoredFile> = z
+	.object({
+		filename: z.string().describe('Asset filename (relative to the domain assets directory).'),
+		path: z.string().describe('Absolute path on disk where the asset is stored.'),
+		cid: z.string().optional().describe('Content-ID used for inline attachments (cid:...) when set.')
+	})
+	.describe('A stored file/asset referenced by a template.');
 
-export type api_form_type = z.infer<typeof api_form_schema>;
+export const api_form_schema = z
+	.object({
+		form_id: z.number().int().nonnegative().describe('Database primary key for the form configuration record.'),
+		form_key: z
+			.string()
+			.trim()
+			.min(1)
+			.default(() => nanoid())
+			.describe('Public form key required by the unauthenticated form submission endpoint (globally unique).'),
+		user_id: z.number().int().nonnegative().describe('Owning user ID.'),
+		domain_id: z.number().int().nonnegative().describe('Owning domain ID.'),
+		locale: z
+			.string()
+			.default('')
+			.describe('Locale for this form configuration (used for lookup/rendering and template path generation).'),
+		idname: z.string().min(1).describe('Form identifier within the domain (slug-like).'),
+		sender: z.string().min(1).describe('Email From header used when delivering form submissions.'),
+		recipient: z
+			.string()
+			.min(1)
+			.describe(
+				'Default email recipient (To) used when delivering form submissions (unless recipients are overridden).'
+			),
+		subject: z.string().describe('Email subject used when delivering form submissions.'),
+		template: z
+			.string()
+			.default('')
+			.describe('Nunjucks template content used to render the outbound email body for this form.'),
+		filename: z
+			.string()
+			.default('')
+			.describe('Relative path (within the config tree) of the source .njk template file for this form.'),
+		slug: z.string().default('').describe('Generated slug used to build stable filenames/paths for this form.'),
+		secret: z
+			.string()
+			.default('')
+			.describe(
+				'Legacy form secret (stored for compatibility; not part of the public form submission contract).'
+			),
+		replyto_email: z
+			.string()
+			.default('')
+			.describe('Optional forced Reply-To email address used when reply-to extraction is disabled or fails.'),
+		replyto_from_fields: z
+			.boolean()
+			.default(false)
+			.describe('If true, attempt to extract Reply-To from submitted form fields (email + name).'),
+		allowed_fields: z
+			.array(z.string())
+			.default([])
+			.describe(
+				'Optional allowlist of submitted field names that are exposed to templates as _fields_. When empty, all non-system fields are exposed.'
+			),
+		captcha_required: z
+			.boolean()
+			.default(false)
+			.describe(
+				'If true, require a captcha token for public submissions to this form (in addition to any server-level requirement).'
+			),
+		files: z
+			.array(stored_file_schema)
+			.default([])
+			.describe(
+				'Derived list of template-referenced assets (inline cids and external links) resolved during preprocessing/import.'
+			)
+	})
+	.describe('Form configuration and template used by the public form submission endpoint.');
 
-export class api_form extends Model {
-	declare form_id: number;
-	declare form_key: string | null;
-	declare user_id: number;
-	declare domain_id: number;
-	declare locale: string;
-	declare idname: string;
-	declare sender: string;
-	declare recipient: string;
-	declare subject: string;
-	declare template: string;
-	declare filename: string;
-	declare slug: string;
-	declare secret: string;
-	declare captcha_required: boolean;
-	declare files: StoredFile[];
-}
+export type api_form_input = z.input<typeof api_form_schema>;
+export type api_form_type = z.output<typeof api_form_schema>;
+export type api_form_creation_type = Omit<api_form_input, 'form_id'> & { form_id?: number };
+
+// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+export class api_form extends Model<api_form_type, api_form_creation_type> {}
+
+// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
+export interface api_form extends api_form_type {}
 
 export async function init_api_form(api_db: Sequelize): Promise<typeof api_form> {
 	api_form.init(
@@ -64,8 +106,7 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 			},
 			form_key: {
 				type: DataTypes.STRING,
-				allowNull: true,
-				defaultValue: null
+				allowNull: false
 			},
 			user_id: {
 				type: DataTypes.INTEGER,
@@ -136,6 +177,29 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				allowNull: false,
 				defaultValue: ''
 			},
+			replyto_email: {
+				type: DataTypes.STRING,
+				allowNull: false,
+				defaultValue: ''
+			},
+			replyto_from_fields: {
+				type: DataTypes.BOOLEAN,
+				allowNull: false,
+				defaultValue: false
+			},
+			allowed_fields: {
+				type: DataTypes.TEXT,
+				allowNull: false,
+				defaultValue: '[]',
+				get() {
+					// This column is stored as JSON text but exposed as `string[]` via getter/setter.
+					const raw = this.getDataValue('allowed_fields') as unknown as string | null;
+					return raw ? (JSON.parse(raw) as string[]) : [];
+				},
+				set(value: string[] | null | undefined) {
+					this.setDataValue('allowed_fields', JSON.stringify(value ?? []) as unknown as string[]);
+				}
+			},
 			captcha_required: {
 				type: DataTypes.BOOLEAN,
 				allowNull: false,
@@ -146,11 +210,12 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				allowNull: false,
 				defaultValue: '[]',
 				get() {
-					const raw = this.getDataValue('files') as string | null;
+					// This column is stored as JSON text but exposed as `StoredFile[]` via getter/setter.
+					const raw = this.getDataValue('files') as unknown as string | null;
 					return raw ? (JSON.parse(raw) as StoredFile[]) : [];
 				},
 				set(value: StoredFile[] | null | undefined) {
-					this.setDataValue('files', JSON.stringify(value ?? []));
+					this.setDataValue('files', JSON.stringify(value ?? []) as unknown as StoredFile[]);
 				}
 			}
 		},
@@ -214,15 +279,29 @@ export async function upsert_form(record: api_form_type): Promise<api_form> {
 	let instance: api_form | null = null;
 	instance = await api_form.findByPk(record.form_id);
 	if (instance) {
-		if (!instance.form_key && !record.form_key) {
+		// Existing forms should always have a form_key. If not, repair it.
+		if (!String(instance.form_key ?? '').trim()) {
 			record.form_key = nanoid();
 		}
 		await instance.update(record);
 	} else {
-		if (!record.form_key) {
-			record.form_key = nanoid();
+		// form_key must be globally unique; retry on collisions.
+		for (let attempt = 0; attempt < 10; attempt++) {
+			record.form_key = String(record.form_key ?? '').trim() || nanoid();
+			try {
+				instance = await api_form.create(record);
+				break;
+			} catch (err: unknown) {
+				if (err instanceof UniqueConstraintError) {
+					const conflicted = (err as UniqueConstraintError).errors?.some((e) => e.path === 'form_key');
+					if (conflicted) {
+						record.form_key = nanoid();
+						continue;
+					}
+				}
+				throw err;
+			}
 		}
-		instance = await api_form.create(record);
 	}
 	if (!instance) {
 		throw new Error(`Unable to update/create form ${record.form_id}`);

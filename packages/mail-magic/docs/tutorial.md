@@ -1,12 +1,15 @@
 # Mail Magic Configuration Tutorial (MyOrg)
 
-This guide walks through building a standalone configuration tree for the user `myorg` and the domain `myorg.com`. The finished layout adds a contact form template and a transactional welcome template that both reuse partials and embed the MyOrg logo inline so it is shipped as a CID attachment.
+This guide walks through building a standalone configuration tree for the user `myorg` and the domain `myorg.com`. The
+finished layout adds a contact form template and a transactional welcome template that both reuse partials and embed the
+MyOrg logo inline so it is shipped as a CID attachment.
 
 ---
 
 ## 1. Prepare an external config workspace
 
-Mail Magic loads configuration from the folder referenced by the `CONFIG_PATH` environment variable. Keeping your custom assets outside the application repository makes upgrades easier.
+Mail Magic loads configuration from the folder referenced by the `CONFIG_PATH` environment variable. Keeping your custom
+assets outside the application repository makes upgrades easier.
 
 ```bash
 # run this next to the mail-magic checkout
@@ -56,9 +59,13 @@ myorg-config/
         └── welcome.njk
 ```
 
-> **Tip:** If you want to share partials between templates, keep file names aligned (e.g. identical `header.njk` content under both `form-template/partials/` and `tx-template/partials/`).
+> **Tip:** If you want to share partials between templates, keep file names aligned (e.g. identical `header.njk` content
+> under both `form-template/partials/` and `tx-template/partials/`).
 
-> **Assets vs inline:** Any file referenced via `asset('...')` must live under `myorg.com/assets/`. The helper `asset('logo.png')` will become `http://localhost:3776/asset/myorg.com/logo.png` by default. You can change the base via `ASSET_PUBLIC_BASE` (or `API_URL`) and the route via `ASSET_ROUTE`. Use `asset('logo.png', true)` when you need the file embedded as a CID attachment instead.
+> **Assets vs inline:** Any file referenced via `asset('...')` must live under `myorg.com/assets/`. The helper
+> `asset('logo.png')` will become `http://localhost:3776/asset/myorg.com/logo.png` by default. You can change the base
+> via `ASSET_PUBLIC_BASE` (or `API_URL`) and the route via `ASSET_ROUTE`. Use `asset('logo.png', true)` when you need
+> the file embedded as a CID attachment instead.
 
 ---
 
@@ -277,7 +284,8 @@ Copy or design a square PNG logo and add it under the domain assets folder so th
 cp path/to/myorg-logo.png "$CONFIG_ROOT"/myorg.com/assets/logo.png
 ```
 
-The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach the image and rewrite the markup to `cid:logo.png` when messages are flattened.
+The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach the image and rewrite the markup to
+`cid:logo.png` when messages are flattened.
 
 ---
 
@@ -306,13 +314,13 @@ The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach
         }
       }'
     ```
-5. Submit the contact form the same way your frontend will post (public endpoint). Using `form_key` is preferred:
+5. Submit the contact form the same way your frontend will post (public endpoint). This endpoint requires
+   `_mm_form_key`:
     ```bash
     curl -X POST http://localhost:3776/api/v1/form/message \
       -H 'Content-Type: application/json' \
       -d '{
-        "form_key": "<your form_key>",
-        "secret": "s3cret",
+        "_mm_form_key": "<your form_key>",
         "name": "Kai",
         "email": "kai@myorg.com",
         "message": "Hello from the contact form"
@@ -321,11 +329,12 @@ The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach
 
 With `DB_AUTO_RELOAD=1`, editing templates or assets is as simple as saving the file.
 
-You now have a clean, self-contained configuration for MyOrg that inherits Mail Magic behaviour while keeping templates, partials, and assets under version control in a dedicated folder.
+You now have a clean, self-contained configuration for MyOrg that inherits Mail Magic behaviour while keeping templates,
+partials, and assets under version control in a dedicated folder.
 
 ---
 
-## 6. Optional: Recipient allowlist for public forms (`recipient_idname`)
+## 6. Optional: Recipient allowlist for public forms (`_mm_recipients`)
 
 If you have a public form where the frontend must select a recipient (for example "send a message to a journalist"),
 avoid shipping raw email addresses client-side.
@@ -333,7 +342,7 @@ avoid shipping raw email addresses client-side.
 Instead:
 
 1. Configure recipients (authenticated) with `POST /api/v1/form/recipient`.
-2. Submit public forms with `recipient_idname`.
+2. Submit public forms with `_mm_recipients`.
 
 Example (domain-wide mapping):
 
@@ -354,8 +363,8 @@ Example (public submit):
 curl -X POST http://localhost:3776/api/v1/form/message \
   -H 'Content-Type: application/json' \
   -d '{
-    "form_key": "<your form_key>",
-    "recipient_idname": "desk",
+    "_mm_form_key": "<your form_key>",
+    "_mm_recipients": ["desk"],
     "name": "Kai",
     "email": "kai@myorg.com",
     "message": "Hello"
@@ -375,5 +384,5 @@ If the public form endpoint is a spam/volume target, enable one or more of these
 - `FORM_MAX_ATTACHMENTS` and `UPLOAD_MAX`
 - CAPTCHA: set `FORM_CAPTCHA_SECRET` + `FORM_CAPTCHA_PROVIDER`
 
-Per form, you can also set `captcha_required=true` when storing/updating the form template via the API (`POST
-/api/v1/form/template`).
+Per form, you can also set `captcha_required=true` when storing/updating the form template via the API
+(`POST /api/v1/form/template`).

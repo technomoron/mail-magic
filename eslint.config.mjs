@@ -46,6 +46,9 @@ export default [
 		ignores: [
 			'node_modules',
 			'**/node_modules/**',
+			'**/.#*', // Emacs lockfiles (can be broken symlinks)
+			'**/#*#', // Emacs autosave files
+			'**/*~', // Editor backup files
 			'dist',
 			'**/dist/**',
 			'.output',

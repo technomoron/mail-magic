@@ -5,15 +5,18 @@ import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-serv
 import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import { nanoid } from 'nanoid';
 import nunjucks from 'nunjucks';
-import { Op } from 'sequelize';
+import { UniqueConstraintError } from 'sequelize';
 
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_recipient } from '../models/recipient.js';
 import { mailApiServer } from '../server.js';
+import { CaptchaProvider, verifyCaptcha } from '../util/captcha.js';
 import { buildRequestMeta, normalizeSlug } from '../util.js';
 
 import { assert_domain_and_user } from './auth.js';
+import { extractReplyToFromSubmission } from './form-replyto.js';
+import { parseFormSubmissionInput } from './form-submission.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
 
@@ -28,41 +31,6 @@ function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string 
 		}
 	}
 	return '';
-}
-
-type CaptchaProvider = 'turnstile' | 'hcaptcha' | 'recaptcha';
-
-async function verifyCaptcha(params: {
-	provider: CaptchaProvider;
-	secret: string;
-	token: string;
-	remoteip: string | null;
-}): Promise<boolean> {
-	const endpoints: Record<CaptchaProvider, string> = {
-		turnstile: 'https://challenges.cloudflare.com/turnstile/v0/siteverify',
-		hcaptcha: 'https://hcaptcha.com/siteverify',
-		recaptcha: 'https://www.google.com/recaptcha/api/siteverify'
-	};
-	const endpoint = endpoints[params.provider] ?? endpoints.turnstile;
-
-	const body = new URLSearchParams();
-	body.set('secret', params.secret);
-	body.set('response', params.token);
-	if (params.remoteip) {
-		body.set('remoteip', params.remoteip);
-	}
-
-	const res = await fetch(endpoint, {
-		method: 'POST',
-		headers: { 'content-type': 'application/x-www-form-urlencoded' },
-		body
-	});
-	if (!res.ok) {
-		return false;
-	}
-
-	const data = (await res.json().catch(() => null)) as { success?: boolean } | null;
-	return Boolean(data?.success);
 }
 
 async function cleanupUploadedFiles(files: UploadedFile[]): Promise<void> {
@@ -124,8 +92,174 @@ class FixedWindowRateLimiter {
 	}
 }
 
+function parsePublicSubmissionOrThrow(apireq: ApiRequest): ReturnType<typeof parseFormSubmissionInput> {
+	try {
+		return parseFormSubmissionInput(apireq.req.body);
+	} catch {
+		// Treat malformed input as a bad request (Zod schema failures, non-object bodies, etc).
+		throw new ApiError({ code: 400, message: 'Invalid form submission payload' });
+	}
+}
+
+function enforceFormRateLimit(
+	limiter: FixedWindowRateLimiter,
+	env: { FORM_RATE_LIMIT_WINDOW_SEC: number; FORM_RATE_LIMIT_MAX: number },
+	apireq: ApiRequest
+): void {
+	const clientIp = apireq.getClientIp() ?? '';
+	const windowMs = Math.max(0, env.FORM_RATE_LIMIT_WINDOW_SEC) * 1000;
+	const decision = limiter.check(`form-message:${clientIp || 'unknown'}`, env.FORM_RATE_LIMIT_MAX, windowMs);
+	if (!decision.allowed) {
+		apireq.res.set('Retry-After', String(decision.retryAfterSec));
+		throw new ApiError({ code: 429, message: 'Too many form submissions; try again later' });
+	}
+}
+
+function enforceAttachmentPolicy(env: { FORM_MAX_ATTACHMENTS: number }, rawFiles: UploadedFile[]): void {
+	if (env.FORM_MAX_ATTACHMENTS === 0 && rawFiles.length > 0) {
+		throw new ApiError({ code: 413, message: 'This endpoint does not accept file attachments' });
+	}
+	for (const file of rawFiles) {
+		if (!file?.fieldname) {
+			continue;
+		}
+		if (!file.fieldname.startsWith('_mm_file')) {
+			throw new ApiError({
+				code: 400,
+				message: 'Invalid upload field name. Use _mm_file* for attachments.'
+			});
+		}
+	}
+	if (env.FORM_MAX_ATTACHMENTS > 0 && rawFiles.length > env.FORM_MAX_ATTACHMENTS) {
+		throw new ApiError({
+			code: 413,
+			message: `Too many attachments: ${rawFiles.length} > ${env.FORM_MAX_ATTACHMENTS}`
+		});
+	}
+}
+
+function filterSubmissionFields(rawFields: Record<string, unknown>, allowedFields: unknown): Record<string, unknown> {
+	const allowed = Array.isArray(allowedFields) ? allowedFields : [];
+	if (!allowed.length) {
+		return rawFields;
+	}
+	const filtered: Record<string, unknown> = {};
+
+	// Always allow Reply-To derivation fields even when allowed_fields is configured.
+	const alwaysAllow = ['email', 'name', 'first_name', 'last_name'];
+	for (const key of alwaysAllow) {
+		if (Object.prototype.hasOwnProperty.call(rawFields, key)) {
+			filtered[key] = rawFields[key];
+		}
+	}
+	for (const key of allowed) {
+		const k = typeof key === 'string' ? key : String(key ?? '').trim();
+		if (!k) {
+			continue;
+		}
+		if (Object.prototype.hasOwnProperty.call(rawFields, k)) {
+			filtered[k] = rawFields[k];
+		}
+	}
+	return filtered;
+}
+
+async function enforceCaptchaPolicy(params: {
+	env: { FORM_CAPTCHA_REQUIRED: boolean; FORM_CAPTCHA_SECRET: string; FORM_CAPTCHA_PROVIDER: string };
+	form: { captcha_required: boolean };
+	captchaToken: string;
+	clientIp: string;
+}): Promise<void> {
+	const captchaRequired = Boolean(params.env.FORM_CAPTCHA_REQUIRED || params.form.captcha_required);
+	const captchaSecret = String(params.env.FORM_CAPTCHA_SECRET ?? '').trim();
+	if (!captchaSecret) {
+		if (captchaRequired) {
+			throw new ApiError({ code: 500, message: 'Captcha is required but not configured on the server' });
+		}
+		return;
+	}
+	if (!params.captchaToken) {
+		if (captchaRequired) {
+			throw new ApiError({ code: 403, message: 'Captcha token required' });
+		}
+		return;
+	}
+
+	const provider = params.env.FORM_CAPTCHA_PROVIDER as CaptchaProvider;
+	const ok = await verifyCaptcha({
+		provider,
+		secret: captchaSecret,
+		token: params.captchaToken,
+		remoteip: params.clientIp || null
+	});
+	if (!ok) {
+		throw new ApiError({ code: 403, message: 'Captcha verification failed' });
+	}
+}
+
+function buildAttachments(rawFiles: UploadedFile[]): {
+	attachments: Array<{ filename: string; path: string }>;
+	attachmentMap: Record<string, string>;
+} {
+	const attachments = rawFiles.map((file) => ({
+		filename: file.originalname,
+		path: file.path
+	}));
+	const attachmentMap: Record<string, string> = {};
+	for (const file of rawFiles) {
+		attachmentMap[file.fieldname] = file.originalname;
+	}
+	return { attachments, attachmentMap };
+}
+
+function buildReplyToValue(
+	form: { replyto_email: string; replyto_from_fields: boolean },
+	fields: Record<string, unknown>
+) {
+	const forced = typeof form.replyto_email === 'string' ? form.replyto_email.trim() : '';
+	const forcedValue = forced ? forced : '';
+
+	if (form.replyto_from_fields) {
+		const extracted = extractReplyToFromSubmission(fields);
+		if (extracted) {
+			return extracted;
+		}
+		return forcedValue || undefined;
+	}
+
+	return forcedValue || undefined;
+}
+
 export class FormAPI extends ApiModule<mailApiServer> {
 	private readonly rateLimiter = new FixedWindowRateLimiter();
+
+	private parseIdnameList(value: unknown, field: string): string[] {
+		if (value === undefined || value === null || value === '') {
+			return [];
+		}
+
+		const raw = Array.isArray(value) ? value : [value];
+		const out: string[] = [];
+		for (const entry of raw) {
+			const str = String(entry ?? '').trim();
+			if (!str) {
+				continue;
+			}
+			// Allow comma-separated convenience in form-encoded inputs while keeping the field name canonical.
+			const parts = str.split(',').map((p) => p.trim());
+			for (const part of parts) {
+				if (!part) {
+					continue;
+				}
+				const normalized = normalizeSlug(part);
+				if (!normalized) {
+					throw new ApiError({ code: 400, message: `Invalid ${field} identifier "${part}"` });
+				}
+				out.push(normalized);
+			}
+		}
+		return Array.from(new Set(out));
+	}
 
 	private validateEmail(email: string): string | undefined {
 		const parsed = emailAddresses.parseOneAddress(email);
@@ -147,16 +281,29 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		return mailbox;
 	}
 
+	private normalizeBoolean(value: unknown): boolean {
+		if (typeof value === 'boolean') {
+			return value;
+		}
+		if (typeof value === 'number') {
+			return value !== 0;
+		}
+		const normalized = String(value ?? '')
+			.trim()
+			.toLowerCase();
+		return ['true', '1', 'yes', 'on'].includes(normalized);
+	}
+
 	private async postFormRecipient(
 		apireq: mailApiRequest
 	): Promise<[number, { Status: string; created: boolean; form_key: string }]> {
 		await assert_domain_and_user(apireq);
 
 		const body = (apireq.req.body ?? {}) as Record<string, unknown>;
-		const idnameRaw = getBodyValue(body, 'idname', 'recipient_idname', 'recipientIdname');
+		const idnameRaw = getBodyValue(body, 'idname');
 		const emailRaw = getBodyValue(body, 'email');
 		const nameRaw = getBodyValue(body, 'name');
-		const formKeyRaw = getBodyValue(body, 'form_key', 'formKey', 'formkey');
+		const formKeyRaw = getBodyValue(body, 'form_key');
 		const formid = getBodyValue(body, 'formid');
 		const localeRaw = getBodyValue(body, 'locale');
 
@@ -263,22 +410,54 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			subject = '',
 			locale = '',
 			secret = '',
-			captcha_required: captchaRequiredRaw,
-			captchaRequired: captchaRequiredAlt
+			replyto_email: replytoEmailRaw = '',
+			replyto_from_fields: replytoFromFieldsRaw = false,
+			allowed_fields: allowedFieldsRaw,
+			captcha_required: captchaRequiredRaw
 		} = apireq.req.body;
 
-		const captcha_required = (() => {
-			const value = captchaRequiredRaw ?? captchaRequiredAlt;
-			if (typeof value === 'boolean') {
-				return value;
+		const captcha_required = this.normalizeBoolean(captchaRequiredRaw);
+		const replyto_from_fields = this.normalizeBoolean(replytoFromFieldsRaw);
+		const replyto_email = String(replytoEmailRaw ?? '').trim();
+		const allowed_fields = (() => {
+			if (allowedFieldsRaw === undefined || allowedFieldsRaw === null || allowedFieldsRaw === '') {
+				return [] as string[];
 			}
-			if (typeof value === 'number') {
-				return value !== 0;
+			const raw = Array.isArray(allowedFieldsRaw) ? allowedFieldsRaw : [allowedFieldsRaw];
+			const out: string[] = [];
+			for (const entry of raw) {
+				if (typeof entry === 'string') {
+					// Accept JSON arrays and comma-separated convenience.
+					const trimmed = entry.trim();
+					if (trimmed.startsWith('[')) {
+						try {
+							const parsed = JSON.parse(trimmed) as unknown;
+							if (Array.isArray(parsed)) {
+								for (const item of parsed) {
+									const key = String(item ?? '').trim();
+									if (key) {
+										out.push(key);
+									}
+								}
+								continue;
+							}
+						} catch {
+							// fall back to comma-splitting below
+						}
+					}
+					for (const part of trimmed.split(',').map((p) => p.trim())) {
+						if (part) {
+							out.push(part);
+						}
+					}
+				} else {
+					const key = String(entry ?? '').trim();
+					if (key) {
+						out.push(key);
+					}
+				}
 			}
-			const normalized = String(value ?? '')
-				.trim()
-				.toLowerCase();
-			return ['true', '1', 'yes', 'on'].includes(normalized);
+			return Array.from(new Set(out));
 		})();
 
 		if (!template) {
@@ -292,6 +471,13 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		}
 		if (!recipient) {
 			throw new ApiError({ code: 400, message: 'Missing recipient address' });
+		}
+
+		if (replyto_email) {
+			const mailbox = this.parseMailbox(replyto_email);
+			if (!mailbox) {
+				throw new ApiError({ code: 400, message: 'Invalid replyto_email address' });
+			}
 		}
 
 		const user = apireq.user!;
@@ -340,24 +526,38 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			slug,
 			filename,
 			secret,
+			replyto_email,
+			replyto_from_fields,
+			allowed_fields,
 			captcha_required,
 			files: []
 		};
 
 		let created = false;
-		try {
-			const [form, wasCreated] = await api_form.upsert(record, {
-				returning: true,
-				conflictFields: ['user_id', 'domain_id', 'locale', 'idname']
-			});
-			created = wasCreated ?? false;
-			form_key = form.form_key || form_key;
-			this.server.storage.print_debug(`Form template upserted: ${form.idname} (created=${wasCreated})`);
-		} catch (error: unknown) {
-			throw new ApiError({
-				code: 500,
-				message: this.server!.guessExceptionText(error, 'Unknown Sequelize Error on upsert form template')
-			});
+		for (let attempt = 0; attempt < 10; attempt++) {
+			try {
+				const [form, wasCreated] = await api_form.upsert(record, {
+					returning: true,
+					conflictFields: ['user_id', 'domain_id', 'locale', 'idname']
+				});
+				created = wasCreated ?? false;
+				form_key = form.form_key || form_key;
+				this.server.storage.print_debug(`Form template upserted: ${form.idname} (created=${wasCreated})`);
+				break;
+			} catch (error: unknown) {
+				if (error instanceof UniqueConstraintError) {
+					const conflicted = (error as UniqueConstraintError).errors?.some((e) => e.path === 'form_key');
+					if (conflicted) {
+						record.form_key = nanoid();
+						form_key = record.form_key;
+						continue;
+					}
+				}
+				throw new ApiError({
+					code: 500,
+					message: this.server!.guessExceptionText(error, 'Unknown Sequelize Error on upsert form template')
+				});
+			}
 		}
 
 		return [200, { Status: 'OK', created, form_key }];
@@ -368,211 +568,59 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
 		const keepUploads = env.FORM_KEEP_UPLOADS;
 		try {
-			const body = (apireq.req.body ?? {}) as Record<string, unknown>;
-			const formid = getBodyValue(body, 'formid');
-			const form_key = getBodyValue(body, 'form_key', 'formkey', 'formKey');
-			const domainName = getBodyValue(body, 'domain');
-			const localeRaw = getBodyValue(body, 'locale');
-			const secret = getBodyValue(body, 'secret');
-			const recipient = getBodyValue(body, 'recipient');
-			const recipientIdnameRaw = getBodyValue(
-				body,
-				'recipient_idname',
-				'recipientIdname',
-				'recipient_slug',
-				'recipientSlug',
-				'recipient_key',
-				'recipientKey'
-			);
-			const replyTo = getBodyValue(body, 'replyTo', 'reply_to');
-			const vars = body.vars ?? {};
+			const parsedInput = parsePublicSubmissionOrThrow(apireq);
+			const form_key = parsedInput.mm.form_key;
+			const localeRaw = parsedInput.mm.locale;
+			const captchaToken = parsedInput.mm.captcha_token;
+			const recipientsRaw = parsedInput.mm.recipients_raw;
+
+			enforceFormRateLimit(this.rateLimiter, env, apireq);
+			enforceAttachmentPolicy(env, rawFiles);
+
+			if (!form_key) {
+				throw new ApiError({ code: 400, message: 'Missing form_key' });
+			}
+
+			const form = await api_form.findOne({ where: { form_key } });
+			if (!form) {
+				throw new ApiError({ code: 404, message: 'No such form_key' });
+			}
+
+			const fields = filterSubmissionFields(parsedInput.fields, form.allowed_fields);
 
 			const clientIp = apireq.getClientIp() ?? '';
-			const windowMs = Math.max(0, env.FORM_RATE_LIMIT_WINDOW_SEC) * 1000;
-			const decision = this.rateLimiter.check(
-				`form-message:${clientIp || 'unknown'}`,
-				env.FORM_RATE_LIMIT_MAX,
-				windowMs
-			);
-			if (!decision.allowed) {
-				apireq.res.set('Retry-After', String(decision.retryAfterSec));
-				throw new ApiError({ code: 429, message: 'Too many form submissions; try again later' });
+			await enforceCaptchaPolicy({ env, form, captchaToken, clientIp });
+
+			const scopeFormKey = String(form.form_key ?? '').trim();
+			if (!scopeFormKey) {
+				throw new ApiError({ code: 500, message: 'Form is missing a form_key' });
 			}
 
-			if (env.FORM_MAX_ATTACHMENTS === 0 && rawFiles.length > 0) {
-				throw new ApiError({ code: 413, message: 'This endpoint does not accept file attachments' });
-			}
-			if (env.FORM_MAX_ATTACHMENTS > 0 && rawFiles.length > env.FORM_MAX_ATTACHMENTS) {
-				throw new ApiError({
-					code: 413,
-					message: `Too many attachments: ${rawFiles.length} > ${env.FORM_MAX_ATTACHMENTS}`
+			const resolveRecipient = async (idname: string): Promise<api_recipient | null> => {
+				const scoped = await api_recipient.findOne({
+					where: { domain_id: form.domain_id, form_key: scopeFormKey, idname }
 				});
+				if (scoped) {
+					return scoped;
+				}
+				return api_recipient.findOne({ where: { domain_id: form.domain_id, form_key: '', idname } });
+			};
+
+			const recipients = this.parseIdnameList(recipientsRaw, 'recipients');
+			if (recipients.length > 25) {
+				throw new ApiError({ code: 400, message: 'Too many recipients requested' });
 			}
 
-			if (!form_key && !formid) {
-				throw new ApiError({ code: 404, message: 'Missing formid field in form' });
+			const resolvedRecipients: api_recipient[] = [];
+			for (const idname of recipients) {
+				const record = await resolveRecipient(idname);
+				if (!record) {
+					throw new ApiError({ code: 404, message: `Unknown recipient identifier "${idname}"` });
+				}
+				resolvedRecipients.push(record);
 			}
 
-			let form: api_form | null = null;
-			if (form_key) {
-				form = await api_form.findOne({ where: { form_key } });
-				if (!form) {
-					throw new ApiError({ code: 404, message: 'No such form_key' });
-				}
-			} else {
-				if (!domainName) {
-					throw new ApiError({ code: 400, message: 'Missing domain (or form_key)' });
-				}
-
-				const domains = await api_domain.findAll({ where: { name: domainName } });
-				if (domains.length === 0) {
-					throw new ApiError({ code: 404, message: `No such domain: ${domainName}` });
-				}
-
-				const domainIds = domains.map((domain) => domain.domain_id);
-				const domainWhere = { [Op.in]: domainIds };
-
-				if (localeRaw) {
-					const locale = normalizeSlug(localeRaw);
-					form = await api_form.findOne({
-						where: {
-							idname: formid,
-							domain_id: domainWhere,
-							locale
-						}
-					});
-				} else if (domains.length === 1) {
-					const locale = normalizeSlug(domains[0].locale || '');
-					if (locale) {
-						form = await api_form.findOne({
-							where: {
-								idname: formid,
-								domain_id: domainWhere,
-								locale
-							}
-						});
-					}
-				}
-
-				if (!form) {
-					const matches = await api_form.findAll({
-						where: {
-							idname: formid,
-							domain_id: domainWhere
-						},
-						limit: 2
-					});
-					if (matches.length === 1) {
-						form = matches[0];
-					} else if (matches.length > 1) {
-						throw new ApiError({
-							code: 409,
-							message: 'Form identifier is ambiguous; provide locale or form_key'
-						});
-					}
-				}
-			}
-
-			if (!form) {
-				throw new ApiError({ code: 404, message: `No such form: ${formid}` });
-			}
-
-			if (form.secret && !secret) {
-				throw new ApiError({ code: 401, message: 'This form requires a secret key' });
-			}
-			if (form.secret && form.secret !== secret) {
-				throw new ApiError({ code: 401, message: 'Bad form secret' });
-			}
-
-			const captchaRequired = Boolean(env.FORM_CAPTCHA_REQUIRED || form.captcha_required);
-			const captchaSecret = String(env.FORM_CAPTCHA_SECRET ?? '').trim();
-			const captchaToken = getBodyValue(
-				body,
-				'cf-turnstile-response',
-				'h-captcha-response',
-				'g-recaptcha-response',
-				'captcha',
-				'captchaToken',
-				'captcha_token'
-			);
-			if (!captchaSecret) {
-				if (captchaRequired) {
-					throw new ApiError({ code: 500, message: 'Captcha is required but not configured on the server' });
-				}
-			} else if (!captchaToken) {
-				if (captchaRequired) {
-					throw new ApiError({ code: 403, message: 'Captcha token required' });
-				}
-			} else {
-				const provider = env.FORM_CAPTCHA_PROVIDER as CaptchaProvider;
-				const ok = await verifyCaptcha({
-					provider,
-					secret: captchaSecret,
-					token: captchaToken,
-					remoteip: clientIp
-				});
-				if (!ok) {
-					throw new ApiError({ code: 403, message: 'Captcha verification failed' });
-				}
-			}
-
-			if (recipient && !form.secret) {
-				throw new ApiError({ code: 401, message: "'recipient' parameterer requires form secret to be set" });
-			}
-			let normalizedReplyTo: string | undefined;
-			let normalizedRecipient: string | undefined;
-			if (replyTo) {
-				normalizedReplyTo = this.validateEmail(replyTo);
-				if (!normalizedReplyTo) {
-					throw new ApiError({ code: 400, message: 'Invalid reply-to email address' });
-				}
-			}
-			if (recipient) {
-				normalizedRecipient = this.validateEmail(recipient);
-				if (!normalizedRecipient) {
-					throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
-				}
-			}
-
-			if (recipientIdnameRaw && !normalizeSlug(recipientIdnameRaw)) {
-				throw new ApiError({ code: 400, message: 'Invalid recipient identifier (recipient_idname)' });
-			}
-			const recipientIdname = normalizeSlug(recipientIdnameRaw);
-			let resolvedRecipient: api_recipient | null = null;
-			if (!normalizedRecipient && recipientIdname) {
-				const scopeFormKey = form.form_key ?? '';
-				if (scopeFormKey) {
-					resolvedRecipient = await api_recipient.findOne({
-						where: {
-							domain_id: form.domain_id,
-							form_key: scopeFormKey,
-							idname: recipientIdname
-						}
-					});
-				}
-				if (!resolvedRecipient) {
-					resolvedRecipient = await api_recipient.findOne({
-						where: {
-							domain_id: form.domain_id,
-							form_key: '',
-							idname: recipientIdname
-						}
-					});
-				}
-				if (!resolvedRecipient) {
-					throw new ApiError({ code: 404, message: 'Unknown recipient identifier' });
-				}
-			}
-
-			let parsedVars: unknown = vars ?? {};
-			if (typeof vars === 'string') {
-				try {
-					parsedVars = JSON.parse(vars);
-				} catch {
-					throw new ApiError({ code: 400, message: 'Invalid JSON provided in "vars"' });
-				}
-			}
-			const thevars = parsedVars as Record<string, unknown>;
+			const thevars: Record<string, unknown> = {};
 
 			/*
 		console.log('Headers:', apireq.req.headers);
@@ -582,45 +630,49 @@ export class FormAPI extends ApiModule<mailApiServer> {
 
 			const domainRecord = await api_domain.findOne({ where: { domain_id: form.domain_id } });
 			await this.server.storage.relocateUploads(domainRecord?.name ?? null, rawFiles);
-			const attachments = rawFiles.map((file) => ({
-				filename: file.originalname,
-				path: file.path
-			}));
-
-			const attachmentMap: Record<string, string> = {};
-			for (const file of rawFiles) {
-				attachmentMap[file.fieldname] = file.originalname;
-			}
+			const { attachments, attachmentMap } = buildAttachments(rawFiles);
 
 			const meta = buildRequestMeta(apireq.req);
 
-			const mappedEmailAddress = resolvedRecipient ? this.validateEmail(resolvedRecipient.email) : undefined;
-			if (resolvedRecipient && !mappedEmailAddress) {
-				throw new ApiError({ code: 500, message: 'Recipient mapping has an invalid email address' });
-			}
-			const mappedName = resolvedRecipient?.name ? String(resolvedRecipient.name).trim().slice(0, 200) : '';
-			if (mappedName && /[\r\n]/.test(mappedName)) {
-				throw new ApiError({ code: 500, message: 'Recipient mapping has an invalid name' });
-			}
+			const to = (() => {
+				if (resolvedRecipients.length === 0) {
+					return form.recipient;
+				}
+				return resolvedRecipients.map((entry) => {
+					const mailbox = this.parseMailbox(entry.email);
+					if (!mailbox) {
+						throw new ApiError({ code: 500, message: 'Recipient mapping has an invalid email address' });
+					}
+					const mappedName = entry.name ? String(entry.name).trim().slice(0, 200) : '';
+					if (mappedName && /[\r\n]/.test(mappedName)) {
+						throw new ApiError({ code: 500, message: 'Recipient mapping has an invalid name' });
+					}
+					return mappedName ? { name: mappedName, address: mailbox.address } : mailbox.address;
+				});
+			})();
 
-			const to = resolvedRecipient
-				? mappedName
-					? { name: mappedName, address: mappedEmailAddress! }
-					: mappedEmailAddress!
-				: normalizedRecipient || form.recipient;
+			const rcptEmailForTemplate = (() => {
+				if (resolvedRecipients.length > 0) {
+					const mailbox = this.parseMailbox(resolvedRecipients[0].email);
+					return mailbox?.address ?? resolvedRecipients[0].email;
+				}
+				const mailbox = this.parseMailbox(String(form.recipient ?? ''));
+				return mailbox?.address ?? String(form.recipient ?? '');
+			})();
 
-			const rcptEmailForTemplate = resolvedRecipient
-				? mappedEmailAddress!
-				: normalizedRecipient || form.recipient;
+			const replyToValue = buildReplyToValue(form, fields);
 
 			const context = {
-				...thevars,
+				_mm_form_key: form_key,
+				_mm_recipients: recipients,
+				_mm_locale: localeRaw,
 				_rcpt_email_: rcptEmailForTemplate,
-				_rcpt_name_: mappedName,
-				_rcpt_idname_: recipientIdname,
+				_rcpt_name_: resolvedRecipients[0]?.name ? String(resolvedRecipients[0].name).trim().slice(0, 200) : '',
+				_rcpt_idname_: resolvedRecipients[0]?.idname ?? '',
+				_rcpt_idnames_: resolvedRecipients.map((entry) => entry.idname),
 				_attachments_: attachmentMap,
 				_vars_: thevars,
-				_fields_: apireq.req.body,
+				_fields_: fields,
 				_files_: rawFiles,
 				_meta_: meta
 			};
@@ -634,7 +686,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				subject: form.subject,
 				html,
 				attachments,
-				...(normalizedReplyTo ? { replyTo: normalizedReplyTo } : {})
+				...(replyToValue ? { replyTo: replyToValue } : {})
 			};
 
 			try {

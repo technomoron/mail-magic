@@ -132,9 +132,7 @@ describe('TemplateClient', () => {
 	it('sends form messages as JSON when no attachments are provided', async () => {
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await client.sendFormMessage({
-			formid: 'contact',
-			domain: 'example.test',
-			secret: 's3cret',
+			_mm_form_key: 'form-key-123',
 			fields: { name: 'Sam', email: 'sam@example.test' }
 		});
 
@@ -142,8 +140,7 @@ describe('TemplateClient', () => {
 		const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
 		expect(url).toBe('http://localhost:4000/api/v1/form/message');
 		const body = JSON.parse(String(options.body));
-		expect(body.formid).toBe('contact');
-		expect(body.domain).toBe('example.test');
+		expect(body._mm_form_key).toBe('form-key-123');
 		expect(body.name).toBe('Sam');
 	});
 
@@ -175,18 +172,17 @@ describe('TemplateClient', () => {
 
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await client.sendFormMessage({
-			formid: 'contact',
-			domain: 'example.test',
-			secret: 's3cret',
+			_mm_form_key: 'form-key-123',
 			fields: { name: 'Sam' },
-			attachments: [{ path: attachmentPath, field: 'file1' }]
+			attachments: [{ path: attachmentPath }]
 		});
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
 		expect(options.body).toBeInstanceOf(FormData);
 		const formData = options.body as FormData;
-		expect(formData.get('file1')).toBeTruthy();
+		expect(formData.get('_mm_file1')).toBeTruthy();
+		expect(formData.get('_mm_form_key')).toBe('form-key-123');
 		fs.rmSync(tempDir, { recursive: true, force: true });
 	});
 
