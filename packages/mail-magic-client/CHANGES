@@ -1,3 +1,8 @@
+Version 1.0.28 (2026-02-08)
+
+- Refresh README examples to match current server auth and form submission semantics (token usage, `form_key`, and
+  `domain` requirement when sending by `formid`).
+
 Version 1.0.27 (2026-02-07)
 
 - Harden the template compiler to prevent `{% include %}` paths from escaping the

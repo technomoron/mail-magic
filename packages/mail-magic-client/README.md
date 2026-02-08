@@ -1,4 +1,4 @@
-# mail-magic-client
+# @technomoron/mail-magic-client
 
 Client library and CLI for the mail-magic server.
 
@@ -13,7 +13,13 @@ npm install @technomoron/mail-magic-client
 ```ts
 import TemplateClient from '@technomoron/mail-magic-client';
 
-const client = new TemplateClient('http://localhost:3000', 'username:token');
+// Use the server origin (no /api).
+const baseUrl = 'http://127.0.0.1:3776';
+
+// This is the user token from init-data.json / the admin API.
+const token = 'example-token';
+
+const client = new TemplateClient(baseUrl, token);
 
 await client.storeTxTemplate({
 	domain: 'example.test',
@@ -31,6 +37,51 @@ await client.sendTxMessage({
 });
 ```
 
+## Forms
+
+Store/update a form template (authenticated). The response includes `data.form_key`, a stable random identifier (nanoid)
+that is preferred for public form submissions:
+
+```ts
+const res = await client.storeFormTemplate({
+	domain: 'example.test',
+	idname: 'contact',
+	sender: 'Example Forms <forms@example.test>',
+	recipient: 'owner@example.test',
+	subject: 'New contact form submission',
+	secret: 's3cret',
+	template: '<p>Hello {{ _fields_.name }}</p>'
+});
+
+const form_key = res.data.form_key;
+```
+
+Submit a form publicly (no auth required):
+
+```ts
+await fetch(`${baseUrl}/api/v1/form/message`, {
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify({
+		form_key,
+		name: 'Sam',
+		email: 'sam@example.test',
+		message: 'Hello from the website'
+	})
+});
+```
+
+If you want to use the client helper (`sendFormMessage()`), pass `domain` when sending by `formid`:
+
+```ts
+await client.sendFormMessage({
+	domain: 'example.test',
+	formid: 'contact',
+	secret: 's3cret',
+	fields: { name: 'Sam', email: 'sam@example.test', message: 'Hello' }
+});
+```
+
 ## CLI
 
 The package ships `mm-cli`.
@@ -40,13 +91,13 @@ The package ships `mm-cli`.
 Create `.mmcli-env` in your working directory to set defaults:
 
 ```ini
-MMCLI_API=http://localhost:3000
-MMCLI_TOKEN=username:token
-# or, split token:
-MMCLI_USERNAME=username
-MMCLI_PASSWORD=token
+MMCLI_API=http://127.0.0.1:3776
+MMCLI_TOKEN=example-token
 MMCLI_DOMAIN=example.test
 ```
+
+`MMCLI_TOKEN` is treated as the server token string. As a convenience, `MMCLI_USERNAME` + `MMCLI_PASSWORD` can be used
+to build a combined token string (for legacy setups).
 
 ### Template Commands
 
