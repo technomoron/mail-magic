@@ -1,0 +1,9 @@
+{% extends "base.njk" %}
+
+{% block body %}
+{% include "partials/fields.njk" %}
+
+<p>From IP: {{ _meta_.client_ip }}</p>
+
+<img src="asset('images/logo.png', true)" alt="Logo" />
+{% endblock %}

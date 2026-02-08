@@ -1,97 +1,221 @@
 # @technomoron/mail-magic
 
-Mail Magic is a TypeScript service for managing, templating, and delivering transactional emails. It exposes a small
-REST API built on `@technomoron/api-server-base`, persists data with Sequelize/SQLite, and renders outbound messages
-with Nunjucks templates.
+Mail Magic is a TypeScript service for managing, templating, and delivering transactional emails and public form
+submissions. It exposes a small REST API built on `@technomoron/api-server-base`, persists data with Sequelize/SQLite
+(by default), and renders outbound messages with Nunjucks templates.
 
 ## Features
 
-- Upload, store, and send templated email content through a JSON API
-- Preprocess template assets with `@technomoron/unyuck` before persisting
+- Store and send transactional templates through a JSON API
+- Store and deliver form submission templates through a public endpoint
+- Optional recipient allowlist so public forms can target a named recipient without exposing email addresses
+- Optional anti-abuse controls for public forms (rate limiting, attachment limits, CAPTCHA)
+- Preprocess templates (includes + `asset(...)` rewrites) with `@technomoron/unyuck`
 - Nodemailer transport configuration driven by environment variables
-- SQLite-backed data models for domains, users, forms, and templates
-- Type-safe configuration loader powered by `@technomoron/env-loader`
-- Bundled admin UI (placeholder) served at the root path `/`
+- Optional bundled admin UI (placeholder) served at `/` when enabled
 
-## Getting Started
+## Install
 
-1. Clone the repository: `git clone git@github.com:technomoron/mail-magic.git`
-2. Install dependencies: `npm install`
-3. Create your environment file: copy `.env-dist` to `.env` and adjust values
-4. Populate the config directory (defaults to `./data/`; see `config-example/` for a reference layout). You can point
-   `CONFIG_PATH` at `./config` to use the bundled sample data.
-5. Build the project: `npm run build`
-6. Start the API server: `npm run start`
+```bash
+npm install @technomoron/mail-magic
+```
 
-During development you can run `npm run dev` for a watch mode that recompiles on change and restarts via `nodemon`.
+The package ships a `mail-magic` CLI.
 
-## Configuration
+## Run
 
-- **Environment variables** are defined in `src/store/envloader.ts`. Important settings include SMTP credentials, API
-  host/port, the config directory path, database options, and `ADMIN_ENABLED`/`ADMIN_APP_PATH` to control the admin
-  UI/API.
-- **Config directory** (`CONFIG_PATH`) contains JSON seed data (`init-data.json`), optional API key files, and template
-  assets. Each domain now lives directly under the config root (for example `data/example.com/form-template/…`). Use an
-  absolute path or a relative one like `../data` when you want the config outside the repo. Review `config-example/` for
-  the recommended layout, in particular the `form-template/` and `tx-template/` folders used for compiled Nunjucks
-  templates.
-- **Database** defaults to SQLite (`maildata.db`). You can switch dialects by updating the environment options if your
-  deployment requires another database.
-- **Uploads** default to `<CONFIG_PATH>/<domain>/uploads` via `UPLOAD_PATH=./{domain}/uploads`. Set a fixed path if you
-  prefer a shared upload directory.
+Mail Magic loads:
 
-When `DB_AUTO_RELOAD` is enabled the service watches `init-data.json` and refreshes templates and forms without a
-restart.
+- **Environment variables** (the `mail-magic` CLI supports `.env`)
+- **Config directory** (`CONFIG_PATH`) containing `init-data.json`, templates, and assets
 
-### Admin UI
+### 1. Create `.env`
 
-The server mounts the admin UI at `/` only when `ADMIN_ENABLED` is true and the `@technomoron/mail-magic-admin` package
-is installed. You can point `ADMIN_APP_PATH` at a dist folder (or its parent) to override the package-provided build.
-The admin API module is loaded from the admin package as well. This is a placeholder Vue app today, but it is already
-wired so future admin features can live there without changing the server routing.
+Copy `.env-dist` and fill in the required bits:
 
-### Template assets and inline resources
+```ini
+# Required: used to HMAC API tokens before DB lookup (keep it stable).
+API_TOKEN_PEPPER=change-me-please-use-a-long-random-string
 
-- Keep any non-inline files (images, attachments, etc.) under `<CONFIG_PATH>/<domain>/assets`. Mail Magic rewrites
-  `asset('logo.png')` using `ASSET_ROUTE` (default `/asset`) and a base URL from `ASSET_PUBLIC_BASE` (or `API_URL` if
-  unset). The default output looks like `http://localhost:3776/asset/<domain>/logo.png`.
-- Pass `true` as the second argument when you want to embed a file as an inline CID attachment:
-  `asset('logo.png', true)` stores the file in Nodemailer and rewrites the HTML to reference `cid:logo.png`.
-- Avoid mixing template-type folders for assets; everything that should be linked externally belongs in the shared
-  `<domain>/assets` tree so it can be served for both form and transactional templates.
+CONFIG_PATH=./data
+
+API_HOST=127.0.0.1
+API_PORT=3776
+API_BASE_PATH=/api
+API_URL=http://127.0.0.1:3776
+
+SMTP_HOST=127.0.0.1
+SMTP_PORT=1025
+SMTP_SECURE=false
+SMTP_TLS_REJECT=false
+```
+
+### 2. Create a config directory
+
+Minimum layout:
+
+```text
+data/
+  init-data.json
+  example.test/
+    assets/
+      images/logo.png
+      files/banner.png
+    tx-template/
+      welcome.njk
+      partials/
+        header.njk
+    form-template/
+      contact.njk
+      partials/
+        fields.njk
+```
+
+Important: assets referenced via `asset('...')` must live under `<CONFIG_PATH>/<domain>/assets` (not under
+`tx-template/` or `form-template/`).
+
+### 3. Start the server
+
+```bash
+mail-magic --env ./.env
+```
+
+In this repository, development is optimized for `pnpm`:
+
+```bash
+pnpm install
+pnpm -w --filter @technomoron/mail-magic dev
+```
+
+## Authentication (API Tokens)
+
+Authenticated endpoints require:
+
+```text
+Authorization: Bearer apikey-<user_token>
+```
+
+Tokens are stored as `HMAC-SHA256(token, API_TOKEN_PEPPER)` in the database. You can seed a plaintext `token` in
+`init-data.json`; it will be HMACed on import and the plaintext cleared.
 
 ## API Overview
 
-| Method | Path                | Description                                   |
-| ------ | ------------------- | --------------------------------------------- |
-| POST   | `/v1/tx/template`   | Store or update a transactional mail template |
-| POST   | `/v1/tx/message`    | Render and send a stored transactional mail   |
-| POST   | `/v1/form/template` | Store or update a form submission template    |
-| POST   | `/v1/form/message`  | Submit a form payload and deliver the email   |
-
 All routes are mounted under `API_BASE_PATH` (default `/api`), so the full path is typically `/api/v1/...`.
 
-All authenticated routes expect an API token associated with a configured user. Attachments can be uploaded alongside
-the `/v1/tx/message` request and are forwarded by Nodemailer.
+| Auth | Method | Path                 | Description                                             |
+| ---- | ------ | -------------------- | ------------------------------------------------------- |
+| No   | GET    | `/v1/ping`           | Health check                                            |
+| Yes  | POST   | `/v1/tx/template`    | Store/update a transactional template                   |
+| Yes  | POST   | `/v1/tx/message`     | Render + deliver a stored transactional message         |
+| Yes  | POST   | `/v1/form/template`  | Store/update a form template (returns `form_key`)       |
+| Yes  | POST   | `/v1/form/recipient` | Upsert a recipient mapping (domain-wide or form-scoped) |
+| No   | POST   | `/v1/form/message`   | Public form submission endpoint                         |
+| Yes  | POST   | `/v1/assets`         | Upload domain or template-scoped assets                 |
 
-## Available Scripts
+Public assets are served from `ASSET_ROUTE` (default `/asset`). When `API_BASE_PATH` is in use, assets are also
+reachable under `/api/asset/...` to match older `API_URL` defaults.
 
-- `npm run dev` – Start the API server in watch mode
-- `npm run build` – Compile TypeScript to the `dist/` directory
-- `npm run start` – Launch the compiled server from `dist/`
-- `npm run lint` – Lint the project with ESLint
-- `npm run format` – Apply ESLint autofixes followed by Prettier formatting
-- `npm run cleanbuild` – Clean, lint, format, and rebuild the project
+## Public Forms (`form_key`) and Recipient Allowlist
 
-## Repository & Support
+### Prefer `form_key` for public submissions
 
-- Repository: https://github.com/technomoron/mail-magic
-- Issues: https://github.com/technomoron/mail-magic/issues
+`POST /api/v1/form/template` returns a stable random ID (`data.form_key`, generated via nanoid). Public form submissions
+should use `form_key` instead of `domain + formid`, because `domain + formid` can be ambiguous across locales or
+multi-tenant setups.
 
-## License
+### Public recipient selection without exposing email addresses
 
-This project is released under the MIT License. See the [LICENSE](LICENSE) file for details.
+For cases like "contact a journalist", you can configure named recipients (allowlist) and let the public client select
+by `recipient_idname`:
 
-## Copyright
+1. Upsert recipient mapping (authenticated): `POST /api/v1/form/recipient` `{ domain, form_key?, idname, email, name? }`
+2. Submit the public form (no auth): `POST /api/v1/form/message` `{ form_key, recipient_idname, ...fields }`
 
-Copyright (c) 2025 Bjørn Erik Jacobsen. All rights reserved.
+Mappings are scoped by `(domain_id, form_key, idname)`:
+
+- Use `form_key` to create a per-form allowlist.
+- Omit `form_key` to create a domain-wide default allowlist.
+- Form-scoped mappings override domain-wide mappings for the same `idname`.
+
+### Overriding `recipient` is secret-gated
+
+The `recipient` field on the public endpoint is accepted only when the form has a `secret` configured. This prevents
+turning `/v1/form/message` into an open relay.
+
+## Anti-Abuse Controls (Public Form Endpoint)
+
+All knobs below are optional and default to "off" unless stated otherwise:
+
+- Upload size limit per file: `UPLOAD_MAX` (bytes, enforced by the API server)
+- Attachment count limit: `FORM_MAX_ATTACHMENTS` (`-1` unlimited, `0` disables attachments)
+- Rate limiting: `FORM_RATE_LIMIT_WINDOW_SEC` + `FORM_RATE_LIMIT_MAX` (fixed window, in-memory, per client IP)
+- Upload cleanup: `FORM_KEEP_UPLOADS` (when `false`, uploaded files are deleted after processing, even on failure)
+
+### CAPTCHA (optional)
+
+CAPTCHA verification is enabled when `FORM_CAPTCHA_SECRET` is set. You can require tokens globally with
+`FORM_CAPTCHA_REQUIRED=true`, or per form with `captcha_required=true` on `POST /api/v1/form/template`.
+
+Supported providers (`FORM_CAPTCHA_PROVIDER`):
+
+- `turnstile` (Cloudflare)
+- `hcaptcha`
+- `recaptcha` (Google)
+
+Token field names accepted by the server:
+
+- `cf-turnstile-response`
+- `h-captcha-response`
+- `g-recaptcha-response`
+- `captcha` (generic)
+
+## Template Rendering Notes
+
+### Autoescape (`AUTOESCAPE_HTML`)
+
+Nunjucks HTML autoescape is enabled by default. You can toggle it via `AUTOESCAPE_HTML` (default: `true`).
+
+Nunjucks also supports the `|safe` filter. Use it only for trusted content.
+
+### Context Variables
+
+Transactional templates receive:
+
+- `_rcpt_email_`: current recipient
+- `_vars_`: the `vars` object
+- `_attachments_`: multipart field-name to filename map for uploaded attachments
+- `_meta_`: request metadata (`client_ip`, `ip_chain`, `received_at`)
+
+Form templates receive:
+
+- `_fields_`: all submitted fields (including `vars`, `formid`, etc)
+- `_files_`: uploaded files
+- `_attachments_`, `_vars_`, `_meta_`
+- `_rcpt_email_`, `_rcpt_name_`, `_rcpt_idname_` (when using `recipient_idname`)
+
+### Assets (`asset('...')`)
+
+In HTML templates, write:
+
+- `asset('images/logo.png', true)` to embed as a CID attachment (`cid:images/logo.png`)
+- `asset('files/banner.png')` to rewrite to a public URL under `ASSET_ROUTE`
+
+Files must exist under `<CONFIG_PATH>/<domain>/assets`.
+
+## Database Notes
+
+- `DB_AUTO_RELOAD` watches `init-data.json` and refreshes templates/forms without a restart (development).
+- `DB_FORCE_SYNC` drops and recreates tables on startup (dangerous).
+- `DB_SYNC_ALTER` controls Sequelize `sync({ alter: ... })` on startup.
+
+## Admin UI / Swagger
+
+- `ADMIN_ENABLED=true` enables the optional admin UI and admin API module (if `@technomoron/mail-magic-admin` is
+  installed).
+- `SWAGGER_ENABLED=true` exposes Swagger/OpenAPI (path defaults to `/api/swagger`).
+
+## Available Scripts (Repository)
+
+- `pnpm -w --filter @technomoron/mail-magic dev` - start watch mode via `nodemon`
+- `pnpm -w --filter @technomoron/mail-magic test` - run server tests
+- `pnpm -w --filter @technomoron/mail-magic cleanbuild` - format + build

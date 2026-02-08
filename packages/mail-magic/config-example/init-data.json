@@ -2,18 +2,22 @@
 	"user": [
 		{
 			"user_id": 1,
-			"idname": "testuser",
-			"token": "SomethingWeirdWhoKnows",
-			"name": "Test Inc.",
-			"email": "noreply@example.com"
+			"idname": "example",
+			"token": "example-token",
+			"name": "Example User",
+			"email": "noreply@example.test",
+			"domain": 1,
+			"locale": ""
 		}
 	],
 	"domain": [
 		{
 			"domain_id": 1,
 			"user_id": 1,
-			"domain": "mail.example.com",
-			"sender": "Some User <noreply@example.com>"
+			"name": "example.test",
+			"sender": "Example <noreply@example.test>",
+			"locale": "",
+			"is_default": true
 		}
 	],
 	"template": [
@@ -21,13 +25,33 @@
 			"template_id": 1,
 			"user_id": 1,
 			"domain_id": 1,
-			"name": "test",
+			"name": "welcome",
 			"locale": "",
 			"template": "",
-			"template_file": "",
-			"sender": "someone@mail.example.com",
-			"subject": "Example Mail",
-			"slug": "test"
+			"filename": "",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Welcome from Mail Magic",
+			"slug": "",
+			"files": []
+		}
+	],
+	"form": [
+		{
+			"form_id": 1,
+			"form_key": "example-contact-form",
+			"user_id": 1,
+			"domain_id": 1,
+			"locale": "",
+			"idname": "contact",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "New contact form submission",
+			"template": "",
+			"filename": "",
+			"slug": "",
+			"secret": "s3cret",
+			"captcha_required": false,
+			"files": []
 		}
 	]
 }

@@ -1,0 +1,10 @@
+{% extends "base.njk" %}
+
+{% block body %}
+{% include "partials/header.njk" %}
+
+<p>Hello {{ _vars_.first_name or _rcpt_email_ }}!</p>
+
+<img src="asset('images/logo.png', true)" alt="Logo" />
+<img src="asset('files/banner.png')" alt="Banner" />
+{% endblock %}

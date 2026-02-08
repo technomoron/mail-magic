@@ -1,3 +1,9 @@
+Version 1.0.27 (2026-02-08)
+
+- Refresh README/TUTORIAL with current API routes, config layout, and security-related configuration (API token pepper,
+  form_key, recipient allowlist, and form anti-abuse options).
+- Update `config-example/` to match the current init-data schema and domain-rooted config directory layout.
+
 Version 1.0.26 (2026-02-07)
 
 - Fix env/docs polish and remove unused code flagged by ESLint.
