@@ -1,3 +1,7 @@
+Version 1.0.29 (2026-02-08)
+
+- Add regression coverage for CAPTCHA verification flows on the public form endpoint.
+
 Version 1.0.28 (2026-02-08)
 
 - Add regression coverage for public form anti-abuse controls (rate limiting, attachment limits, and upload cleanup).
