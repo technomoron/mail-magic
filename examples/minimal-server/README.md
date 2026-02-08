@@ -50,3 +50,9 @@ Send a transactional message and a form message with the TypeScript helper:
 ```bash
 npx tsx examples/minimal-server/scripts/send-messages.ts
 ```
+
+Create a public form (captures `form_key`), configure a recipient allowlist, and submit it without auth:
+
+```bash
+npx tsx examples/minimal-server/scripts/public-form.ts
+```
