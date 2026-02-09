@@ -178,10 +178,10 @@ async function runAsset(client: TemplateClient, options: Options): Promise<void>
 
 async function main(): Promise<void> {
 	const { command, options } = parseArgs(process.argv);
-	const baseUrlRaw = options.apiUrl || process.env.MM_BASE_URL || process.env.MM_API_URL || DEFAULT_BASE_URL;
+	const baseUrlRaw = options.apiUrl || DEFAULT_BASE_URL;
 	const baseUrl = normalizeBaseUrl(baseUrlRaw);
-	const token = options.token || process.env.MM_TOKEN || 'example-token';
-	const domain = options.domain || process.env.MM_DOMAIN;
+	const token = options.token || 'example-token';
+	const domain = options.domain || 'example.test';
 
 	const client = new TemplateClient(baseUrl, token);
 	const mergedOptions: Options = { ...options, domain };

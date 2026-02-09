@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { getBodyValue } from '../util.js';
+
 const ALLOWED_MM_KEYS = new Set<string>(['_mm_form_key', '_mm_locale', '_mm_recipients']);
 
 function asRecord(input: unknown): Record<string, unknown> {
@@ -7,19 +9,6 @@ function asRecord(input: unknown): Record<string, unknown> {
 		return {};
 	}
 	return input as Record<string, unknown>;
-}
-
-function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
-	for (const key of keys) {
-		const value = body[key];
-		if (Array.isArray(value) && value.length > 0) {
-			return String(value[0]);
-		}
-		if (value !== undefined && value !== null) {
-			return String(value);
-		}
-	}
-	return '';
 }
 
 function getCaptchaTokenFromBody(body: Record<string, unknown>): string {

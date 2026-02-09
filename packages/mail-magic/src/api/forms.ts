@@ -1,8 +1,6 @@
-import fs from 'node:fs';
 import path from 'path';
 
 import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-server-base';
-import emailAddresses, { ParsedMailbox } from 'email-addresses';
 import { nanoid } from 'nanoid';
 import nunjucks from 'nunjucks';
 import { UniqueConstraintError } from 'sequelize';
@@ -12,85 +10,17 @@ import { api_form } from '../models/form.js';
 import { api_recipient } from '../models/recipient.js';
 import { mailApiServer } from '../server.js';
 import { CaptchaProvider, verifyCaptcha } from '../util/captcha.js';
-import { buildRequestMeta, normalizeSlug } from '../util.js';
+import { parseMailbox } from '../util/email.js';
+import { FixedWindowRateLimiter, enforceFormRateLimit } from '../util/ratelimit.js';
+import { buildAttachments, cleanupUploadedFiles } from '../util/uploads.js';
+import { buildRequestMeta, getBodyValue, normalizeBoolean, normalizeSlug } from '../util.js';
 
 import { assert_domain_and_user } from './auth.js';
 import { extractReplyToFromSubmission } from './form-replyto.js';
 import { parseFormSubmissionInput } from './form-submission.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
-
-function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
-	for (const key of keys) {
-		const value = body[key];
-		if (Array.isArray(value) && value.length > 0) {
-			return String(value[0]);
-		}
-		if (value !== undefined && value !== null) {
-			return String(value);
-		}
-	}
-	return '';
-}
-
-async function cleanupUploadedFiles(files: UploadedFile[]): Promise<void> {
-	await Promise.all(
-		files.map(async (file) => {
-			if (!file?.path) {
-				return;
-			}
-			try {
-				await fs.promises.unlink(file.path);
-			} catch {
-				// best effort cleanup
-			}
-		})
-	);
-}
-
-type RateLimitDecision = { allowed: boolean; retryAfterSec: number };
-
-class FixedWindowRateLimiter {
-	private readonly buckets = new Map<string, { windowStartMs: number; count: number }>();
-
-	constructor(private readonly maxKeys = 10_000) {}
-
-	check(key: string, max: number, windowMs: number): RateLimitDecision {
-		if (!key || max <= 0 || windowMs <= 0) {
-			return { allowed: true, retryAfterSec: 0 };
-		}
-		const now = Date.now();
-		const bucket = this.buckets.get(key);
-		if (!bucket || now - bucket.windowStartMs >= windowMs) {
-			this.buckets.delete(key);
-			this.buckets.set(key, { windowStartMs: now, count: 1 });
-			this.prune();
-			return { allowed: true, retryAfterSec: 0 };
-		}
-
-		bucket.count += 1;
-		// Refresh insertion order to keep active entries at the end for pruning.
-		this.buckets.delete(key);
-		this.buckets.set(key, bucket);
-
-		if (bucket.count <= max) {
-			return { allowed: true, retryAfterSec: 0 };
-		}
-
-		const retryAfterSec = Math.max(1, Math.ceil((bucket.windowStartMs + windowMs - now) / 1000));
-		return { allowed: false, retryAfterSec };
-	}
-
-	private prune() {
-		while (this.buckets.size > this.maxKeys) {
-			const oldest = this.buckets.keys().next().value as string | undefined;
-			if (!oldest) {
-				break;
-			}
-			this.buckets.delete(oldest);
-		}
-	}
-}
+import type { ParsedMailbox } from 'email-addresses';
 
 function parsePublicSubmissionOrThrow(apireq: ApiRequest): ReturnType<typeof parseFormSubmissionInput> {
 	try {
@@ -98,20 +28,6 @@ function parsePublicSubmissionOrThrow(apireq: ApiRequest): ReturnType<typeof par
 	} catch {
 		// Treat malformed input as a bad request (Zod schema failures, non-object bodies, etc).
 		throw new ApiError({ code: 400, message: 'Invalid form submission payload' });
-	}
-}
-
-function enforceFormRateLimit(
-	limiter: FixedWindowRateLimiter,
-	env: { FORM_RATE_LIMIT_WINDOW_SEC: number; FORM_RATE_LIMIT_MAX: number },
-	apireq: ApiRequest
-): void {
-	const clientIp = apireq.getClientIp() ?? '';
-	const windowMs = Math.max(0, env.FORM_RATE_LIMIT_WINDOW_SEC) * 1000;
-	const decision = limiter.check(`form-message:${clientIp || 'unknown'}`, env.FORM_RATE_LIMIT_MAX, windowMs);
-	if (!decision.allowed) {
-		apireq.res.set('Retry-After', String(decision.retryAfterSec));
-		throw new ApiError({ code: 429, message: 'Too many form submissions; try again later' });
 	}
 }
 
@@ -165,13 +81,13 @@ function filterSubmissionFields(rawFields: Record<string, unknown>, allowedField
 }
 
 async function enforceCaptchaPolicy(params: {
-	env: { FORM_CAPTCHA_REQUIRED: boolean; FORM_CAPTCHA_SECRET: string; FORM_CAPTCHA_PROVIDER: string };
+	vars: { FORM_CAPTCHA_REQUIRED: boolean; FORM_CAPTCHA_SECRET: string; FORM_CAPTCHA_PROVIDER: string };
 	form: { captcha_required: boolean };
 	captchaToken: string;
 	clientIp: string;
 }): Promise<void> {
-	const captchaRequired = Boolean(params.env.FORM_CAPTCHA_REQUIRED || params.form.captcha_required);
-	const captchaSecret = String(params.env.FORM_CAPTCHA_SECRET ?? '').trim();
+	const captchaRequired = Boolean(params.vars.FORM_CAPTCHA_REQUIRED || params.form.captcha_required);
+	const captchaSecret = String(params.vars.FORM_CAPTCHA_SECRET ?? '').trim();
 	if (!captchaSecret) {
 		if (captchaRequired) {
 			throw new ApiError({ code: 500, message: 'Captcha is required but not configured on the server' });
@@ -185,7 +101,7 @@ async function enforceCaptchaPolicy(params: {
 		return;
 	}
 
-	const provider = params.env.FORM_CAPTCHA_PROVIDER as CaptchaProvider;
+	const provider = params.vars.FORM_CAPTCHA_PROVIDER as CaptchaProvider;
 	const ok = await verifyCaptcha({
 		provider,
 		secret: captchaSecret,
@@ -195,21 +111,6 @@ async function enforceCaptchaPolicy(params: {
 	if (!ok) {
 		throw new ApiError({ code: 403, message: 'Captcha verification failed' });
 	}
-}
-
-function buildAttachments(rawFiles: UploadedFile[]): {
-	attachments: Array<{ filename: string; path: string }>;
-	attachmentMap: Record<string, string>;
-} {
-	const attachments = rawFiles.map((file) => ({
-		filename: file.originalname,
-		path: file.path
-	}));
-	const attachmentMap: Record<string, string> = {};
-	for (const file of rawFiles) {
-		attachmentMap[file.fieldname] = file.originalname;
-	}
-	return { attachments, attachmentMap };
 }
 
 function buildReplyToValue(
@@ -261,37 +162,8 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		return Array.from(new Set(out));
 	}
 
-	private validateEmail(email: string): string | undefined {
-		const parsed = emailAddresses.parseOneAddress(email);
-		if (parsed) {
-			return (parsed as ParsedMailbox).address;
-		}
-		return undefined;
-	}
-
 	private parseMailbox(value: string): ParsedMailbox | undefined {
-		const parsed = emailAddresses.parseOneAddress(value);
-		if (!parsed) {
-			return undefined;
-		}
-		const mailbox = parsed as ParsedMailbox;
-		if (!mailbox?.address) {
-			return undefined;
-		}
-		return mailbox;
-	}
-
-	private normalizeBoolean(value: unknown): boolean {
-		if (typeof value === 'boolean') {
-			return value;
-		}
-		if (typeof value === 'number') {
-			return value !== 0;
-		}
-		const normalized = String(value ?? '')
-			.trim()
-			.toLowerCase();
-		return ['true', '1', 'yes', 'on'].includes(normalized);
+		return parseMailbox(value);
 	}
 
 	private async postFormRecipient(
@@ -416,8 +288,8 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			captcha_required: captchaRequiredRaw
 		} = apireq.req.body;
 
-		const captcha_required = this.normalizeBoolean(captchaRequiredRaw);
-		const replyto_from_fields = this.normalizeBoolean(replytoFromFieldsRaw);
+		const captcha_required = normalizeBoolean(captchaRequiredRaw);
+		const replyto_from_fields = normalizeBoolean(replytoFromFieldsRaw);
 		const replyto_email = String(replytoEmailRaw ?? '').trim();
 		const allowed_fields = (() => {
 			if (allowedFieldsRaw === undefined || allowedFieldsRaw === null || allowedFieldsRaw === '') {
@@ -564,7 +436,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 	}
 
 	private async postSendForm(apireq: ApiRequest): Promise<[number, Record<string, unknown>]> {
-		const env = this.server.storage.env;
+		const env = this.server.storage.vars;
 		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
 		const keepUploads = env.FORM_KEEP_UPLOADS;
 		try {
@@ -589,7 +461,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			const fields = filterSubmissionFields(parsedInput.fields, form.allowed_fields);
 
 			const clientIp = apireq.getClientIp() ?? '';
-			await enforceCaptchaPolicy({ env, form, captchaToken, clientIp });
+			await enforceCaptchaPolicy({ vars: env, form, captchaToken, clientIp });
 
 			const scopeFormKey = String(form.form_key ?? '').trim();
 			if (!scopeFormKey) {
@@ -677,7 +549,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				_meta_: meta
 			};
 
-			nunjucks.configure({ autoescape: this.server.storage.env.AUTOESCAPE_HTML });
+			nunjucks.configure({ autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
 			const html = nunjucks.renderString(form.template, context);
 
 			const mailOptions = {

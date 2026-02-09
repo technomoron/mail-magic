@@ -24,20 +24,22 @@ type UploadedFile = {
 	destination?: string;
 };
 
-function create_mail_transport(env: envConfig<typeof envOptions>): Transporter {
+export type MailStoreVars = envConfig<typeof envOptions>;
+
+function create_mail_transport(vars: MailStoreVars): Transporter {
 	const args: SMTPTransport.Options = {
-		host: env.SMTP_HOST,
-		port: env.SMTP_PORT,
-		secure: env.SMTP_SECURE,
+		host: vars.SMTP_HOST,
+		port: vars.SMTP_PORT,
+		secure: vars.SMTP_SECURE,
 		tls: {
-			rejectUnauthorized: env.SMTP_TLS_REJECT
+			rejectUnauthorized: vars.SMTP_TLS_REJECT
 		},
 		requireTLS: true,
-		logger: env.DEBUG,
-		debug: env.DEBUG
+		logger: vars.DEBUG,
+		debug: vars.DEBUG
 	};
-	const user = env.SMTP_USER;
-	const pass = env.SMTP_PASSWORD;
+	const user = vars.SMTP_USER;
+	const pass = vars.SMTP_PASSWORD;
 	if (user && pass) {
 		args.auth = { user, pass };
 	}
@@ -53,7 +55,7 @@ function create_mail_transport(env: envConfig<typeof envOptions>): Transporter {
 }
 
 export interface ImailStore {
-	env: envConfig<typeof envOptions>;
+	vars: MailStoreVars;
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
 	keys: Record<string, api_key>;
 	configpath: string;
@@ -63,7 +65,8 @@ export interface ImailStore {
 }
 
 export class mailStore implements ImailStore {
-	env!: envConfig<typeof envOptions>;
+	private env!: envConfig<typeof envOptions>;
+	vars!: MailStoreVars;
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
 	api_db: Sequelize | null = null;
 	keys: Record<string, api_key> = {};
@@ -73,7 +76,7 @@ export class mailStore implements ImailStore {
 	uploadStagingPath?: string;
 
 	print_debug(msg: string) {
-		if (this.env.DEBUG) {
+		if (this.vars.DEBUG) {
 			console.log(msg);
 		}
 	}
@@ -83,7 +86,7 @@ export class mailStore implements ImailStore {
 	}
 
 	resolveUploadPath(domainName?: string): string {
-		const raw = this.env.UPLOAD_PATH ?? '';
+		const raw = this.vars.UPLOAD_PATH ?? '';
 		const hasDomainToken = raw.includes('{domain}');
 		const expanded = hasDomainToken && domainName ? raw.replaceAll('{domain}', domainName) : raw;
 		if (!expanded) {
@@ -97,7 +100,7 @@ export class mailStore implements ImailStore {
 	}
 
 	getUploadStagingPath(): string {
-		if (!this.env.UPLOAD_PATH) {
+		if (!this.vars.UPLOAD_PATH) {
 			return '';
 		}
 		if (this.uploadTemplate) {
@@ -151,24 +154,51 @@ export class mailStore implements ImailStore {
 		return {};
 	}
 
-	async init(): Promise<this> {
+	async init(overrides: Partial<MailStoreVars> = {}): Promise<this> {
 		// Load env config only via EnvLoader + envOptions (avoid ad-hoc `process.env` parsing here).
 		// If DEBUG is enabled, re-load with EnvLoader debug output enabled.
-		let env = await EnvLoader.createConfigProxy(envOptions, { debug: false });
-		if (env.DEBUG) {
-			env = await EnvLoader.createConfigProxy(envOptions, { debug: true });
+		const overrideEntries = Object.entries(overrides);
+		const envSnapshot = new Map<string, string | undefined>();
+		if (overrideEntries.length > 0) {
+			for (const [key, value] of overrideEntries) {
+				envSnapshot.set(key, process.env[key]);
+				if (value === undefined || value === null) {
+					delete process.env[key];
+				} else {
+					process.env[key] = String(value);
+				}
+			}
+		}
+		let env: envConfig<typeof envOptions>;
+		try {
+			env = await EnvLoader.createConfigProxy(envOptions, { debug: false });
+			const debugEnabled = overrides.DEBUG ?? env.DEBUG;
+			if (debugEnabled) {
+				env = await EnvLoader.createConfigProxy(envOptions, { debug: true });
+			}
+		} finally {
+			if (envSnapshot.size > 0) {
+				for (const [key, value] of envSnapshot.entries()) {
+					if (value === undefined) {
+						delete process.env[key];
+					} else {
+						process.env[key] = value;
+					}
+				}
+			}
 		}
 		this.env = env;
-		if (this.env.FORM_CAPTCHA_REQUIRED && !String(this.env.FORM_CAPTCHA_SECRET ?? '').trim()) {
+		this.vars = { ...env, ...overrides };
+		if (this.vars.FORM_CAPTCHA_REQUIRED && !String(this.vars.FORM_CAPTCHA_SECRET ?? '').trim()) {
 			throw new Error('FORM_CAPTCHA_SECRET must be set when FORM_CAPTCHA_REQUIRED=true');
 		}
 		EnvLoader.genTemplate(envOptions, '.env-dist');
-		const p = env.CONFIG_PATH;
+		const p = this.vars.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
 		console.log(`Config path is ${this.configpath}`);
 
-		if (env.UPLOAD_PATH && env.UPLOAD_PATH.includes('{domain}')) {
-			this.uploadTemplate = env.UPLOAD_PATH;
+		if (this.vars.UPLOAD_PATH && this.vars.UPLOAD_PATH.includes('{domain}')) {
+			this.uploadTemplate = this.vars.UPLOAD_PATH;
 			this.uploadStagingPath = path.resolve(this.configpath, '_uploads');
 			try {
 				fs.mkdirSync(this.uploadStagingPath, { recursive: true });
@@ -179,11 +209,11 @@ export class mailStore implements ImailStore {
 
 		// this.keys = await this.load_api_keys(this.configpath);
 
-		this.transport = await create_mail_transport(env);
+		this.transport = await create_mail_transport(this.vars);
 
 		this.api_db = await connect_api_db(this);
 
-		if (this.env.DB_AUTO_RELOAD) {
+		if (this.vars.DB_AUTO_RELOAD) {
 			this.print_debug('Enabling auto reload of init-data.json');
 			fs.watchFile(this.config_filename('init-data.json'), { interval: 2000 }, () => {
 				this.print_debug('Config file changed, reloading...');

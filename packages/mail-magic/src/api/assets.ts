@@ -6,7 +6,9 @@ import { ApiError, ApiModule, ApiRoute } from '@technomoron/api-server-base';
 import { api_form } from '../models/form.js';
 import { api_txmail } from '../models/txmail.js';
 import { mailApiServer } from '../server.js';
-import { decodeComponent, sendFileAsync } from '../util.js';
+import { SEGMENT_PATTERN, normalizeSubdir } from '../util/paths.js';
+import { moveUploadedFiles } from '../util/uploads.js';
+import { decodeComponent, getBodyValue, sendFileAsync } from '../util.js';
 
 import { assert_domain_and_user } from './auth.js';
 
@@ -14,64 +16,12 @@ import type { mailApiRequest, UploadedFile } from '../types.js';
 import type { NextFunction, Request, Response } from 'express';
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
-const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
-
 export class AssetAPI extends ApiModule<mailApiServer> {
-	private getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
-		for (const key of keys) {
-			const value = body[key];
-			if (Array.isArray(value) && value.length > 0) {
-				return String(value[0]);
-			}
-			if (value !== undefined && value !== null) {
-				return String(value);
-			}
-		}
-		return '';
-	}
-
-	private normalizeSubdir(value: string): string {
-		if (!value) {
-			return '';
-		}
-		const cleaned = value.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
-		if (!cleaned) {
-			return '';
-		}
-		const segments = cleaned.split('/').filter(Boolean);
-		for (const segment of segments) {
-			if (!SEGMENT_PATTERN.test(segment)) {
-				throw new ApiError({ code: 400, message: `Invalid path segment "${segment}"` });
-			}
-		}
-		return path.join(...segments);
-	}
-
-	private async moveUploadedFiles(files: UploadedFile[], targetDir: string): Promise<void> {
-		await fs.promises.mkdir(targetDir, { recursive: true });
-		for (const file of files) {
-			const filename = path.basename(file.originalname || '');
-			if (!filename || !SEGMENT_PATTERN.test(filename)) {
-				throw new ApiError({ code: 400, message: `Invalid filename "${file.originalname}"` });
-			}
-			const destination = path.join(targetDir, filename);
-			if (destination === file.path) {
-				continue;
-			}
-			try {
-				await fs.promises.rename(file.path, destination);
-			} catch {
-				await fs.promises.copyFile(file.path, destination);
-				await fs.promises.unlink(file.path);
-			}
-		}
-	}
-
 	private async resolveTemplateDir(apireq: mailApiRequest): Promise<string> {
 		const body = apireq.req.body ?? {};
-		const templateTypeRaw = this.getBodyValue(body, 'templateType', 'template_type', 'type');
-		const templateName = this.getBodyValue(body, 'template', 'name', 'idname', 'formid');
-		const locale = this.getBodyValue(body, 'locale');
+		const templateTypeRaw = getBodyValue(body, 'templateType', 'template_type', 'type');
+		const templateName = getBodyValue(body, 'template', 'name', 'idname', 'formid');
+		const locale = getBodyValue(body, 'locale');
 
 		if (!templateTypeRaw) {
 			throw new ApiError({ code: 400, message: 'Missing templateType for template asset upload' });
@@ -136,8 +86,8 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		}
 
 		const body = apireq.req.body ?? {};
-		const subdir = this.normalizeSubdir(this.getBodyValue(body, 'path', 'dir'));
-		const templateType = this.getBodyValue(body, 'templateType', 'template_type', 'type');
+		const subdir = normalizeSubdir(getBodyValue(body, 'path', 'dir'));
+		const templateType = getBodyValue(body, 'templateType', 'template_type', 'type');
 
 		let targetRoot: string;
 		if (templateType) {
@@ -152,7 +102,7 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 			throw new ApiError({ code: 400, message: 'Invalid asset target path' });
 		}
 
-		await this.moveUploadedFiles(rawFiles, candidate);
+		await moveUploadedFiles(rawFiles, candidate);
 
 		return [200, { Status: 'OK' }];
 	}

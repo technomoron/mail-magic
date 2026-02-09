@@ -21,8 +21,6 @@ type SmtpCapture = {
 	reset: () => void;
 };
 
-type EnvSnapshot = Record<string, string | undefined>;
-
 export type TestContext = {
 	server: mailApiServer;
 	store: mailStore;
@@ -53,23 +51,6 @@ export type TestContextOptions = {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CERT_PATH = path.join(__dirname, '../fixtures/certs/test.crt');
 const KEY_PATH = path.join(__dirname, '../fixtures/certs/test.key');
-
-function snapshotEnv(keys: string[]): EnvSnapshot {
-	return keys.reduce<EnvSnapshot>((acc, key) => {
-		acc[key] = process.env[key];
-		return acc;
-	}, {});
-}
-
-function restoreEnv(snapshot: EnvSnapshot) {
-	for (const [key, value] of Object.entries(snapshot)) {
-		if (value === undefined) {
-			delete process.env[key];
-		} else {
-			process.env[key] = value;
-		}
-	}
-}
 
 function writeFixtureConfig(configPath: string, domainName: string, contactFormKey: string) {
 	const domainRoot = path.join(configPath, domainName);
@@ -283,74 +264,41 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 	const assetRoute = options.assetRoute ?? '/asset';
 	const assetPublicBase = options.assetPublicBase ?? '';
 
-	const envKeys = [
-		'NODE_ENV',
-		'CONFIG_PATH',
-		'DB_NAME',
-		'DB_TYPE',
-		'DB_FORCE_SYNC',
-		'DB_SYNC_ALTER',
-		'DB_AUTO_RELOAD',
-		'API_URL',
-		'API_BASE_PATH',
-		'ASSET_ROUTE',
-		'ASSET_PUBLIC_BASE',
-		'API_TOKEN_PEPPER',
-		'API_HOST',
-		'API_PORT',
-		'AUTOESCAPE_HTML',
-		'UPLOAD_PATH',
-		'UPLOAD_MAX',
-		'FORM_RATE_LIMIT_WINDOW_SEC',
-		'FORM_RATE_LIMIT_MAX',
-		'FORM_MAX_ATTACHMENTS',
-		'FORM_KEEP_UPLOADS',
-		'FORM_CAPTCHA_PROVIDER',
-		'FORM_CAPTCHA_SECRET',
-		'FORM_CAPTCHA_REQUIRED',
-		'SMTP_HOST',
-		'SMTP_PORT',
-		'SMTP_SECURE',
-		'SMTP_TLS_REJECT',
-		'SMTP_USER',
-		'SMTP_PASSWORD',
-		'DEBUG'
-	];
-	const envSnapshot = snapshotEnv(envKeys);
+	const envOverrides = {
+		NODE_ENV: 'development',
+		CONFIG_PATH: configPath,
+		DB_NAME: path.join(tempDir, 'mailmagic-test.db'),
+		DB_TYPE: 'sqlite',
+		DB_FORCE_SYNC: true,
+		DB_SYNC_ALTER: true,
+		DB_AUTO_RELOAD: false,
+		API_URL: apiUrl,
+		API_BASE_PATH: apiBasePath,
+		ASSET_ROUTE: assetRoute,
+		ASSET_PUBLIC_BASE: assetPublicBase,
+		API_TOKEN_PEPPER: 'test-token-pepper-value',
+		API_HOST: '127.0.0.1',
+		API_PORT: 0,
+		AUTOESCAPE_HTML: true,
+		UPLOAD_PATH: './{domain}/uploads',
+		UPLOAD_MAX: 30 * 1024 * 1024,
+		FORM_RATE_LIMIT_WINDOW_SEC: 0,
+		FORM_RATE_LIMIT_MAX: 0,
+		FORM_MAX_ATTACHMENTS: -1,
+		FORM_KEEP_UPLOADS: true,
+		FORM_CAPTCHA_PROVIDER: 'turnstile',
+		FORM_CAPTCHA_SECRET: '',
+		FORM_CAPTCHA_REQUIRED: false,
+		SMTP_HOST: '127.0.0.1',
+		SMTP_PORT: smtp.port,
+		SMTP_SECURE: true,
+		SMTP_TLS_REJECT: false,
+		SMTP_USER: '',
+		SMTP_PASSWORD: '',
+		DEBUG: false
+	};
 
-	process.env.NODE_ENV = 'development';
-	process.env.CONFIG_PATH = configPath;
-	process.env.DB_NAME = path.join(tempDir, 'mailmagic-test.db');
-	process.env.DB_TYPE = 'sqlite';
-	process.env.DB_FORCE_SYNC = 'true';
-	process.env.DB_SYNC_ALTER = 'true';
-	process.env.DB_AUTO_RELOAD = 'false';
-	process.env.API_URL = apiUrl;
-	process.env.API_BASE_PATH = apiBasePath;
-	process.env.ASSET_ROUTE = assetRoute;
-	process.env.ASSET_PUBLIC_BASE = assetPublicBase;
-	process.env.API_TOKEN_PEPPER = 'test-token-pepper-value';
-	process.env.API_HOST = '127.0.0.1';
-	process.env.API_PORT = '0';
-	process.env.AUTOESCAPE_HTML = 'true';
-	process.env.UPLOAD_PATH = './{domain}/uploads';
-	process.env.UPLOAD_MAX = String(30 * 1024 * 1024);
-	process.env.FORM_RATE_LIMIT_WINDOW_SEC = '0';
-	process.env.FORM_RATE_LIMIT_MAX = '0';
-	process.env.FORM_MAX_ATTACHMENTS = '-1';
-	process.env.FORM_KEEP_UPLOADS = 'true';
-	process.env.FORM_CAPTCHA_PROVIDER = 'turnstile';
-	process.env.FORM_CAPTCHA_SECRET = '';
-	process.env.FORM_CAPTCHA_REQUIRED = 'false';
-	process.env.SMTP_HOST = '127.0.0.1';
-	process.env.SMTP_PORT = String(smtp.port);
-	process.env.SMTP_SECURE = 'true';
-	process.env.SMTP_TLS_REJECT = 'false';
-	process.env.SMTP_USER = '';
-	process.env.SMTP_PASSWORD = '';
-	process.env.DEBUG = 'false';
-
-	const bootstrap = await createMailMagicServer();
+	const bootstrap = await createMailMagicServer({}, envOverrides);
 
 	const cleanup = async () => {
 		await new Promise<void>((resolve) => {
@@ -359,7 +307,6 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		if (bootstrap.store.api_db) {
 			await bootstrap.store.api_db.close();
 		}
-		restoreEnv(envSnapshot);
 		fs.rmSync(tempDir, { recursive: true, force: true });
 	};
 

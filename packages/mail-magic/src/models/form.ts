@@ -5,6 +5,7 @@ import { Sequelize, Model, DataTypes, UniqueConstraintError } from 'sequelize';
 import { z } from 'zod';
 
 import { StoredFile } from '../types.js';
+import { assertSafeRelativePath } from '../util/paths.js';
 import { user_and_domain, normalizeSlug } from '../util.js';
 
 const stored_file_schema: z.ZodType<StoredFile> = z
@@ -238,17 +239,6 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 	);
 
 	return api_form;
-}
-
-function assertSafeRelativePath(filename: string, label: string): string {
-	const normalized = path.normalize(filename);
-	if (path.isAbsolute(normalized)) {
-		throw new Error(`${label} path must be relative`);
-	}
-	if (normalized.split(path.sep).includes('..')) {
-		throw new Error(`${label} path cannot include '..' segments`);
-	}
-	return normalized;
 }
 
 export async function upsert_form(record: api_form_type): Promise<api_form> {

@@ -2,21 +2,9 @@ import { ApiError } from '@technomoron/api-server-base';
 
 import { api_domain } from '../models/domain.js';
 import { api_user } from '../models/user.js';
+import { getBodyValue } from '../util.js';
 
 import type { mailApiRequest } from '../types.js';
-
-function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
-	for (const key of keys) {
-		const value = body[key];
-		if (Array.isArray(value) && value.length > 0) {
-			return String(value[0]);
-		}
-		if (value !== undefined && value !== null) {
-			return String(value);
-		}
-	}
-	return '';
-}
 
 export async function assert_domain_and_user(apireq: mailApiRequest): Promise<void> {
 	const body = apireq.req.body ?? {};

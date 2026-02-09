@@ -17,40 +17,6 @@ const FIXTURE_ROOT = path.join(process.cwd(), 'tests', 'fixtures');
 const CONFIG_FIXTURE = path.join(FIXTURE_ROOT, 'config');
 const ATTACHMENT_FIXTURE = path.join(FIXTURE_ROOT, 'uploads', 'sample-attachment.txt');
 
-const ENV_KEYS = [
-	'NODE_ENV',
-	'CONFIG_PATH',
-	'DB_NAME',
-	'DB_TYPE',
-	'DB_FORCE_SYNC',
-	'DB_SYNC_ALTER',
-	'DB_AUTO_RELOAD',
-	'API_URL',
-	'ASSET_ROUTE',
-	'API_HOST',
-	'API_PORT',
-	'API_TOKEN_PEPPER',
-	'AUTOESCAPE_HTML',
-	'UPLOAD_PATH',
-	'UPLOAD_MAX',
-	'FORM_RATE_LIMIT_WINDOW_SEC',
-	'FORM_RATE_LIMIT_MAX',
-	'FORM_MAX_ATTACHMENTS',
-	'FORM_KEEP_UPLOADS',
-	'FORM_CAPTCHA_PROVIDER',
-	'FORM_CAPTCHA_SECRET',
-	'FORM_CAPTCHA_REQUIRED',
-	'SMTP_HOST',
-	'SMTP_PORT',
-	'SMTP_SECURE',
-	'SMTP_TLS_REJECT',
-	'SMTP_USER',
-	'SMTP_PASSWORD',
-	'DEBUG'
-];
-
-type EnvSnapshot = Record<string, string | undefined>;
-
 type SmtpCapture = {
 	server: SMTPServer;
 	port: number;
@@ -76,23 +42,6 @@ export type IntegrationContext = {
 	attachmentPath: string;
 	cleanup: () => Promise<void>;
 };
-
-function snapshotEnv(keys: string[]): EnvSnapshot {
-	return keys.reduce<EnvSnapshot>((acc, key) => {
-		acc[key] = process.env[key];
-		return acc;
-	}, {});
-}
-
-function restoreEnv(snapshot: EnvSnapshot) {
-	for (const [key, value] of Object.entries(snapshot)) {
-		if (value === undefined) {
-			delete process.env[key];
-		} else {
-			process.env[key] = value;
-		}
-	}
-}
 
 function copyDir(src: string, dest: string) {
 	if (!fs.existsSync(src)) {
@@ -198,38 +147,39 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 	const port = await getAvailablePort();
 	const apiUrl = `http://127.0.0.1:${port}/api`;
 
-	const envSnapshot = snapshotEnv(ENV_KEYS);
-	process.env.NODE_ENV = 'development';
-	process.env.CONFIG_PATH = configPath;
-	process.env.DB_NAME = path.join(tempDir, 'mailmagic-test.db');
-	process.env.DB_TYPE = 'sqlite';
-	process.env.DB_FORCE_SYNC = 'true';
-	process.env.DB_SYNC_ALTER = 'true';
-	process.env.DB_AUTO_RELOAD = 'false';
-	process.env.API_URL = apiUrl;
-	process.env.ASSET_ROUTE = '/asset';
-	process.env.API_HOST = '127.0.0.1';
-	process.env.API_PORT = String(port);
-	process.env.API_TOKEN_PEPPER = 'integration-token-pepper-value';
-	process.env.AUTOESCAPE_HTML = 'true';
-	process.env.UPLOAD_PATH = './{domain}/uploads';
-	process.env.UPLOAD_MAX = String(30 * 1024 * 1024);
-	process.env.FORM_RATE_LIMIT_WINDOW_SEC = '0';
-	process.env.FORM_RATE_LIMIT_MAX = '0';
-	process.env.FORM_MAX_ATTACHMENTS = '-1';
-	process.env.FORM_KEEP_UPLOADS = 'true';
-	process.env.FORM_CAPTCHA_PROVIDER = 'turnstile';
-	process.env.FORM_CAPTCHA_SECRET = '';
-	process.env.FORM_CAPTCHA_REQUIRED = 'false';
-	process.env.SMTP_HOST = '127.0.0.1';
-	process.env.SMTP_PORT = String(smtp.port);
-	process.env.SMTP_SECURE = 'false';
-	process.env.SMTP_TLS_REJECT = 'false';
-	process.env.SMTP_USER = '';
-	process.env.SMTP_PASSWORD = '';
-	process.env.DEBUG = 'false';
+	const envOverrides = {
+		NODE_ENV: 'development',
+		CONFIG_PATH: configPath,
+		DB_NAME: path.join(tempDir, 'mailmagic-test.db'),
+		DB_TYPE: 'sqlite',
+		DB_FORCE_SYNC: true,
+		DB_SYNC_ALTER: true,
+		DB_AUTO_RELOAD: false,
+		API_URL: apiUrl,
+		ASSET_ROUTE: '/asset',
+		API_HOST: '127.0.0.1',
+		API_PORT: port,
+		API_TOKEN_PEPPER: 'integration-token-pepper-value',
+		AUTOESCAPE_HTML: true,
+		UPLOAD_PATH: './{domain}/uploads',
+		UPLOAD_MAX: 30 * 1024 * 1024,
+		FORM_RATE_LIMIT_WINDOW_SEC: 0,
+		FORM_RATE_LIMIT_MAX: 0,
+		FORM_MAX_ATTACHMENTS: -1,
+		FORM_KEEP_UPLOADS: true,
+		FORM_CAPTCHA_PROVIDER: 'turnstile',
+		FORM_CAPTCHA_SECRET: '',
+		FORM_CAPTCHA_REQUIRED: false,
+		SMTP_HOST: '127.0.0.1',
+		SMTP_PORT: smtp.port,
+		SMTP_SECURE: false,
+		SMTP_TLS_REJECT: false,
+		SMTP_USER: '',
+		SMTP_PASSWORD: '',
+		DEBUG: false
+	};
 
-	const bootstrap = await createMailMagicServer({ apiBasePath: '' });
+	const bootstrap = await createMailMagicServer({ apiBasePath: '' }, envOverrides);
 	const listener: Server = bootstrap.server.app.listen(port, '127.0.0.1');
 
 	const api = request(bootstrap.server.app);
@@ -241,7 +191,6 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 		if (bootstrap.store.api_db) {
 			await bootstrap.store.api_db.close();
 		}
-		restoreEnv(envSnapshot);
 		fs.rmSync(tempDir, { recursive: true, force: true });
 	};
 

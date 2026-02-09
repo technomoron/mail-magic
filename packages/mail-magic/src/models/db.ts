@@ -82,15 +82,15 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 	});
 
 	await db.query('PRAGMA foreign_keys = OFF');
-	const alter = Boolean(store.env.DB_SYNC_ALTER);
-	store.print_debug(`DB sync: alter=${alter} force=${store.env.DB_FORCE_SYNC}`);
-	await db.sync({ alter, force: store.env.DB_FORCE_SYNC });
+	const alter = Boolean(store.vars.DB_SYNC_ALTER);
+	store.print_debug(`DB sync: alter=${alter} force=${store.vars.DB_FORCE_SYNC}`);
+	await db.sync({ alter, force: store.vars.DB_FORCE_SYNC });
 	await db.query('PRAGMA foreign_keys = ON');
 
 	await importData(store);
 
 	try {
-		const { migrated, cleared } = await migrateLegacyApiTokens(store.env.API_TOKEN_PEPPER);
+		const { migrated, cleared } = await migrateLegacyApiTokens(store.vars.API_TOKEN_PEPPER);
 		if (migrated || cleared) {
 			store.print_debug(`Migrated ${migrated} legacy API token(s) and cleared ${cleared} plaintext token(s).`);
 		}
@@ -103,7 +103,7 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 export async function connect_api_db(store: mailStore): Promise<Sequelize> {
 	console.log('DB INIT');
 
-	const env = store.env;
+	const env = store.vars;
 	const dbparams: Options = {
 		logging: false, // env.DB_LOG ? console.log : false,
 		dialect: env.DB_TYPE as Dialect,

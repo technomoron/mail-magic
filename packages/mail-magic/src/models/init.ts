@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { mailStore } from '../store/store.js';
 import { StoredFile } from '../types.js';
+import { buildAssetUrl } from '../util/paths.js';
 import { user_and_domain } from '../util.js';
 
 import { api_domain, api_domain_schema } from './domain.js';
@@ -26,87 +27,6 @@ const init_data_schema = z.object({
 });
 
 type InitData = z.infer<typeof init_data_schema>;
-
-/**
- * Resolve an asset file within ./config/<domain>/assets
- */
-function resolveAsset(basePath: string, domainName: string, assetName: string): string | null {
-	const assetsRoot = path.join(basePath, domainName, 'assets');
-	if (!fs.existsSync(assetsRoot)) {
-		return null;
-	}
-	const resolvedRoot = fs.realpathSync(assetsRoot);
-	const normalizedRoot = resolvedRoot.endsWith(path.sep) ? resolvedRoot : resolvedRoot + path.sep;
-	const candidate = path.resolve(assetsRoot, assetName);
-	if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) {
-		return null;
-	}
-	const realCandidate = fs.realpathSync(candidate);
-	if (!realCandidate.startsWith(normalizedRoot)) {
-		return null;
-	}
-	return realCandidate;
-}
-
-function buildAssetUrl(baseUrl: string, route: string, domainName: string, assetPath: string): string {
-	const trimmedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-	const normalizedRoute = route ? (route.startsWith('/') ? route : `/${route}`) : '';
-	const encodedDomain = encodeURIComponent(domainName);
-	const encodedPath = assetPath
-		.split('/')
-		.filter((segment) => segment.length > 0)
-		.map((segment) => encodeURIComponent(segment))
-		.join('/');
-	const trailing = encodedPath ? `/${encodedPath}` : '';
-	return `${trimmedBase}${normalizedRoute}/${encodedDomain}${trailing}`;
-}
-
-function extractAndReplaceAssets(
-	html: string,
-	opts: {
-		basePath: string;
-		domainName: string;
-		apiUrl: string;
-		assetBaseUrl: string;
-		assetRoute: string;
-	}
-): { html: string; assets: StoredFile[] } {
-	const regex = /src=["']asset\(['"]([^'"]+)['"](?:,\s*(true|false|[01]))?\)["']/g;
-
-	const assets: StoredFile[] = [];
-
-	const replacedHtml = html.replace(regex, (_m, relPath: string, inlineFlag?: string) => {
-		const fullPath = resolveAsset(opts.basePath, opts.domainName, relPath);
-		if (!fullPath) {
-			throw new Error(`Missing asset "${relPath}"`);
-		}
-
-		const isInline = inlineFlag === 'true' || inlineFlag === '1';
-		const storedFile: StoredFile = {
-			filename: relPath,
-			path: fullPath,
-			cid: isInline ? relPath : undefined
-		};
-
-		assets.push(storedFile);
-
-		if (isInline) {
-			return `src="cid:${relPath}"`;
-		}
-
-		const domainAssetsRoot = path.join(opts.basePath, opts.domainName, 'assets');
-		const relativeToAssets = path.relative(domainAssetsRoot, fullPath);
-		if (!relativeToAssets || relativeToAssets.startsWith('..')) {
-			throw new Error(`Asset path escapes domain assets directory: ${fullPath}`);
-		}
-		const normalizedAssetPath = relativeToAssets.split(path.sep).join('/');
-		const baseUrl = opts.assetBaseUrl?.trim() ? opts.assetBaseUrl : opts.apiUrl;
-		const assetUrl = buildAssetUrl(baseUrl, opts.assetRoute, opts.domainName, normalizedAssetPath);
-		return `src="${assetUrl}"`;
-	});
-
-	return { html: replacedHtml, assets };
-}
 
 async function _load_template(
 	store: mailStore,
@@ -143,23 +63,45 @@ async function _load_template(
 
 	try {
 		const baseConfigPath = store.configpath;
-		const templateKey = path.relative(baseConfigPath, absPath);
-		if (!templateKey) {
+		const domainRoot = path.join(baseConfigPath, domain.name);
+		const templateKey = path.relative(domainRoot, absPath);
+		if (!templateKey || templateKey.startsWith('..')) {
 			throw new Error(`Unable to resolve template path for "${absPath}"`);
 		}
 
-		const processor = new Unyuck({ basePath: baseConfigPath });
-		const merged = processor.flattenNoAssets(templateKey);
+		const assetBaseUrl = store.vars.ASSET_PUBLIC_BASE?.trim() ? store.vars.ASSET_PUBLIC_BASE : store.vars.API_URL;
+		const assetRoute = store.vars.ASSET_ROUTE;
+		const processor = new Unyuck({
+			basePath: domainRoot,
+			baseUrl: assetBaseUrl,
+			collectAssets: true,
+			assetFormatter: (ctx) => buildAssetUrl(assetBaseUrl, assetRoute, domain.name, ctx.urlPath)
+		});
+		const { html: mergedHtml, assets } = processor.flattenWithAssets(templateKey);
+		let html = mergedHtml;
 
-		const { html, assets } = extractAndReplaceAssets(merged, {
-			basePath: baseConfigPath,
-			domainName: domain.name,
-			apiUrl: store.env.API_URL,
-			assetBaseUrl: store.env.ASSET_PUBLIC_BASE,
-			assetRoute: store.env.ASSET_ROUTE
+		const mappedAssets: StoredFile[] = assets.map((asset) => {
+			const rel = asset.filename.replace(/\\/g, '/');
+			const urlPath = rel.startsWith('assets/') ? rel.slice('assets/'.length) : rel;
+			return {
+				filename: urlPath,
+				path: asset.path,
+				cid: asset.cid ? urlPath : undefined
+			};
 		});
 
-		return { html, assets };
+		for (const asset of assets) {
+			if (!asset.cid) {
+				continue;
+			}
+			const rel = asset.filename.replace(/\\/g, '/');
+			const urlPath = rel.startsWith('assets/') ? rel.slice('assets/'.length) : rel;
+			if (asset.cid !== urlPath) {
+				html = html.replaceAll(`cid:${asset.cid}`, `cid:${urlPath}`);
+			}
+		}
+
+		return { html, assets: mappedAssets };
 	} catch (err) {
 		throw new Error(`Template "${absPath}" failed to preprocess: ${(err as Error).message}`);
 	}
@@ -202,7 +144,7 @@ export async function importData(store: mailStore) {
 				if (typeof token_hmac === 'string' && token_hmac) {
 					resolvedTokenHmac = token_hmac;
 				} else if (typeof token === 'string' && token) {
-					resolvedTokenHmac = apiTokenToHmac(token, store.env.API_TOKEN_PEPPER);
+					resolvedTokenHmac = apiTokenToHmac(token, store.vars.API_TOKEN_PEPPER);
 				} else {
 					throw new Error(`User ${record.user_id} is missing token or token_hmac`);
 				}

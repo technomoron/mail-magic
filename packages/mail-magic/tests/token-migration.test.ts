@@ -28,7 +28,7 @@ describe('API token HMAC migration', () => {
 		}
 
 		const legacyToken = 'legacy-token';
-		const pepper = ctx.store.env.API_TOKEN_PEPPER;
+		const pepper = ctx.store.vars.API_TOKEN_PEPPER;
 		const expectedHmac = apiTokenToHmac(legacyToken, pepper);
 
 		await api_user.create({

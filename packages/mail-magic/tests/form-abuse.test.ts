@@ -22,10 +22,10 @@ describe('form anti-abuse controls', () => {
 		ctx = await createTestContext();
 		api = request((ctx.server as unknown as { app: unknown }).app);
 		baseline = {
-			formMaxAttachments: ctx.store.env.FORM_MAX_ATTACHMENTS,
-			formKeepUploads: ctx.store.env.FORM_KEEP_UPLOADS,
-			formRateLimitWindowSec: ctx.store.env.FORM_RATE_LIMIT_WINDOW_SEC,
-			formRateLimitMax: ctx.store.env.FORM_RATE_LIMIT_MAX
+			formMaxAttachments: ctx.store.vars.FORM_MAX_ATTACHMENTS,
+			formKeepUploads: ctx.store.vars.FORM_KEEP_UPLOADS,
+			formRateLimitWindowSec: ctx.store.vars.FORM_RATE_LIMIT_WINDOW_SEC,
+			formRateLimitMax: ctx.store.vars.FORM_RATE_LIMIT_MAX
 		};
 	});
 
@@ -38,10 +38,10 @@ describe('form anti-abuse controls', () => {
 	beforeEach(() => {
 		ctx?.smtp.reset();
 		if (ctx && baseline) {
-			ctx.store.env.FORM_MAX_ATTACHMENTS = baseline.formMaxAttachments;
-			ctx.store.env.FORM_KEEP_UPLOADS = baseline.formKeepUploads;
-			ctx.store.env.FORM_RATE_LIMIT_WINDOW_SEC = baseline.formRateLimitWindowSec;
-			ctx.store.env.FORM_RATE_LIMIT_MAX = baseline.formRateLimitMax;
+			ctx.store.vars.FORM_MAX_ATTACHMENTS = baseline.formMaxAttachments;
+			ctx.store.vars.FORM_KEEP_UPLOADS = baseline.formKeepUploads;
+			ctx.store.vars.FORM_RATE_LIMIT_WINDOW_SEC = baseline.formRateLimitWindowSec;
+			ctx.store.vars.FORM_RATE_LIMIT_MAX = baseline.formRateLimitMax;
 		}
 	});
 
@@ -49,8 +49,8 @@ describe('form anti-abuse controls', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_RATE_LIMIT_WINDOW_SEC = 60;
-		ctx.store.env.FORM_RATE_LIMIT_MAX = 1;
+		ctx.store.vars.FORM_RATE_LIMIT_WINDOW_SEC = 60;
+		ctx.store.vars.FORM_RATE_LIMIT_MAX = 1;
 
 		const first = await api.post('/api/v1/form/message').set('x-forwarded-for', '203.0.113.50').send({
 			_mm_form_key: ctx.contactFormKey,
@@ -73,7 +73,7 @@ describe('form anti-abuse controls', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_MAX_ATTACHMENTS = 0;
+		ctx.store.vars.FORM_MAX_ATTACHMENTS = 0;
 
 		const res = await api
 			.post('/api/v1/form/message')
@@ -89,7 +89,7 @@ describe('form anti-abuse controls', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_MAX_ATTACHMENTS = 1;
+		ctx.store.vars.FORM_MAX_ATTACHMENTS = 1;
 
 		const res = await api
 			.post('/api/v1/form/message')
@@ -106,8 +106,8 @@ describe('form anti-abuse controls', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_KEEP_UPLOADS = false;
-		ctx.store.env.FORM_MAX_ATTACHMENTS = 0;
+		ctx.store.vars.FORM_KEEP_UPLOADS = false;
+		ctx.store.vars.FORM_MAX_ATTACHMENTS = 0;
 
 		const stagingDir = path.join(ctx.configPath, '_uploads');
 		const before = fs.existsSync(stagingDir) ? fs.readdirSync(stagingDir) : [];

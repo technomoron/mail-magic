@@ -3,25 +3,32 @@ import { z } from 'zod';
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 
-export const api_domain_schema = z.object({
-	domain_id: z.number().int().nonnegative(),
-	user_id: z.number().int().nonnegative(),
-	name: z.string().min(1).regex(DOMAIN_PATTERN, 'Invalid domain name'),
-	sender: z.string().default(''),
-	locale: z.string().default(''),
-	is_default: z.boolean().default(false)
-});
+export const api_domain_schema = z
+	.object({
+		domain_id: z.number().int().nonnegative().describe('Database primary key for the domain record.'),
+		user_id: z.number().int().nonnegative().describe('Owning user ID.'),
+		name: z
+			.string()
+			.min(1)
+			.regex(DOMAIN_PATTERN, 'Invalid domain name')
+			.describe('Domain name (config identifier).'),
+		sender: z.string().default('').describe('Default sender address for this domain.'),
+		locale: z.string().default('').describe('Default locale for this domain.'),
+		is_default: z.boolean().default(false).describe('If true, this is the default domain for the user.')
+	})
+	.describe('Domain configuration record.');
 
-export type api_domain_type = z.infer<typeof api_domain_schema>;
+export type api_domain_input = z.input<typeof api_domain_schema>;
+export type api_domain_type = z.output<typeof api_domain_schema>;
+export type api_domain_creation_type = Omit<api_domain_input, 'domain_id'> & { domain_id?: number };
 
-export class api_domain extends Model {
-	declare domain_id: number;
-	declare user_id: number;
-	declare name: string;
-	declare sender: string;
-	declare locale: string;
-	declare is_default: boolean;
-}
+// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
+// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
+export class api_domain extends Model<api_domain_type, api_domain_creation_type> {}
+
+// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
+export interface api_domain extends api_domain_type {}
 
 export async function init_api_domain(api_db: Sequelize): Promise<typeof api_domain> {
 	api_domain.init(

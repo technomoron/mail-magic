@@ -1,8 +1,8 @@
 import TemplateClient from '../../../packages/mail-magic-client/src/mail-magic-client.ts';
 
-const baseUrl = process.env.MM_BASE_URL || 'http://127.0.0.1:3776';
-const token = process.env.MM_TOKEN || 'example-token';
-const domain = process.env.MM_DOMAIN || 'example.test';
+const baseUrl = 'http://127.0.0.1:3776';
+const token = 'example-token';
+const domain = 'example.test';
 
 type ApiEnvelope<T> = {
 	success: boolean;

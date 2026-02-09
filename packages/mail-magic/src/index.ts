@@ -4,7 +4,7 @@ import { AssetAPI, createAssetHandler } from './api/assets.js';
 import { FormAPI } from './api/forms.js';
 import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
-import { mailStore } from './store/store.js';
+import { MailStoreVars, mailStore } from './store/store.js';
 import { installMailMagicSwagger } from './swagger.js';
 
 import type { ApiModule, ApiServerConf } from '@technomoron/api-server-base';
@@ -14,7 +14,7 @@ export type MailMagicServerOptions = Partial<ApiServerConf>;
 export type MailMagicServerBootstrap = {
 	server: mailApiServer;
 	store: mailStore;
-	env: mailStore['env'];
+	vars: MailStoreVars;
 };
 
 function normalizeRoute(value: string, fallback = ''): string {
@@ -44,7 +44,7 @@ function mergeStaticDirs(
 }
 
 function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions): MailMagicServerOptions {
-	const env = store.env;
+	const env = store.vars;
 	return {
 		apiHost: env.API_HOST,
 		apiPort: env.API_PORT,
@@ -58,15 +58,18 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 	};
 }
 
-export async function createMailMagicServer(overrides: MailMagicServerOptions = {}): Promise<MailMagicServerBootstrap> {
-	const store = await new mailStore().init();
+export async function createMailMagicServer(
+	overrides: MailMagicServerOptions = {},
+	envOverrides: Partial<MailStoreVars> = {}
+): Promise<MailMagicServerBootstrap> {
+	const store = await new mailStore().init(envOverrides);
 	if (typeof overrides.apiBasePath === 'string') {
-		store.env.API_BASE_PATH = overrides.apiBasePath;
+		store.vars.API_BASE_PATH = overrides.apiBasePath;
 	}
 	const baseStaticDirs: Record<string, string> = {};
 
 	let adminUiPath: string | null = null;
-	if (store.env.ADMIN_ENABLED) {
+	if (store.vars.ADMIN_ENABLED) {
 		adminUiPath = await resolveAdminUiPath(store);
 		if (adminUiPath) {
 			baseStaticDirs['/'] = adminUiPath;
@@ -85,16 +88,16 @@ export async function createMailMagicServer(overrides: MailMagicServerOptions = 
 	const server = new mailApiServer(serverConfig, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
 	installMailMagicSwagger(server, {
 		apiBasePath: String(config.apiBasePath || '/api'),
-		assetRoute: String(store.env.ASSET_ROUTE || '/asset'),
-		apiUrl: String(store.env.API_URL || ''),
+		assetRoute: String(store.vars.ASSET_ROUTE || '/asset'),
+		apiUrl: String(store.vars.API_URL || ''),
 		swaggerEnabled,
 		swaggerPath
 	});
 
 	// Serve domain assets from a public route with traversal protection and caching.
-	const assetRoute = normalizeRoute(store.env.ASSET_ROUTE, '/asset');
+	const assetRoute = normalizeRoute(store.vars.ASSET_ROUTE, '/asset');
 	const assetPrefix = assetRoute === '/' ? '' : assetRoute;
-	const apiBasePath = normalizeRoute(store.env.API_BASE_PATH, '/api');
+	const apiBasePath = normalizeRoute(store.vars.API_BASE_PATH, '/api');
 	const apiBasePrefix = apiBasePath === '/' ? '' : apiBasePath;
 	const assetHandler = createAssetHandler(server);
 	const assetMounts = new Set<string>();
@@ -110,25 +113,28 @@ export async function createMailMagicServer(overrides: MailMagicServerOptions = 
 		server.useExpress(`${prefix}/:domain/*path`, assetHandler);
 	}
 
-	if (store.env.ADMIN_ENABLED) {
+	if (store.vars.ADMIN_ENABLED) {
 		await enableAdminFeatures(server, store, adminUiPath);
 	} else {
 		store.print_debug('Admin UI/API disabled via ADMIN_ENABLED');
 	}
 
-	return { server, store, env: store.env };
+	return { server, store, vars: store.vars };
 }
 
-export async function startMailMagicServer(overrides: MailMagicServerOptions = {}): Promise<MailMagicServerBootstrap> {
-	const bootstrap = await createMailMagicServer(overrides);
+export async function startMailMagicServer(
+	overrides: MailMagicServerOptions = {},
+	envOverrides: Partial<MailStoreVars> = {}
+): Promise<MailMagicServerBootstrap> {
+	const bootstrap = await createMailMagicServer(overrides, envOverrides);
 	await bootstrap.server.start();
 	return bootstrap;
 }
 
 async function bootMailMagic() {
 	try {
-		const { env } = await startMailMagicServer();
-		console.log(`mail-magic server listening on ${env.API_HOST}:${env.API_PORT}`);
+		const { vars } = await startMailMagicServer();
+		console.log(`mail-magic server listening on ${vars.API_HOST}:${vars.API_PORT}`);
 	} catch (err) {
 		console.error('Failed to start FormMailer:', err);
 		process.exit(1);
@@ -157,7 +163,7 @@ async function resolveAdminUiPath(store: mailStore): Promise<string | null> {
 			resolveAdminDist?: (appPath?: string, logger?: (message: string) => void) => string | null;
 		};
 		if (typeof mod?.resolveAdminDist === 'function') {
-			return mod.resolveAdminDist(store.env.ADMIN_APP_PATH, (message: string) => store.print_debug(message));
+			return mod.resolveAdminDist(store.vars.ADMIN_APP_PATH, (message: string) => store.print_debug(message));
 		}
 	} catch (err) {
 		store.print_debug(`Unable to resolve admin UI path: ${err instanceof Error ? err.message : String(err)}`);
@@ -173,9 +179,9 @@ async function enableAdminFeatures(server: mailApiServer, store: mailStore, admi
 		};
 		if (typeof mod?.registerAdmin === 'function') {
 			await mod.registerAdmin(server, {
-				apiBasePath: normalizeRoute(store.env.API_BASE_PATH, '/api'),
-				assetRoute: normalizeRoute(store.env.ASSET_ROUTE, '/asset'),
-				appPath: adminUiPath ?? store.env.ADMIN_APP_PATH,
+				apiBasePath: normalizeRoute(store.vars.API_BASE_PATH, '/api'),
+				assetRoute: normalizeRoute(store.vars.ASSET_ROUTE, '/asset'),
+				appPath: adminUiPath ?? store.vars.ADMIN_APP_PATH,
 				logger: (message: string) => store.print_debug(message),
 				staticFallback: Boolean(adminUiPath)
 			});

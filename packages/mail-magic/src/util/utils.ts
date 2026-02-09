@@ -126,6 +126,32 @@ export function decodeComponent(value: string | string[] | undefined): string {
 	}
 }
 
+export function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string {
+	for (const key of keys) {
+		const value = body[key];
+		if (Array.isArray(value) && value.length > 0) {
+			return String(value[0]);
+		}
+		if (value !== undefined && value !== null) {
+			return String(value);
+		}
+	}
+	return '';
+}
+
+export function normalizeBoolean(value: unknown): boolean {
+	if (typeof value === 'boolean') {
+		return value;
+	}
+	if (typeof value === 'number') {
+		return value !== 0;
+	}
+	const normalized = String(value ?? '')
+		.trim()
+		.toLowerCase();
+	return ['true', '1', 'yes', 'on'].includes(normalized);
+}
+
 export function sendFileAsync(
 	res: Pick<Response, 'sendFile'>,
 	file: string,

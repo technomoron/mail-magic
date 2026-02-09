@@ -12,7 +12,7 @@ describe('nunjucks autoescape', () => {
 	beforeAll(async () => {
 		ctx = await createTestContext();
 		api = request((ctx.server as unknown as { app: unknown }).app);
-		baselineAutoescape = ctx.store.env.AUTOESCAPE_HTML;
+		baselineAutoescape = ctx.store.vars.AUTOESCAPE_HTML;
 	});
 
 	afterAll(async () => {
@@ -24,7 +24,7 @@ describe('nunjucks autoescape', () => {
 	beforeEach(() => {
 		ctx?.smtp.reset();
 		if (ctx) {
-			ctx.store.env.AUTOESCAPE_HTML = baselineAutoescape;
+			ctx.store.vars.AUTOESCAPE_HTML = baselineAutoescape;
 		}
 	});
 
@@ -32,7 +32,7 @@ describe('nunjucks autoescape', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.AUTOESCAPE_HTML = true;
+		ctx.store.vars.AUTOESCAPE_HTML = true;
 
 		const storeRes = await api
 			.post('/api/v1/tx/template')
@@ -66,7 +66,7 @@ describe('nunjucks autoescape', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.AUTOESCAPE_HTML = true;
+		ctx.store.vars.AUTOESCAPE_HTML = true;
 
 		const storeRes = await api
 			.post('/api/v1/tx/template')
@@ -100,7 +100,7 @@ describe('nunjucks autoescape', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.AUTOESCAPE_HTML = false;
+		ctx.store.vars.AUTOESCAPE_HTML = false;
 
 		const storeRes = await api
 			.post('/api/v1/tx/template')

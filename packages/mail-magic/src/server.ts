@@ -16,7 +16,7 @@ export class mailApiServer extends ApiServer {
 
 	override async getApiKey<ApiKey>(token: string): Promise<ApiKey | null> {
 		this.storage.print_debug('Looking up api key');
-		const pepper = this.storage.env.API_TOKEN_PEPPER;
+		const pepper = this.storage.vars.API_TOKEN_PEPPER;
 		const token_hmac = apiTokenToHmac(token, pepper);
 
 		const user = await api_user.findOne({ where: { token_hmac } });

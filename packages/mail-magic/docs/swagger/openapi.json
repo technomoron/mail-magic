@@ -2,7 +2,7 @@
 	"openapi": "3.1.0",
 	"info": {
 		"title": "Mail Magic API",
-		"version": "1.0.32",
+		"version": "1.0.33",
 		"description": "OpenAPI definition for the Mail Magic server. Authenticated endpoints require an API key provided as `Authorization: Bearer apikey-<token>`."
 	},
 	"servers": [

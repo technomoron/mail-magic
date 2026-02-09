@@ -193,7 +193,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		}
 
 		try {
-			const env = new nunjucks.Environment(null, { autoescape: this.server.storage.env.AUTOESCAPE_HTML });
+			const env = new nunjucks.Environment(null, { autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
 
 			const compiled = nunjucks.compile(template.template, env);
 

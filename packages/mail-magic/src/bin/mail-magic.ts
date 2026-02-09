@@ -60,9 +60,9 @@ if (result.error) {
 
 async function main(): Promise<void> {
 	try {
-		const { store, env } = await startMailMagicServer();
+		const { store, vars } = await startMailMagicServer();
 		console.log(`Using config path: ${store.configpath}`);
-		console.log(`mail-magic server listening on ${env.API_HOST}:${env.API_PORT}`);
+		console.log(`mail-magic server listening on ${vars.API_HOST}:${vars.API_PORT}`);
 	} catch (error) {
 		console.error('Failed to start mail-magic server');
 		console.error(error);

@@ -1,14 +1,17 @@
 # Mail Magic Overview
 
-Mail Magic is a “mail operations” service: it gives you one place to manage email templates, send transactional emails, and safely accept messages from public website forms.
+Mail Magic is a “mail operations” service: it gives you one place to manage email templates, send transactional emails,
+and safely accept messages from public website forms.
 
-It is designed for teams that want consistent email behavior across multiple apps and sites, without re-implementing template management, asset handling, and anti-abuse controls in every project.
+It is designed for teams that want consistent email behavior across multiple apps and sites, without re-implementing
+template management, asset handling, and anti-abuse controls in every project.
 
 ## The Two Email Flows
 
 ### 1. Transactional email
 
-Transactional email is the kind of message you send because something happened: a welcome message, a receipt, a password reset, a notification, an alert.
+Transactional email is the kind of message you send because something happened: a welcome message, a receipt, a password
+reset, a notification, an alert.
 
 With Mail Magic you:
 
@@ -50,13 +53,15 @@ This makes it straightforward to run one Mail Magic instance for multiple sites 
 
 ### A public form key
 
-For public forms, Mail Magic uses a dedicated public identifier (a “form key”) to locate the form configuration. This avoids relying on ad hoc combinations of fields and makes the contract simpler for the website.
+For public forms, Mail Magic uses a dedicated public identifier (a “form key”) to locate the form configuration. This
+avoids relying on ad hoc combinations of fields and makes the contract simpler for the website.
 
 Treat the form key like you would treat a public webhook URL: anyone who has it can submit to that form.
 
 ### Recipient routing without exposing email addresses
 
-Sometimes a website needs a “send to: Sales / Press / Support” selector. Mail Magic supports this without forcing you to expose real email addresses in the browser:
+Sometimes a website needs a “send to: Sales / Press / Support” selector. Mail Magic supports this without forcing you to
+expose real email addresses in the browser:
 
 - you define named recipients on the server
 - the public form submits the chosen recipient name(s)
@@ -121,4 +126,3 @@ In practice, most teams use it in one of two ways:
 
 - `docs/swagger/openapi.json` contains the complete API contract in a machine-readable format.
 - The running service can expose that contract via its Swagger/OpenAPI endpoint (when enabled).
-

@@ -2,19 +2,19 @@ import TemplateClient from '../../../packages/mail-magic-client/src/mail-magic-c
 
 type Mode = 'tx' | 'form' | 'both';
 
-const baseUrl = process.env.MM_BASE_URL || 'http://127.0.0.1:3776';
-const token = process.env.MM_TOKEN || 'example-token';
-const domain = process.env.MM_DOMAIN || 'example.test';
+const baseUrl = 'http://127.0.0.1:3776';
+const token = 'example-token';
+const domain = 'example.test';
 
-const txName = process.env.MM_TX_NAME || 'welcome';
-const formId = process.env.MM_FORM_ID || 'contact';
-const locale = process.env.MM_LOCALE || 'en';
+const txName = 'welcome';
+const formId = 'contact';
+const locale = 'en';
 
-const rcpt = process.env.MM_RCPT || 'user@example.test';
-const sender = process.env.MM_SENDER || 'Example <noreply@example.test>';
-const formSender = process.env.MM_FORM_SENDER || 'Example Forms <forms@example.test>';
-const formRecipient = process.env.MM_FORM_RECIPIENT || 'owner@example.test';
-const formSecret = process.env.MM_FORM_SECRET || 'form-secret';
+const rcpt = 'user@example.test';
+const sender = 'Example <noreply@example.test>';
+const formSender = 'Example Forms <forms@example.test>';
+const formRecipient = 'owner@example.test';
+const formSecret = 'form-secret';
 
 type ApiEnvelope<T> = {
 	success: boolean;

@@ -41,9 +41,9 @@ describe('form captcha verification', () => {
 		ctx?.smtp.reset();
 		vi.unstubAllGlobals();
 		if (ctx) {
-			ctx.store.env.FORM_CAPTCHA_PROVIDER = 'turnstile';
-			ctx.store.env.FORM_CAPTCHA_REQUIRED = false;
-			ctx.store.env.FORM_CAPTCHA_SECRET = '';
+			ctx.store.vars.FORM_CAPTCHA_PROVIDER = 'turnstile';
+			ctx.store.vars.FORM_CAPTCHA_REQUIRED = false;
+			ctx.store.vars.FORM_CAPTCHA_SECRET = '';
 		}
 	});
 
@@ -51,7 +51,7 @@ describe('form captcha verification', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_CAPTCHA_SECRET = '';
+		ctx.store.vars.FORM_CAPTCHA_SECRET = '';
 
 		const res = await api.post('/api/v1/form/message').send({
 			_mm_form_key: form_key,
@@ -64,7 +64,7 @@ describe('form captcha verification', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_CAPTCHA_SECRET = 'captcha-secret';
+		ctx.store.vars.FORM_CAPTCHA_SECRET = 'captcha-secret';
 
 		const res = await api.post('/api/v1/form/message').send({
 			_mm_form_key: form_key,
@@ -77,7 +77,7 @@ describe('form captcha verification', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_CAPTCHA_SECRET = 'captcha-secret';
+		ctx.store.vars.FORM_CAPTCHA_SECRET = 'captcha-secret';
 
 		const fetchSpy = vi.fn(async () => ({
 			ok: true,
@@ -98,7 +98,7 @@ describe('form captcha verification', () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
-		ctx.store.env.FORM_CAPTCHA_SECRET = 'captcha-secret';
+		ctx.store.vars.FORM_CAPTCHA_SECRET = 'captcha-secret';
 
 		const fetchSpy = vi.fn(async () => ({
 			ok: true,
