@@ -102,6 +102,7 @@ function writeFixtureConfig(configPath: string, domainName: string, contactFormK
 {% include "partials/fields.njk" %}
 <p>IP: {{ _meta_.client_ip }}</p>
 <img src="asset('images/logo.png', true)" alt="logo" />
+<img src="asset('files/banner.png')" alt="banner" />
 {% endblock %}
 `;
 

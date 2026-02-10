@@ -14,6 +14,10 @@ describe('mail-magic API', () => {
 	let ctx: TestContext | null = null;
 	let api: ReturnType<typeof request>;
 
+	function normalizeCid(value: unknown): string {
+		return String(value ?? '').trim().replace(/^<|>$/g, '');
+	}
+
 	beforeAll(async () => {
 		ctx = await createTestContext();
 		api = request((ctx.server as unknown as { app: unknown }).app);
@@ -38,15 +42,18 @@ describe('mail-magic API', () => {
 
 		expect(template.template).toContain('<title>{{ title }}</title>');
 		expect(template.template).toContain('<h1>{{ heading }}</h1>');
-		expect(template.template).toContain('cid:images/logo.png');
 
-		const expectedUrl = `${ctx.apiUrl}/asset/${ctx.domainName}/files/banner.png`;
+		const expectedUrl = `${ctx!.apiUrl}${ctx!.assetRoute}/${ctx!.domainName}/files/banner.png`;
 		expect(template.template).toContain(expectedUrl);
 
 		const inline = template.files.find((file) => file.filename === 'images/logo.png');
 		const external = template.files.find((file) => file.filename === 'files/banner.png');
 
-		expect(inline?.cid).toBe('images/logo.png');
+		expect(inline?.cid).toBeTruthy();
+		if (inline?.cid) {
+			expect(inline.cid).not.toContain('/');
+			expect(template.template).toContain(`cid:${inline.cid}`);
+		}
 		expect(external?.cid).toBeUndefined();
 	});
 
@@ -59,7 +66,14 @@ describe('mail-magic API', () => {
 
 		expect(form.template).toContain('Name: {{ _fields_.name }}');
 		expect(form.template).toContain('Email: {{ _fields_.email }}');
-		expect(form.template).toContain('cid:images/logo.png');
+		const expectedUrl = `${ctx!.apiUrl}${ctx!.assetRoute}/${ctx!.domainName}/files/banner.png`;
+		expect(form.template).toContain(expectedUrl);
+		const inline = Array.isArray(form.files) ? form.files.find((file) => file.filename === 'images/logo.png') : null;
+		expect(inline?.cid).toBeTruthy();
+		if (inline?.cid) {
+			expect(inline.cid).not.toContain('/');
+			expect(form.template).toContain(`cid:${inline.cid}`);
+		}
 	});
 
 	test('serves assets from the public route and blocks traversal', async () => {
@@ -114,13 +128,28 @@ describe('mail-magic API', () => {
 		expect(message.subject).toBe('Welcome!');
 		expect(html).toContain('Mail Magic');
 		expect(html).toContain('Hello Jane');
+		const expectedUrl = `${ctx!.apiUrl}${ctx!.assetRoute}/${ctx!.domainName}/files/banner.png`;
+		expect(html).toContain(expectedUrl);
 
 		const filenames = message.attachments.map((att) => att.filename ?? '');
 		expect(filenames.some((name) => name.endsWith('logo.png'))).toBe(true);
 		expect(filenames.some((name) => name.endsWith('banner.png'))).toBe(true);
 		expect(filenames).toContain('upload.txt');
-		const inline = message.attachments.find((att) => att.contentId?.includes('images/logo.png'));
+
+		const template = await api_txmail.findOne({ where: { name: 'welcome' } });
+		expect(template).toBeTruthy();
+		const templateInlineCid = template?.files?.find((file) => file.filename === 'images/logo.png')?.cid;
+		expect(templateInlineCid).toBeTruthy();
+
+		const inline = message.attachments.find((att) => normalizeCid(att.contentId) === templateInlineCid);
 		expect(inline).toBeTruthy();
+		if (inline) {
+			expect(String(inline.filename ?? '')).toContain('logo.png');
+			expect(Buffer.isBuffer(inline.content)).toBe(true);
+			expect((inline.content as Buffer).toString()).toBe('logo-bytes');
+		}
+		const bannerInline = message.attachments.find((att) => normalizeCid(att.contentId) === 'files_banner.png');
+		expect(bannerInline).toBeFalsy();
 
 		expect(fs.existsSync(uploadsDir)).toBe(true);
 		const afterUploads = fs.readdirSync(uploadsDir);
@@ -161,6 +190,8 @@ describe('mail-magic API', () => {
 		expect(html).toContain('Name: Ada');
 		expect(html).toContain('Email: ada@example.test');
 		expect(html).toContain('IP: 203.0.113.10');
+		const expectedUrl = `${ctx!.apiUrl}${ctx!.assetRoute}/${ctx!.domainName}/files/banner.png`;
+		expect(html).toContain(expectedUrl);
 
 		const replyTo = message.replyTo?.value?.[0];
 		expect(replyTo?.address).toBe('ada@example.test');
@@ -168,6 +199,17 @@ describe('mail-magic API', () => {
 
 		const filenames = message.attachments.map((att) => att.filename ?? '');
 		expect(filenames).toContain('upload.txt');
+
+		const form = await api_form.findOne({ where: { form_key: ctx!.contactFormKey } });
+		expect(form).toBeTruthy();
+		const formInlineCid = form?.files?.find((file) => file.filename === 'images/logo.png')?.cid;
+		expect(formInlineCid).toBeTruthy();
+
+		const inline = message.attachments.find((att) => normalizeCid(att.contentId) === formInlineCid);
+		expect(inline).toBeTruthy();
+		if (inline) {
+			expect((inline.content as Buffer).toString()).toBe('logo-bytes');
+		}
 	});
 
 	test('allows public recipient selection by idname (with optional display name)', async () => {

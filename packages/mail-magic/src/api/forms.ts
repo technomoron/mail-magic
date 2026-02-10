@@ -192,6 +192,18 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			const domainRecord = await api_domain.findOne({ where: { domain_id: form.domain_id } });
 			await this.server.storage.relocateUploads(domainRecord?.name ?? null, rawFiles);
 			const { attachments, attachmentMap } = buildAttachments(rawFiles);
+
+			// Attach inline template assets (cid:...) so clients can render embedded images reliably.
+			// Linked assets (asset('...') without inline flag) are kept as URLs and are not attached here.
+			const templateFiles = Array.isArray(form.files) ? form.files : [];
+			const inlineTemplateAttachments = templateFiles
+				.filter((file) => Boolean(file && file.cid))
+				.map((file) => ({
+					filename: file.filename,
+					path: file.path,
+					cid: file.cid
+				}));
+			const allAttachments = [...inlineTemplateAttachments, ...attachments];
 			const meta = buildRequestMeta(apireq.req);
 			const to = buildRecipientTo(form, resolvedRecipients);
 			const replyToValue = buildReplyToValue(form, fields);
@@ -217,7 +229,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				to,
 				subject: form.subject,
 				html,
-				attachments,
+				attachments: allAttachments,
 				...(replyToValue ? { replyTo: replyToValue } : {})
 			};
 

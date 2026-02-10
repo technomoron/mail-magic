@@ -163,11 +163,22 @@ describe('mail-magic integration', () => {
 				continue;
 			}
 			const assetUrl = `${ctx.baseUrl}/api/asset/${domain.name}/files/banner.png`;
-			expect(template.template).toContain('cid:images/logo.png');
-			expect(template.template).toContain('cid:images/wordmark.png');
 			expect(template.template).toContain(assetUrl);
 			expect(template.files.some((file) => file.cid)).toBe(true);
 			expect(template.files.some((file) => !file.cid)).toBe(true);
+
+			const logo = template.files.find((file) => file.filename === 'images/logo.png');
+			expect(logo?.cid).toBeTruthy();
+			if (logo?.cid) {
+				expect(logo.cid).not.toContain('/');
+				expect(template.template).toContain(`cid:${logo.cid}`);
+			}
+			const wordmark = template.files.find((file) => file.filename === 'images/wordmark.png');
+			expect(wordmark?.cid).toBeTruthy();
+			if (wordmark?.cid) {
+				expect(wordmark.cid).not.toContain('/');
+				expect(template.template).toContain(`cid:${wordmark.cid}`);
+			}
 		}
 
 		for (const form of forms) {
@@ -177,10 +188,16 @@ describe('mail-magic integration', () => {
 				continue;
 			}
 			const assetUrl = `${ctx.baseUrl}/api/asset/${domain.name}/files/banner.png`;
-			expect(form.template).toContain('cid:images/logo.png');
 			expect(form.template).toContain(assetUrl);
 			expect(form.files.some((file) => file.cid)).toBe(true);
 			expect(form.files.some((file) => !file.cid)).toBe(true);
+
+			const logo = form.files.find((file) => file.filename === 'images/logo.png');
+			expect(logo?.cid).toBeTruthy();
+			if (logo?.cid) {
+				expect(logo.cid).not.toContain('/');
+				expect(form.template).toContain(`cid:${logo.cid}`);
+			}
 		}
 	});
 

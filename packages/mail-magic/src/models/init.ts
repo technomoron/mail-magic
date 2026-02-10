@@ -19,6 +19,16 @@ interface LoadedTemplate {
 	assets: StoredFile[];
 }
 
+function buildInlineAssetCid(urlPath: string): string {
+	// Many mail clients are picky about Content-ID values. Keep it stable and avoid path separators.
+	// Use a sanitized urlPath so nested assets remain unique without embedding `/` in the CID.
+	const normalized = String(urlPath || '')
+		.trim()
+		.replace(/\\/g, '/');
+	const safe = normalized.replace(/[^A-Za-z0-9._-]/g, '_').replace(/_+/g, '_');
+	return (safe || 'asset').slice(0, 200);
+}
+
 const init_data_schema = z.object({
 	user: z.array(api_user_schema).default([]),
 	domain: z.array(api_domain_schema).default([]),
@@ -86,7 +96,7 @@ async function _load_template(
 			return {
 				filename: urlPath,
 				path: asset.path,
-				cid: asset.cid ? urlPath : undefined
+				cid: asset.cid ? buildInlineAssetCid(urlPath) : undefined
 			};
 		});
 
@@ -96,8 +106,9 @@ async function _load_template(
 			}
 			const rel = asset.filename.replace(/\\/g, '/');
 			const urlPath = rel.startsWith('assets/') ? rel.slice('assets/'.length) : rel;
-			if (asset.cid !== urlPath) {
-				html = html.replaceAll(`cid:${asset.cid}`, `cid:${urlPath}`);
+			const desiredCid = buildInlineAssetCid(urlPath);
+			if (asset.cid !== desiredCid) {
+				html = html.replaceAll(`cid:${asset.cid}`, `cid:${desiredCid}`);
 			}
 		}
 
