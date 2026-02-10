@@ -18,7 +18,7 @@ export const api_txmail_schema = z
 		filename: z.string().default('').describe('Relative path of the source .njk template file.'),
 		sender: z.string().min(1).describe('Email From header used when delivering this template.'),
 		subject: z.string().describe('Email subject used when delivering this template.'),
-		slug: z.string().default('').describe('Generated slug used to build stable filenames/paths.'),
+		slug: z.string().default('').describe('Generated slug for this template record (domain + locale + name).'),
 		part: z.boolean().default(false).describe('If true, template is a partial (not a standalone send).'),
 		files: z
 			.array(
@@ -48,13 +48,12 @@ export interface api_txmail extends api_txmail_type {}
 export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail> {
 	const { user, domain } = await user_and_domain(record.domain_id);
 
-	const idname = normalizeSlug(user.idname);
 	const dname = normalizeSlug(domain.name);
 	const name = normalizeSlug(record.name);
 	const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
 
 	if (!record.slug) {
-		record.slug = `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
+		record.slug = `${dname}${locale ? '-' + locale : ''}-${name}`;
 	}
 
 	if (!record.filename) {
@@ -179,7 +178,7 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 		const name = normalizeSlug(template.name);
 		const locale = normalizeSlug(template.locale || domain.locale || user.locale || '');
 
-		template.slug ||= `${normalizeSlug(user.idname)}-${dname}${locale ? '-' + locale : ''}-${name}`;
+		template.slug ||= `${dname}${locale ? '-' + locale : ''}-${name}`;
 
 		if (!template.filename) {
 			const parts = [dname, 'tx-template'];

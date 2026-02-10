@@ -48,7 +48,7 @@ export const api_form_schema = z
 			.string()
 			.default('')
 			.describe('Relative path (within the config tree) of the source .njk template file for this form.'),
-		slug: z.string().default('').describe('Generated slug used to build stable filenames/paths for this form.'),
+		slug: z.string().default('').describe('Generated slug for this form record (domain + locale + idname).'),
 		secret: z
 			.string()
 			.default('')
@@ -244,13 +244,12 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 export async function upsert_form(record: api_form_type): Promise<api_form> {
 	const { user, domain } = await user_and_domain(record.domain_id);
 
-	const idname = normalizeSlug(user.idname);
 	const dname = normalizeSlug(domain.name);
 	const name = normalizeSlug(record.idname);
 	const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
 
 	if (!record.slug) {
-		record.slug = `${idname}-${dname}${locale ? '-' + locale : ''}-${name}`;
+		record.slug = `${dname}${locale ? '-' + locale : ''}-${name}`;
 	}
 
 	if (!record.filename) {

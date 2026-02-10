@@ -372,11 +372,10 @@ export function buildFormTemplatePaths(params: {
 	idname: string;
 	locale: string;
 }): { localeSlug: string; slug: string; filename: string } {
-	const userSlug = normalizeSlug(params.user.idname);
 	const domainSlug = normalizeSlug(params.domain.name);
 	const formSlug = normalizeSlug(params.idname);
 	const localeSlug = normalizeSlug(params.locale || params.domain.locale || params.user.locale || '');
-	const slug = `${userSlug}-${domainSlug}${localeSlug ? '-' + localeSlug : ''}-${formSlug}`;
+	const slug = `${domainSlug}${localeSlug ? '-' + localeSlug : ''}-${formSlug}`;
 	const filenameParts = [domainSlug, 'form-template'];
 	if (localeSlug) {
 		filenameParts.push(localeSlug);

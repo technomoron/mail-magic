@@ -3,6 +3,7 @@ Unreleased
 - Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
 - Use safe, stable inline Content-IDs (no path separators) and keep stored `files[].cid` consistent with rendered HTML.
 - Expand tests to validate inline assets, linked assets, and uploaded attachments end-to-end.
+- Ensure record slugs and generated paths are domain-rooted only (no user segment).
 
 Version 1.0.33 (2026-02-09)
 
