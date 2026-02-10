@@ -12,15 +12,17 @@ const args = process.argv.slice(2);
 function usage(exitCode = 0): never {
 	const out = exitCode === 0 ? process.stdout : process.stderr;
 	out.write(
-		`Usage: mail-magic [--env PATH]\n\n` +
+		`Usage: mail-magic [--env PATH] [--config DIR]\n\n` +
 			`Options:\n` +
 			`  -e, --env PATH   Path to .env (defaults to ./.env)\n` +
+			`  -c, --config DIR Config directory (overrides CONFIG_PATH)\n` +
 			`  -h, --help       Show this help\n`
 	);
 	process.exit(exitCode);
 }
 
 let envPath: string | undefined;
+let configPath: string | undefined;
 for (let i = 0; i < args.length; i += 1) {
 	const arg = args[i];
 	if (arg === '-h' || arg === '--help') {
@@ -36,8 +38,22 @@ for (let i = 0; i < args.length; i += 1) {
 		i += 1;
 		continue;
 	}
+	if (arg === '-c' || arg === '--config') {
+		const next = args[i + 1];
+		if (!next) {
+			console.error('Error: --config requires a directory');
+			usage(1);
+		}
+		configPath = next;
+		i += 1;
+		continue;
+	}
 	if (arg.startsWith('--env=')) {
 		envPath = arg.slice('--env='.length);
+		continue;
+	}
+	if (arg.startsWith('--config=')) {
+		configPath = arg.slice('--config='.length);
 		continue;
 	}
 	console.error(`Error: unknown option ${arg}`);
@@ -50,6 +66,20 @@ if (!fs.existsSync(resolvedEnvPath)) {
 	process.exit(1);
 }
 
+let resolvedConfigPath: string | undefined;
+if (configPath) {
+	// Resolve the config dir relative to the .env directory (we chdir there next).
+	resolvedConfigPath = path.resolve(path.dirname(resolvedEnvPath), configPath);
+	if (!fs.existsSync(resolvedConfigPath)) {
+		console.error(`Error: config dir not found at ${resolvedConfigPath}`);
+		process.exit(1);
+	}
+	if (!fs.statSync(resolvedConfigPath).isDirectory()) {
+		console.error(`Error: config path is not a directory: ${resolvedConfigPath}`);
+		process.exit(1);
+	}
+}
+
 process.chdir(path.dirname(resolvedEnvPath));
 const result = dotenv.config({ path: resolvedEnvPath });
 if (result.error) {
@@ -60,7 +90,8 @@ if (result.error) {
 
 async function main(): Promise<void> {
 	try {
-		const { store, vars } = await startMailMagicServer();
+		const envOverrides = resolvedConfigPath ? { CONFIG_PATH: resolvedConfigPath } : {};
+		const { store, vars } = await startMailMagicServer({}, envOverrides);
 		console.log(`Using config path: ${store.configpath}`);
 		console.log(`mail-magic server listening on ${vars.API_HOST}:${vars.API_PORT}`);
 	} catch (error) {
