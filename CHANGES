@@ -15,6 +15,11 @@ This file captures workspace-level changes (tooling, repo layout, etc) and is no
   Swagger/OpenAPI spec for the authoritative API contract.
 - Added `docs/OVERVIEW.md` with a plain-language introduction to Mail Magic concepts and features.
 
+## 2026-02-10
+
+- Hardened inline asset (CID) handling and expanded test coverage to explicitly validate:
+  inline assets, linked assets, and uploaded attachments across transactional and public form flows.
+
 ## 2026-02-07
 
 - Documented new optional environment knobs in `.env-dist`, including

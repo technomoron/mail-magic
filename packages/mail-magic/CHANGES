@@ -1,3 +1,9 @@
+Unreleased
+
+- Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
+- Use safe, stable inline Content-IDs (no path separators) and keep stored `files[].cid` consistent with rendered HTML.
+- Expand tests to validate inline assets, linked assets, and uploaded attachments end-to-end.
+
 Version 1.0.33 (2026-02-09)
 
 - Route all env-derived config through `mailStore.vars` with explicit overrides for tests/examples.
