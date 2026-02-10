@@ -1,4 +1,4 @@
-Unreleased
+Version 1.0.34 (2026-02-10)
 
 - Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
 - Use safe, stable inline Content-IDs (no path separators) and keep stored `files[].cid` consistent with rendered HTML.

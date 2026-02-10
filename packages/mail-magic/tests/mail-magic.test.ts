@@ -15,7 +15,9 @@ describe('mail-magic API', () => {
 	let api: ReturnType<typeof request>;
 
 	function normalizeCid(value: unknown): string {
-		return String(value ?? '').trim().replace(/^<|>$/g, '');
+		return String(value ?? '')
+			.trim()
+			.replace(/^<|>$/g, '');
 	}
 
 	beforeAll(async () => {
@@ -68,7 +70,9 @@ describe('mail-magic API', () => {
 		expect(form.template).toContain('Email: {{ _fields_.email }}');
 		const expectedUrl = `${ctx!.apiUrl}${ctx!.assetRoute}/${ctx!.domainName}/files/banner.png`;
 		expect(form.template).toContain(expectedUrl);
-		const inline = Array.isArray(form.files) ? form.files.find((file) => file.filename === 'images/logo.png') : null;
+		const inline = Array.isArray(form.files)
+			? form.files.find((file) => file.filename === 'images/logo.png')
+			: null;
 		expect(inline?.cid).toBeTruthy();
 		if (inline?.cid) {
 			expect(inline.cid).not.toContain('/');
