@@ -7,37 +7,38 @@ import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_recipient } from '../models/recipient.js';
 import { mailApiServer } from '../server.js';
-import { parseMailbox } from '../util/email.js';
 import {
+	buildFormTemplateRecord,
 	buildFormTemplatePaths,
 	buildRecipientTo,
 	buildReplyToValue,
+	buildSubmissionContext,
 	enforceAttachmentPolicy,
 	enforceCaptchaPolicy,
 	filterSubmissionFields,
 	getPrimaryRecipientInfo,
+	normalizeRecipientEmail,
+	normalizeRecipientIdname,
+	normalizeRecipientName,
 	parseIdnameList,
 	parseFormTemplatePayload,
+	parseRecipientPayload,
 	parsePublicSubmissionOrThrow,
 	resolveFormKeyForTemplate,
+	resolveFormKeyForRecipient,
 	resolveRecipients,
 	validateFormTemplatePayload
 } from '../util/forms.js';
 import { FixedWindowRateLimiter, enforceFormRateLimit } from '../util/ratelimit.js';
 import { buildAttachments, cleanupUploadedFiles } from '../util/uploads.js';
-import { buildRequestMeta, getBodyValue, normalizeSlug } from '../util.js';
+import { buildRequestMeta, getBodyValue } from '../util.js';
 
 import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
-import type { ParsedMailbox } from 'email-addresses';
 
 export class FormAPI extends ApiModule<mailApiServer> {
 	private readonly rateLimiter = new FixedWindowRateLimiter();
-
-	private parseMailbox(value: string): ParsedMailbox | undefined {
-		return parseMailbox(value);
-	}
 
 	private async postFormRecipient(
 		apireq: mailApiRequest
@@ -45,77 +46,28 @@ export class FormAPI extends ApiModule<mailApiServer> {
 		await assert_domain_and_user(apireq);
 
 		const body = (apireq.req.body ?? {}) as Record<string, unknown>;
-		const idnameRaw = getBodyValue(body, 'idname');
-		const emailRaw = getBodyValue(body, 'email');
-		const nameRaw = getBodyValue(body, 'name');
-		const formKeyRaw = getBodyValue(body, 'form_key');
-		const formid = getBodyValue(body, 'formid');
-		const localeRaw = getBodyValue(body, 'locale');
-
-		if (!idnameRaw) {
-			throw new ApiError({ code: 400, message: 'Missing recipient identifier (idname)' });
-		}
-		const idname = normalizeSlug(idnameRaw);
-		if (!idname) {
-			throw new ApiError({ code: 400, message: 'Invalid recipient identifier (idname)' });
-		}
-
-		if (!emailRaw) {
-			throw new ApiError({ code: 400, message: 'Missing recipient email address' });
-		}
-		const mailbox = this.parseMailbox(emailRaw);
-		if (!mailbox) {
-			throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
-		}
-		const email = mailbox.address;
-		if (/[\r\n]/.test(email)) {
-			throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
-		}
-
-		const name = String(nameRaw || mailbox.name || '')
-			.trim()
-			.slice(0, 200);
-		if (/[\r\n]/.test(name)) {
-			throw new ApiError({ code: 400, message: 'Invalid recipient name' });
-		}
+		const payload = parseRecipientPayload({
+			idname: getBodyValue(body, 'idname'),
+			email: getBodyValue(body, 'email'),
+			name: getBodyValue(body, 'name'),
+			form_key: getBodyValue(body, 'form_key'),
+			formid: getBodyValue(body, 'formid'),
+			locale: getBodyValue(body, 'locale')
+		});
+		const idname = normalizeRecipientIdname(payload.idnameRaw);
+		const { email, mailbox } = normalizeRecipientEmail(payload.emailRaw);
+		const name = normalizeRecipientName(payload.nameRaw, mailbox.name);
 
 		const user = apireq.user!;
 		const domain = apireq.domain!;
 
-		let form_key = '';
-		if (formKeyRaw) {
-			const form = await api_form.findOne({ where: { form_key: formKeyRaw } });
-			if (!form || form.domain_id !== domain.domain_id || form.user_id !== user.user_id) {
-				throw new ApiError({ code: 404, message: 'No such form_key for this domain' });
-			}
-			form_key = form.form_key ?? '';
-		} else if (formid) {
-			const locale = localeRaw ? normalizeSlug(localeRaw) : '';
-			if (locale) {
-				const form = await api_form.findOne({
-					where: { user_id: user.user_id, domain_id: domain.domain_id, locale, idname: formid }
-				});
-				if (!form) {
-					throw new ApiError({ code: 404, message: 'No such form for this domain/locale' });
-				}
-				form_key = form.form_key ?? '';
-			} else {
-				const matches = await api_form.findAll({
-					where: { user_id: user.user_id, domain_id: domain.domain_id, idname: formid },
-					limit: 2
-				});
-				if (matches.length === 0) {
-					throw new ApiError({ code: 404, message: 'No such form for this domain' });
-				}
-				if (matches.length > 1) {
-					throw new ApiError({
-						code: 409,
-						message: 'Form identifier is ambiguous; provide locale or form_key'
-					});
-				}
-				form_key = matches[0].form_key ?? '';
-			}
-		}
+		const form_key = await resolveFormKeyForRecipient({
+			formKeyRaw: payload.formKeyRaw,
+			formid: payload.formid,
+			localeRaw: payload.localeRaw,
+			user,
+			domain
+		});
 
 		const record = {
 			domain_id: domain.domain_id,
@@ -167,25 +119,15 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				idname: payload.idname
 			})) || nanoid();
 
-		const record = {
+		const record = buildFormTemplateRecord({
 			form_key,
 			user_id: user.user_id,
 			domain_id: domain.domain_id,
 			locale: localeSlug,
-			idname: payload.idname,
-			sender: payload.sender,
-			recipient: payload.recipient,
-			subject: payload.subject,
-			template: payload.template,
 			slug,
 			filename,
-			secret: payload.secret,
-			replyto_email: payload.replyto_email,
-			replyto_from_fields: payload.replyto_from_fields,
-			allowed_fields: payload.allowed_fields,
-			captcha_required: payload.captcha_required,
-			files: []
-		};
+			payload
+		});
 
 		let created = false;
 		for (let attempt = 0; attempt < 10; attempt++) {
@@ -253,20 +195,19 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			const meta = buildRequestMeta(apireq.req);
 			const to = buildRecipientTo(form, resolvedRecipients);
 			const replyToValue = buildReplyToValue(form, fields);
-			const context = {
-				_mm_form_key: form_key,
-				_mm_recipients: recipients,
-				_mm_locale: localeRaw,
-				_rcpt_email_: rcptEmail,
-				_rcpt_name_: rcptName,
-				_rcpt_idname_: rcptIdname,
-				_rcpt_idnames_: rcptIdnames,
-				_attachments_: attachmentMap,
-				_vars_: {},
-				_fields_: fields,
-				_files_: rawFiles,
-				_meta_: meta
-			};
+			const context = buildSubmissionContext({
+				form_key,
+				localeRaw,
+				recipients,
+				rcptEmail,
+				rcptName,
+				rcptIdname,
+				rcptIdnames,
+				attachmentMap,
+				fields,
+				files: rawFiles,
+				meta
+			});
 
 			nunjucks.configure({ autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
 			const html = nunjucks.renderString(form.template, context);

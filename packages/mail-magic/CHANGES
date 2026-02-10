@@ -3,6 +3,7 @@ Version 1.0.33 (2026-02-09)
 - Route all env-derived config through `mailStore.vars` with explicit overrides for tests/examples.
 - Move shared helpers into `util/` modules (rate limiting, email parsing, path safety, uploads).
 - Switch template preprocessing to Unyuck’s asset collection while preserving existing URL and CID behavior.
+- Split form submission logic into focused util helpers and slim the API handler.
 
 Version 1.0.32 (2026-02-08)
 

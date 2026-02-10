@@ -13,7 +13,7 @@ import { normalizeBoolean, normalizeSlug } from './utils.js';
 
 import type { api_domain } from '../models/domain.js';
 import type { api_user } from '../models/user.js';
-import type { UploadedFile } from '../types.js';
+import type { RequestMeta, UploadedFile } from '../types.js';
 
 export function parsePublicSubmissionOrThrow(apireq: ApiRequest): ParsedFormSubmission {
 	try {
@@ -153,6 +153,113 @@ export function parseIdnameList(value: unknown, field: string): string[] {
 		}
 	}
 	return Array.from(new Set(out));
+}
+
+export type FormRecipientPayload = {
+	idnameRaw: string;
+	emailRaw: string;
+	nameRaw: string;
+	formKeyRaw: string;
+	formid: string;
+	localeRaw: string;
+};
+
+export function parseRecipientPayload(body: Record<string, unknown>): FormRecipientPayload {
+	return {
+		idnameRaw: String(body.idname ?? ''),
+		emailRaw: String(body.email ?? ''),
+		nameRaw: String(body.name ?? ''),
+		formKeyRaw: String(body.form_key ?? ''),
+		formid: String(body.formid ?? ''),
+		localeRaw: String(body.locale ?? '')
+	};
+}
+
+export function normalizeRecipientIdname(raw: string): string {
+	if (!raw) {
+		throw new ApiError({ code: 400, message: 'Missing recipient identifier (idname)' });
+	}
+	const idname = normalizeSlug(raw);
+	if (!idname) {
+		throw new ApiError({ code: 400, message: 'Invalid recipient identifier (idname)' });
+	}
+	return idname;
+}
+
+export function normalizeRecipientEmail(raw: string): {
+	email: string;
+	mailbox: { address: string; name?: string | null };
+} {
+	if (!raw) {
+		throw new ApiError({ code: 400, message: 'Missing recipient email address' });
+	}
+	const mailbox = parseMailbox(raw);
+	if (!mailbox) {
+		throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
+	}
+	const email = mailbox.address;
+	if (/[\r\n]/.test(email)) {
+		throw new ApiError({ code: 400, message: 'Invalid recipient email address' });
+	}
+	return { email, mailbox };
+}
+
+export function normalizeRecipientName(raw: string, mailboxName?: string | null): string {
+	const name = String(raw || mailboxName || '')
+		.trim()
+		.slice(0, 200);
+	if (/[\r\n]/.test(name)) {
+		throw new ApiError({ code: 400, message: 'Invalid recipient name' });
+	}
+	return name;
+}
+
+export async function resolveFormKeyForRecipient(params: {
+	formKeyRaw: string;
+	formid: string;
+	localeRaw: string;
+	user: api_user;
+	domain: api_domain;
+}): Promise<string> {
+	if (params.formKeyRaw) {
+		const form = await api_form.findOne({ where: { form_key: params.formKeyRaw } });
+		if (!form || form.domain_id !== params.domain.domain_id || form.user_id !== params.user.user_id) {
+			throw new ApiError({ code: 404, message: 'No such form_key for this domain' });
+		}
+		return form.form_key ?? '';
+	}
+	if (params.formid) {
+		const locale = params.localeRaw ? normalizeSlug(params.localeRaw) : '';
+		if (locale) {
+			const form = await api_form.findOne({
+				where: {
+					user_id: params.user.user_id,
+					domain_id: params.domain.domain_id,
+					locale,
+					idname: params.formid
+				}
+			});
+			if (!form) {
+				throw new ApiError({ code: 404, message: 'No such form for this domain/locale' });
+			}
+			return form.form_key ?? '';
+		}
+		const matches = await api_form.findAll({
+			where: { user_id: params.user.user_id, domain_id: params.domain.domain_id, idname: params.formid },
+			limit: 2
+		});
+		if (matches.length === 0) {
+			throw new ApiError({ code: 404, message: 'No such form for this domain' });
+		}
+		if (matches.length > 1) {
+			throw new ApiError({
+				code: 409,
+				message: 'Form identifier is ambiguous; provide locale or form_key'
+			});
+		}
+		return matches[0].form_key ?? '';
+	}
+	return '';
 }
 
 export function parseAllowedFields(raw: unknown): string[] {
@@ -303,6 +410,36 @@ export async function resolveFormKeyForTemplate(params: {
 	}
 }
 
+export function buildFormTemplateRecord(params: {
+	form_key: string;
+	user_id: number;
+	domain_id: number;
+	locale: string;
+	slug: string;
+	filename: string;
+	payload: FormTemplateInput;
+}) {
+	return {
+		form_key: params.form_key,
+		user_id: params.user_id,
+		domain_id: params.domain_id,
+		locale: params.locale,
+		idname: params.payload.idname,
+		sender: params.payload.sender,
+		recipient: params.payload.recipient,
+		subject: params.payload.subject,
+		template: params.payload.template,
+		slug: params.slug,
+		filename: params.filename,
+		secret: params.payload.secret,
+		replyto_email: params.payload.replyto_email,
+		replyto_from_fields: params.payload.replyto_from_fields,
+		allowed_fields: params.payload.allowed_fields,
+		captcha_required: params.payload.captcha_required,
+		files: []
+	};
+}
+
 export async function resolveRecipients(form: api_form, recipientsRaw: unknown): Promise<api_recipient[]> {
 	const scopeFormKey = String(form.form_key ?? '').trim();
 	if (!scopeFormKey) {
@@ -369,5 +506,34 @@ export function getPrimaryRecipientInfo(form: api_form, recipients: api_recipien
 		rcptName: '',
 		rcptIdname: '',
 		rcptIdnames: []
+	};
+}
+
+export function buildSubmissionContext(params: {
+	form_key: string;
+	localeRaw: string;
+	recipients: string[];
+	rcptEmail: string;
+	rcptName: string;
+	rcptIdname: string;
+	rcptIdnames: string[];
+	attachmentMap: Record<string, string>;
+	fields: Record<string, unknown>;
+	files: UploadedFile[];
+	meta: RequestMeta;
+}): Record<string, unknown> {
+	return {
+		_mm_form_key: params.form_key,
+		_mm_recipients: params.recipients,
+		_mm_locale: params.localeRaw,
+		_rcpt_email_: params.rcptEmail,
+		_rcpt_name_: params.rcptName,
+		_rcpt_idname_: params.rcptIdname,
+		_rcpt_idnames_: params.rcptIdnames,
+		_attachments_: params.attachmentMap,
+		_vars_: {},
+		_fields_: params.fields,
+		_files_: params.files,
+		_meta_: params.meta
 	};
 }
