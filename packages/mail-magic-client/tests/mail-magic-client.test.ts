@@ -129,6 +129,25 @@ describe('TemplateClient', () => {
 		expect(body.domain).toBe('example.test');
 	});
 
+	it('stores form recipients via the API', async () => {
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		await client.storeFormRecipient({
+			domain: 'example.test',
+			idname: 'support',
+			email: 'Support <support@example.test>',
+			name: 'Support Team',
+			formid: 'contact',
+			locale: 'en'
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('http://localhost:4000/api/v1/form/recipient');
+		const body = JSON.parse(String(options.body));
+		expect(body.idname).toBe('support');
+		expect(body.domain).toBe('example.test');
+	});
+
 	it('sends form messages as JSON when no attachments are provided', async () => {
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await client.sendFormMessage({
@@ -233,5 +252,45 @@ describe('TemplateClient', () => {
 		).rejects.toThrow('Headers are not supported');
 
 		fs.rmSync(tempDir, { recursive: true, force: true });
+	});
+
+	it('fetches the swagger spec from the mail-magic endpoint', async () => {
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		await client.getSwaggerSpec();
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('http://localhost:4000/api/swagger');
+		expect(options.method).toBe('GET');
+	});
+
+	it('fetches public assets through the direct asset route', async () => {
+		fetchSpy = vi.fn(async () => {
+			return new Response('asset-bytes', { status: 200 });
+		});
+		vi.stubGlobal('fetch', fetchSpy);
+
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		const bytes = await client.fetchPublicAsset('example.test', 'images/logo file.png');
+
+		expect(bytes.byteLength).toBeGreaterThan(0);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, options] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('http://localhost:4000/asset/example.test/images/logo%20file.png');
+		expect(options.method).toBe('GET');
+	});
+
+	it('fetches public assets through the api-base compatibility route', async () => {
+		fetchSpy = vi.fn(async () => {
+			return new Response('asset-bytes', { status: 200 });
+		});
+		vi.stubGlobal('fetch', fetchSpy);
+
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		await client.fetchPublicAsset('example.test', 'images/logo.png', true);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('http://localhost:4000/api/asset/example.test/images/logo.png');
 	});
 });

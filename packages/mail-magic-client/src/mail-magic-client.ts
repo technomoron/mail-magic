@@ -27,6 +27,20 @@ interface formTemplateData {
 	subject?: string;
 	locale?: string;
 	secret?: string;
+	replyto_email?: string;
+	replyto_from_fields?: boolean;
+	allowed_fields?: string[] | string;
+	captcha_required?: boolean;
+}
+
+interface formRecipientData {
+	domain: string;
+	idname: string;
+	email: string;
+	name?: string;
+	form_key?: string;
+	formid?: string;
+	locale?: string;
 }
 
 interface sendTemplateData {
@@ -301,6 +315,24 @@ class templateClient {
 		return this.post('/api/v1/form/template', data);
 	}
 
+	async storeFormRecipient(data: formRecipientData): Promise<unknown> {
+		if (!data.domain) {
+			throw new Error('Missing domain');
+		}
+		if (!data.idname) {
+			throw new Error('Missing recipient identifier');
+		}
+		if (!data.email) {
+			throw new Error('Missing recipient email');
+		}
+		const parsed = emailAddresses.parseOneAddress(data.email);
+		if (!parsed || !(parsed as ParsedMailbox).address) {
+			throw new Error('Invalid recipient email address');
+		}
+
+		return this.post('/api/v1/form/recipient', data);
+	}
+
 	async sendFormMessage(data: sendFormData): Promise<unknown> {
 		if (!data._mm_form_key) {
 			throw new Error('Invalid request body; _mm_form_key required');
@@ -366,6 +398,39 @@ class templateClient {
 		});
 
 		return this.postFormData('/api/v1/assets', formData);
+	}
+
+	async getSwaggerSpec(): Promise<unknown> {
+		return this.get('/api/swagger');
+	}
+
+	async fetchPublicAsset(domain: string, assetPath: string, viaApiBase = false): Promise<ArrayBuffer> {
+		if (!domain) {
+			throw new Error('domain is required');
+		}
+		if (!assetPath) {
+			throw new Error('assetPath is required');
+		}
+		const cleanedPath = assetPath
+			.split('/')
+			.filter(Boolean)
+			.map((segment) => encodeURIComponent(segment))
+			.join('/');
+		if (!cleanedPath) {
+			throw new Error('assetPath is required');
+		}
+		const prefix = viaApiBase ? '/api/asset' : '/asset';
+		const url = `${this.baseURL}${prefix}/${encodeURIComponent(domain)}/${cleanedPath}`;
+		const response = await fetch(url, {
+			method: 'GET',
+			headers: {
+				Accept: '*/*'
+			}
+		});
+		if (!response.ok) {
+			throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
+		}
+		return response.arrayBuffer();
 	}
 }
 

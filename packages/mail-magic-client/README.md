@@ -56,6 +56,19 @@ const res = await client.storeFormTemplate({
 const form_key = res.data.form_key;
 ```
 
+Store/update form recipient mappings (authenticated):
+
+```ts
+await client.storeFormRecipient({
+	domain: 'example.test',
+	idname: 'support',
+	email: 'Support <support@example.test>',
+	name: 'Support Team',
+	formid: 'contact',
+	locale: 'en'
+});
+```
+
 Submit a form publicly (no auth required):
 
 ```ts
@@ -149,3 +162,7 @@ mm-cli assets --file ./hero.png --domain example.test --template-type tx --templ
 
 - `push-dir` expects a `init-data.json` and domain folders that match the server config layout.
 - Asset uploads use the server endpoint `POST /api/v1/assets`.
+- OpenAPI spec (when enabled): `await client.getSwaggerSpec()`
+- Public asset fetch helpers:
+  - `await client.fetchPublicAsset('example.test', 'images/logo.png')` -> `/asset/{domain}/{path}`
+  - `await client.fetchPublicAsset('example.test', 'images/logo.png', true)` -> `/api/asset/{domain}/{path}`
