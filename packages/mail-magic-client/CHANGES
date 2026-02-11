@@ -1,3 +1,14 @@
+Version 1.0.29 (2026-02-11)
+
+- Expand client coverage for mail-magic-owned endpoints:
+  - Add `storeFormRecipient()` for `POST /api/v1/form/recipient`.
+  - Add `getSwaggerSpec()` for `GET /api/swagger`.
+  - Add `fetchPublicAsset()` for public asset routes (`/asset/...` and `/api/asset/...`).
+- Extend `storeFormTemplate()` input support for newer form fields:
+  `replyto_email`, `replyto_from_fields`, `allowed_fields`, and `captcha_required`.
+- Add tests for the new client methods and route mappings.
+- Refresh README usage docs for recipient upserts, swagger retrieval, and public asset fetch helpers.
+
 Version 1.0.28 (2026-02-08)
 
 - Refresh README/examples to match current server auth and public form submission semantics (`_mm_form_key`,

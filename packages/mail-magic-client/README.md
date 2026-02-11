@@ -164,5 +164,5 @@ mm-cli assets --file ./hero.png --domain example.test --template-type tx --templ
 - Asset uploads use the server endpoint `POST /api/v1/assets`.
 - OpenAPI spec (when enabled): `await client.getSwaggerSpec()`
 - Public asset fetch helpers:
-  - `await client.fetchPublicAsset('example.test', 'images/logo.png')` -> `/asset/{domain}/{path}`
-  - `await client.fetchPublicAsset('example.test', 'images/logo.png', true)` -> `/api/asset/{domain}/{path}`
+    - `await client.fetchPublicAsset('example.test', 'images/logo.png')` -> `/asset/{domain}/{path}`
+    - `await client.fetchPublicAsset('example.test', 'images/logo.png', true)` -> `/api/asset/{domain}/{path}`
