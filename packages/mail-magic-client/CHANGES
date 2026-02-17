@@ -1,3 +1,10 @@
+Version 1.0.30 (2026-02-17)
+
+- Refactor template preprocess compilation to use per-invocation configuration
+  (remove module-level mutable config state).
+- Add regression coverage to ensure preprocess options (such as
+  `inline_includes`) do not leak between compile calls.
+
 Version 1.0.29 (2026-02-11)
 
 - Expand client coverage for mail-magic-owned endpoints:

@@ -27,6 +27,35 @@ function create_mail_transport(vars) {
     });
     return mailer;
 }
+export function enableInitDataAutoReload(ctx, reload) {
+    if (!ctx.vars.DB_AUTO_RELOAD) {
+        return null;
+    }
+    const initDataPath = ctx.config_filename('init-data.json');
+    ctx.print_debug('Enabling auto reload of init-data.json');
+    const onChange = () => {
+        ctx.print_debug('Config file changed, reloading...');
+        try {
+            reload();
+        }
+        catch (err) {
+            ctx.print_debug(`Failed to reload config: ${err}`);
+        }
+    };
+    try {
+        const watcher = fs.watch(initDataPath, { persistent: false }, onChange);
+        return {
+            close: () => watcher.close()
+        };
+    }
+    catch (err) {
+        ctx.print_debug(`fs.watch unavailable; falling back to fs.watchFile: ${err}`);
+        fs.watchFile(initDataPath, { interval: 2000 }, onChange);
+        return {
+            close: () => fs.unwatchFile(initDataPath, onChange)
+        };
+    }
+}
 export class mailStore {
     env;
     vars;
@@ -35,6 +64,7 @@ export class mailStore {
     configpath = '';
     uploadTemplate;
     uploadStagingPath;
+    autoReloadHandle = null;
     print_debug(msg) {
         if (this.vars.DEBUG) {
             console.log(msg);
@@ -153,18 +183,8 @@ export class mailStore {
         }
         this.transport = await create_mail_transport(this.vars);
         this.api_db = await connect_api_db(this);
-        if (this.vars.DB_AUTO_RELOAD) {
-            this.print_debug('Enabling auto reload of init-data.json');
-            fs.watchFile(this.config_filename('init-data.json'), { interval: 2000 }, () => {
-                this.print_debug('Config file changed, reloading...');
-                try {
-                    importData(this);
-                }
-                catch (err) {
-                    this.print_debug(`Failed to reload config: ${err}`);
-                }
-            });
-        }
+        this.autoReloadHandle?.close();
+        this.autoReloadHandle = enableInitDataAutoReload(this, () => importData(this));
         return this;
     }
 }

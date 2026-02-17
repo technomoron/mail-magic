@@ -19,6 +19,15 @@ type UploadedFile = {
 };
 
 export type MailStoreVars = envConfig<typeof envOptions>;
+type AutoReloadHandle = {
+	close: () => void;
+};
+
+type AutoReloadContext = {
+	vars: Pick<MailStoreVars, 'DB_AUTO_RELOAD'>;
+	config_filename: (name: string) => string;
+	print_debug: (msg: string) => void;
+};
 
 function create_mail_transport(vars: MailStoreVars): Transporter {
 	const args: SMTPTransport.Options = {
@@ -44,6 +53,35 @@ function create_mail_transport(vars: MailStoreVars): Transporter {
 	return mailer;
 }
 
+export function enableInitDataAutoReload(ctx: AutoReloadContext, reload: () => void): AutoReloadHandle | null {
+	if (!ctx.vars.DB_AUTO_RELOAD) {
+		return null;
+	}
+	const initDataPath = ctx.config_filename('init-data.json');
+	ctx.print_debug('Enabling auto reload of init-data.json');
+	const onChange = () => {
+		ctx.print_debug('Config file changed, reloading...');
+		try {
+			reload();
+		} catch (err) {
+			ctx.print_debug(`Failed to reload config: ${err}`);
+		}
+	};
+
+	try {
+		const watcher = fs.watch(initDataPath, { persistent: false }, onChange);
+		return {
+			close: () => watcher.close()
+		};
+	} catch (err) {
+		ctx.print_debug(`fs.watch unavailable; falling back to fs.watchFile: ${err}`);
+		fs.watchFile(initDataPath, { interval: 2000 }, onChange);
+		return {
+			close: () => fs.unwatchFile(initDataPath, onChange)
+		};
+	}
+}
+
 export class mailStore {
 	private env!: envConfig<typeof envOptions>;
 	vars!: MailStoreVars;
@@ -52,6 +90,7 @@ export class mailStore {
 	configpath = '';
 	uploadTemplate?: string;
 	uploadStagingPath?: string;
+	autoReloadHandle: AutoReloadHandle | null = null;
 
 	print_debug(msg: string) {
 		if (this.vars.DEBUG) {
@@ -177,17 +216,8 @@ export class mailStore {
 
 		this.api_db = await connect_api_db(this);
 
-		if (this.vars.DB_AUTO_RELOAD) {
-			this.print_debug('Enabling auto reload of init-data.json');
-			fs.watchFile(this.config_filename('init-data.json'), { interval: 2000 }, () => {
-				this.print_debug('Config file changed, reloading...');
-				try {
-					importData(this);
-				} catch (err) {
-					this.print_debug(`Failed to reload config: ${err}`);
-				}
-			});
-		}
+		this.autoReloadHandle?.close();
+		this.autoReloadHandle = enableInitDataAutoReload(this, () => importData(this));
 
 		return this;
 	}

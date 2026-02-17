@@ -14,14 +14,16 @@ const node_path_1 = __importDefault(require("node:path"));
 const cheerio_1 = require("cheerio");
 const juice_1 = __importDefault(require("juice"));
 const nunjucks_1 = __importDefault(require("nunjucks"));
-const cfg = {
-    env: null,
-    src_dir: 'templates',
-    dist_dir: 'templates-dist',
-    css_path: node_path_1.default.join(process.cwd(), 'templates', 'foundation-emails.css'),
-    css_content: null,
-    inline_includes: true
-};
+function createCompileCfg(options) {
+    return {
+        env: null,
+        src_dir: options.src_dir ?? 'templates',
+        dist_dir: options.dist_dir ?? 'templates-dist',
+        css_path: options.css_path ?? node_path_1.default.join(process.cwd(), 'templates', 'foundation-emails.css'),
+        css_content: null,
+        inline_includes: options.inline_includes ?? true
+    };
+}
 function resolvePathRoot(dir) {
     return node_path_1.default.isAbsolute(dir) ? dir : node_path_1.default.join(process.cwd(), dir);
 }
@@ -58,8 +60,9 @@ function inlineIncludes(content, baseDir, srcRoot, normalizedSrcRoot, stack) {
     });
 }
 class PreprocessExtension {
-    constructor() {
+    constructor(cfg) {
         this.tags = ['process_layout'];
+        this.cfg = cfg;
     }
     parse(parser, nodes) {
         const token = parser.nextToken();
@@ -68,13 +71,13 @@ class PreprocessExtension {
         return new nodes.CallExtension(this, 'run', args);
     }
     run(_context, tplname) {
-        const template = cfg.env.getTemplate(tplname);
+        const template = this.cfg.env.getTemplate(tplname);
         const src = template.tmplStr;
         const extmatch = src.match(/\{%\s*extends\s+['"]([^'"]+)['"]\s*%\}/);
         if (!extmatch)
             return src;
         const layoutName = extmatch[1];
-        const layoutTemplate = cfg.env.getTemplate(layoutName);
+        const layoutTemplate = this.cfg.env.getTemplate(layoutName);
         const layoutSrc = layoutTemplate.tmplStr;
         const blocks = {};
         const blockexp = /\{%\s*block\s+([a-zA-Z0-9_]+)\s*%\}([\s\S]*?)\{%\s*endblock\s*%\}/g;
@@ -97,7 +100,7 @@ class PreprocessExtension {
         return merged;
     }
 }
-function process_template(tplname, writeOutput = true) {
+function process_template(cfg, tplname, writeOutput = true) {
     console.log(`Processing template: ${tplname}`);
     try {
         const srcRoot = resolvePathRoot(cfg.src_dir);
@@ -224,7 +227,7 @@ function get_all_files(dir, filelist = []) {
     });
     return filelist;
 }
-function find_templates() {
+function find_templates(cfg) {
     const srcRoot = resolvePathRoot(cfg.src_dir);
     const all = get_all_files(srcRoot);
     return all
@@ -242,16 +245,16 @@ function find_templates() {
         return name.substring(0, name.length - 4);
     });
 }
-async function process_all_templates() {
+async function process_all_templates(cfg) {
     const distRoot = resolvePathRoot(cfg.dist_dir);
     if (!node_fs_1.default.existsSync(distRoot)) {
         node_fs_1.default.mkdirSync(distRoot, { recursive: true });
     }
-    const templates = find_templates();
+    const templates = find_templates(cfg);
     console.log(`Found ${templates.length} templates to process: ${templates.join(', ')}`);
     for (const template of templates) {
         try {
-            process_template(template);
+            process_template(cfg, template);
         }
         catch (error) {
             console.error(`Failed to process ${template}:`, error);
@@ -259,7 +262,7 @@ async function process_all_templates() {
     }
     console.log('All templates processed!');
 }
-function init_env() {
+function init_env(cfg) {
     const loader = new nunjucks_1.default.FileSystemLoader(resolvePathRoot(cfg.src_dir));
     cfg.env = new nunjucks_1.default.Environment(loader, { autoescape: false });
     if (!cfg.env)
@@ -273,7 +276,7 @@ function init_env() {
         cfg.css_content = null;
     }
     // Extension
-    cfg.env.addExtension('PreprocessExtension', new PreprocessExtension());
+    cfg.env.addExtension('PreprocessExtension', new PreprocessExtension(cfg));
     // Filters
     cfg.env.addFilter('protect_variables', function (content) {
         return content
@@ -289,29 +292,17 @@ function init_env() {
     });
 }
 async function do_the_template_thing(options = {}) {
-    if (options.src_dir)
-        cfg.src_dir = options.src_dir;
-    if (options.dist_dir)
-        cfg.dist_dir = options.dist_dir;
-    if (options.css_path)
-        cfg.css_path = options.css_path;
-    if (options.inline_includes !== undefined)
-        cfg.inline_includes = options.inline_includes;
-    init_env();
+    const cfg = createCompileCfg(options);
+    init_env(cfg);
     if (options.tplname) {
-        process_template(options.tplname);
+        process_template(cfg, options.tplname);
     }
     else {
-        await process_all_templates();
+        await process_all_templates(cfg);
     }
 }
 async function compileTemplate(options) {
-    if (options.src_dir)
-        cfg.src_dir = options.src_dir;
-    if (options.css_path)
-        cfg.css_path = options.css_path;
-    if (options.inline_includes !== undefined)
-        cfg.inline_includes = options.inline_includes;
-    init_env();
-    return process_template(options.tplname, false);
+    const cfg = createCompileCfg(options);
+    init_env(cfg);
+    return process_template(cfg, options.tplname, false);
 }

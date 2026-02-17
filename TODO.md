@@ -20,11 +20,6 @@
 
 ## Bugs / Correctness
 
-- [ ] **#10 Module-level mutable preprocess config (`mail-magic-client`)**  
-       Decision: `agree`  
-       Action: Refactor preprocess pipeline to use per-invocation config object.  
-       Pitfalls: Refactor can break CLI/template compile behavior without regression tests.
-
 ## Design / Architecture
 
 - [ ] **#11 In-memory rate limiter limitations**  
@@ -32,28 +27,19 @@
        Action: Document single-instance limitation; optionally add Redis-backed limiter path.  
        Pitfalls: Extra operational complexity.
 
-- [ ] **#12 `fs.watchFile` polling for auto-reload**  
-       Decision: `agree`  
-       Action: Prefer `fs.watch` with fallback to `watchFile`.  
-       Pitfalls: Cross-platform watcher behavior differences.
 
 - [ ] **#13 Sequential recipient resolution queries**  
        Decision: `agree`  
        Action: Batch/parallelize lookup while preserving scoped-over-domain precedence.  
        Pitfalls: Easy to break precedence semantics.
 
-- [ ] **#14 Zod/Sequelize schema drift risk**  
-       Decision: `agree` (informational)  
-       Action: Add consistency tests/checks between schema and Sequelize model definitions.  
-       Pitfalls: Tooling complexity and maintenance cost.
 
 ## Code Quality / Cleanup
 
 ## Suggested Implementation Order
 
-- [ ] **Now (high value / low risk):** #13, #12
-- [ ] **Next:** #10
-- [ ] **Backlog / design:** #1, #11, #14
+- [ ] **Now (high value / low risk):** #13
+- [ ] **Backlog / design:** #1, #11
 
 ## Completed
 
@@ -132,3 +118,21 @@
        Decision: `partially-disagree` (works in current CJS build)  
        Action: Replaced `__dirname` package-version lookup with argv/cwd-based resolver and extracted helper for tests.
        Pitfalls: Resolver now depends on executable location conventions; added fallback candidates.
+
+- [x] **#10 Module-level mutable preprocess config (`mail-magic-client`)**  
+       Decision: `agree`  
+       Action: Refactored preprocess pipeline to use per-invocation config objects and added regression coverage that
+      verifies options do not leak across compile calls.
+       Pitfalls: None observed after regression coverage.
+
+- [x] **#12 `fs.watchFile` polling for auto-reload**  
+       Decision: `agree`  
+       Action: Added `fs.watch` as primary init-data reload watcher with automatic fallback to `fs.watchFile` when
+      unavailable; added tests for primary, fallback, and disabled modes.
+       Pitfalls: Cross-platform watcher differences remain, but fallback is now explicit/tested.
+
+- [x] **#14 Zod/Sequelize schema drift risk**  
+       Decision: `agree` (informational)  
+       Action: Added schema-vs-model consistency tests that assert Zod object keys match Sequelize attributes for core
+      API models (excluding framework timestamp columns).
+       Pitfalls: Future schema changes now require keeping model attributes in sync or tests will fail.

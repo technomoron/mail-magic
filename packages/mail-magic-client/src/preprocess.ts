@@ -41,14 +41,21 @@ type NunjucksNodes = {
 	CallExtension: new (extension: unknown, methodName: string, args: unknown) => unknown;
 };
 
-const cfg: CompileCfg = {
-	env: null,
-	src_dir: 'templates',
-	dist_dir: 'templates-dist',
-	css_path: path.join(process.cwd(), 'templates', 'foundation-emails.css'),
-	css_content: null,
-	inline_includes: true
-};
+function createCompileCfg(options: {
+	src_dir?: string;
+	dist_dir?: string;
+	css_path?: string;
+	inline_includes?: boolean;
+}): CompileCfg {
+	return {
+		env: null,
+		src_dir: options.src_dir ?? 'templates',
+		dist_dir: options.dist_dir ?? 'templates-dist',
+		css_path: options.css_path ?? path.join(process.cwd(), 'templates', 'foundation-emails.css'),
+		css_content: null,
+		inline_includes: options.inline_includes ?? true
+	};
+}
 
 function resolvePathRoot(dir: string): string {
 	return path.isAbsolute(dir) ? dir : path.join(process.cwd(), dir);
@@ -95,7 +102,12 @@ function inlineIncludes(
 }
 
 class PreprocessExtension {
+	private readonly cfg: CompileCfg;
 	tags: string[] = ['process_layout'];
+
+	constructor(cfg: CompileCfg) {
+		this.cfg = cfg;
+	}
 
 	parse(parser: NunjucksParser, nodes: NunjucksNodes): unknown {
 		const token = parser.nextToken();
@@ -105,14 +117,14 @@ class PreprocessExtension {
 	}
 
 	run(_context: unknown, tplname: string): string {
-		const template = cfg.env!.getTemplate(tplname);
+		const template = this.cfg.env!.getTemplate(tplname);
 		const src = template.tmplStr;
 
 		const extmatch = src.match(/\{%\s*extends\s+['"]([^'"]+)['"]\s*%\}/);
 		if (!extmatch) return src;
 
 		const layoutName = extmatch[1];
-		const layoutTemplate = cfg.env!.getTemplate(layoutName);
+		const layoutTemplate = this.cfg.env!.getTemplate(layoutName);
 		const layoutSrc = layoutTemplate.tmplStr;
 
 		const blocks: Record<string, string> = {};
@@ -143,7 +155,7 @@ class PreprocessExtension {
 	}
 }
 
-function process_template(tplname: string, writeOutput = true) {
+function process_template(cfg: CompileCfg, tplname: string, writeOutput = true) {
 	console.log(`Processing template: ${tplname}`);
 
 	try {
@@ -284,7 +296,7 @@ function get_all_files(dir: string, filelist: string[] = []): string[] {
 	return filelist;
 }
 
-function find_templates() {
+function find_templates(cfg: CompileCfg) {
 	const srcRoot = resolvePathRoot(cfg.src_dir);
 	const all = get_all_files(srcRoot);
 
@@ -306,18 +318,18 @@ function find_templates() {
 		});
 }
 
-async function process_all_templates() {
+async function process_all_templates(cfg: CompileCfg) {
 	const distRoot = resolvePathRoot(cfg.dist_dir);
 	if (!fs.existsSync(distRoot)) {
 		fs.mkdirSync(distRoot, { recursive: true });
 	}
 
-	const templates = find_templates();
+	const templates = find_templates(cfg);
 	console.log(`Found ${templates.length} templates to process: ${templates.join(', ')}`);
 
 	for (const template of templates) {
 		try {
-			process_template(template);
+			process_template(cfg, template);
 		} catch (error) {
 			console.error(`Failed to process ${template}:`, error);
 		}
@@ -325,7 +337,7 @@ async function process_all_templates() {
 	console.log('All templates processed!');
 }
 
-function init_env() {
+function init_env(cfg: CompileCfg) {
 	const loader = new nunjucks.FileSystemLoader(resolvePathRoot(cfg.src_dir));
 	cfg.env = new nunjucks.Environment(loader, { autoescape: false }) as ExtendedEnvironment;
 	if (!cfg.env) throw Error('Unable to init nunjucks environment');
@@ -339,7 +351,7 @@ function init_env() {
 	}
 
 	// Extension
-	cfg.env.addExtension('PreprocessExtension', new PreprocessExtension());
+	cfg.env.addExtension('PreprocessExtension', new PreprocessExtension(cfg));
 
 	// Filters
 	cfg.env.addFilter('protect_variables', function (content: string) {
@@ -366,17 +378,13 @@ export async function do_the_template_thing(
 		inline_includes?: boolean;
 	} = {}
 ) {
-	if (options.src_dir) cfg.src_dir = options.src_dir;
-	if (options.dist_dir) cfg.dist_dir = options.dist_dir;
-	if (options.css_path) cfg.css_path = options.css_path;
-	if (options.inline_includes !== undefined) cfg.inline_includes = options.inline_includes;
-
-	init_env();
+	const cfg = createCompileCfg(options);
+	init_env(cfg);
 
 	if (options.tplname) {
-		process_template(options.tplname);
+		process_template(cfg, options.tplname);
 	} else {
-		await process_all_templates();
+		await process_all_templates(cfg);
 	}
 }
 
@@ -386,11 +394,8 @@ export async function compileTemplate(options: {
 	tplname: string;
 	inline_includes?: boolean;
 }): Promise<string> {
-	if (options.src_dir) cfg.src_dir = options.src_dir;
-	if (options.css_path) cfg.css_path = options.css_path;
-	if (options.inline_includes !== undefined) cfg.inline_includes = options.inline_includes;
+	const cfg = createCompileCfg(options);
+	init_env(cfg);
 
-	init_env();
-
-	return process_template(options.tplname, false);
+	return process_template(cfg, options.tplname, false);
 }

@@ -1,3 +1,12 @@
+Version 1.0.38 (2026-02-17)
+
+- Prefer `fs.watch` for init-data auto-reload with automatic fallback to
+  `fs.watchFile` when native file watching is unavailable.
+- Add regression tests for auto-reload watcher behavior (`watch`, fallback,
+  disabled mode).
+- Add schema-drift regression tests that assert Zod schema keys match Sequelize
+  model attributes for core API models.
+
 Version 1.0.37 (2026-02-17)
 
 - Remove stale commented-out debug code from server mailer/store paths.
