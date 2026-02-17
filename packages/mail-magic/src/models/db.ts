@@ -10,6 +10,10 @@ import { init_api_user, api_user, migrateLegacyApiTokens } from './user.js';
 
 import type { Dialect, Options } from 'sequelize';
 
+export function usesSqlitePragmas(db: Pick<Sequelize, 'getDialect'>): boolean {
+	return db.getDialect() === 'sqlite';
+}
+
 export async function init_api_db(db: Sequelize, store: mailStore) {
 	await init_api_user(db);
 	await init_api_domain(db);
@@ -81,11 +85,16 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 		as: 'domain'
 	});
 
-	await db.query('PRAGMA foreign_keys = OFF');
+	const useSqlitePragmas = usesSqlitePragmas(db);
+	if (useSqlitePragmas) {
+		await db.query('PRAGMA foreign_keys = OFF');
+	}
 	const alter = Boolean(store.vars.DB_SYNC_ALTER);
 	store.print_debug(`DB sync: alter=${alter} force=${store.vars.DB_FORCE_SYNC}`);
 	await db.sync({ alter, force: store.vars.DB_FORCE_SYNC });
-	await db.query('PRAGMA foreign_keys = ON');
+	if (useSqlitePragmas) {
+		await db.query('PRAGMA foreign_keys = ON');
+	}
 
 	await importData(store);
 

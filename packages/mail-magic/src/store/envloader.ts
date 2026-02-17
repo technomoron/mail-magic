@@ -83,7 +83,7 @@ export const envOptions = defineEnvOptions({
 		default: 'localhost'
 	},
 	DB_TYPE: {
-		description: 'Database type of WP database',
+		description: 'Database type for the API database',
 		options: ['sqlite'],
 		default: 'sqlite'
 	},

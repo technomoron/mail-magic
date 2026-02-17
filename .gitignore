@@ -1,5 +1,9 @@
 node_modules/
 dist/
+!packages/mail-magic/dist/
+!packages/mail-magic/dist/**
+!packages/mail-magic-client/dist/
+!packages/mail-magic-client/dist/**
 lib/
 node-compile-cache/
 package-lock.json

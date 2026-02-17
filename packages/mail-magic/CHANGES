@@ -8,6 +8,16 @@ Version 1.0.35 (2026-02-17)
   locales are missing.
 - Add regression tests covering deterministic locale fallback and missing-locale
   behavior for both transactional sends and template asset upload resolution.
+- Harden JSON-backed getters for template/form asset columns so malformed DB JSON
+  safely falls back to empty arrays instead of throwing runtime errors.
+- Standardize form send SMTP failure handling to return ApiError responses
+  (consistent `message` contract instead of ad-hoc `error` payloads).
+- Guard SQLite-only PRAGMA usage by database dialect during DB sync.
+- Fix startup error text to use the current project name (`mail-magic`).
+- Fix `DB_TYPE` environment description text ("API database" wording).
+- Add regression tests for malformed JSON getter handling, standardized form-send
+  failure responses, sqlite PRAGMA guard helper behavior, startup error message,
+  and env option description text.
 
 Version 1.0.34 (2026-02-10)
 

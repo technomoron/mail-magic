@@ -150,7 +150,15 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 				defaultValue: '[]',
 				get() {
 					const raw = this.getDataValue('files') as unknown as string | null;
-					return raw ? (JSON.parse(raw) as StoredFile[]) : [];
+					if (!raw) {
+						return [];
+					}
+					try {
+						const parsed = JSON.parse(raw) as unknown;
+						return Array.isArray(parsed) ? (parsed as StoredFile[]) : [];
+					} catch {
+						return [];
+					}
 				},
 				set(value: StoredFile[] | null | undefined) {
 					this.setDataValue('files', JSON.stringify(value ?? []) as unknown as StoredFile[]);

@@ -17,6 +17,8 @@ export type MailMagicServerBootstrap = {
 	vars: MailStoreVars;
 };
 
+export const STARTUP_ERROR_MESSAGE = 'Failed to start mail-magic:';
+
 function normalizeRoute(value: string, fallback = ''): string {
 	if (!value) {
 		return fallback;
@@ -136,7 +138,7 @@ async function bootMailMagic() {
 		const { vars } = await startMailMagicServer();
 		console.log(`mail-magic server listening on ${vars.API_HOST}:${vars.API_PORT}`);
 	} catch (err) {
-		console.error('Failed to start FormMailer:', err);
+		console.error(STARTUP_ERROR_MESSAGE, err);
 		process.exit(1);
 	}
 }

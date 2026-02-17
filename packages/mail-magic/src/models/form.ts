@@ -195,7 +195,15 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				get() {
 					// This column is stored as JSON text but exposed as `string[]` via getter/setter.
 					const raw = this.getDataValue('allowed_fields') as unknown as string | null;
-					return raw ? (JSON.parse(raw) as string[]) : [];
+					if (!raw) {
+						return [];
+					}
+					try {
+						const parsed = JSON.parse(raw) as unknown;
+						return Array.isArray(parsed) ? (parsed as string[]) : [];
+					} catch {
+						return [];
+					}
 				},
 				set(value: string[] | null | undefined) {
 					this.setDataValue('allowed_fields', JSON.stringify(value ?? []) as unknown as string[]);
@@ -213,7 +221,15 @@ export async function init_api_form(api_db: Sequelize): Promise<typeof api_form>
 				get() {
 					// This column is stored as JSON text but exposed as `StoredFile[]` via getter/setter.
 					const raw = this.getDataValue('files') as unknown as string | null;
-					return raw ? (JSON.parse(raw) as StoredFile[]) : [];
+					if (!raw) {
+						return [];
+					}
+					try {
+						const parsed = JSON.parse(raw) as unknown;
+						return Array.isArray(parsed) ? (parsed as StoredFile[]) : [];
+					} catch {
+						return [];
+					}
 				},
 				set(value: StoredFile[] | null | undefined) {
 					this.setDataValue('files', JSON.stringify(value ?? []) as unknown as StoredFile[]);

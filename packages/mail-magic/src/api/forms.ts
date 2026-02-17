@@ -239,7 +239,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			} catch (error: unknown) {
 				const errorMessage = error instanceof Error ? error.message : String(error);
 				this.server.storage.print_debug('Error sending email: ' + errorMessage);
-				return [500, { error: `Error sending email: ${errorMessage}` }];
+				throw new ApiError({ code: 500, message: `Error sending email: ${errorMessage}` });
 			}
 
 			return [200, {}];

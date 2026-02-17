@@ -168,6 +168,28 @@ describe('mail-magic API', () => {
 		}
 	});
 
+	test('tolerates malformed txmail.files JSON without crashing', async () => {
+		await ctx!.store.api_db!.query(`UPDATE txmail SET files = '{' WHERE name = 'welcome'`);
+
+		const template = await api_txmail.findOne({ where: { name: 'welcome' } });
+		expect(template).toBeTruthy();
+		expect(Array.isArray(template?.files)).toBe(true);
+		expect(template?.files).toHaveLength(0);
+
+		const sendRes = await api
+			.post('/api/v1/tx/message')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.field('name', 'welcome')
+			.field('domain', ctx!.domainName)
+			.field('rcpt', 'recipient@example.test')
+			.field('vars', JSON.stringify({ title: 'Hello', heading: 'Mail Magic', name: 'Jane' }));
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const html = typeof message.html === 'string' ? message.html : String(message.html ?? '');
+		expect(html).toContain('Hello Jane');
+	});
+
 	test('resolves tx locale in deterministic order: requested then root fallback', async () => {
 		const createRes = await api
 			.post('/api/v1/tx/template')
@@ -278,6 +300,66 @@ describe('mail-magic API', () => {
 			.field('locale', 'de')
 			.attach('asset', uploadPath);
 		expect(res.status).toBe(404);
+	});
+
+	test('tolerates malformed form JSON columns without crashing', async () => {
+		const createRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'malformed-json-form',
+				sender: 'forms@example.test',
+				recipient: 'owner@example.test',
+				subject: 'Malformed JSON Form',
+				template: '<p>Hello {{ _fields_.name }}</p>'
+			});
+		expect(createRes.status).toBe(200);
+		const formKey = String(createRes.body?.data?.form_key ?? '');
+		expect(formKey.length).toBeGreaterThan(0);
+
+		await ctx!.store.api_db!.query(`UPDATE form SET files = '{', allowed_fields = '{' WHERE form_key = ?`, {
+			replacements: [formKey]
+		});
+
+		const form = await api_form.findOne({ where: { form_key: formKey } });
+		expect(form).toBeTruthy();
+		expect(Array.isArray(form?.files)).toBe(true);
+		expect(Array.isArray(form?.allowed_fields)).toBe(true);
+		expect(form?.files).toHaveLength(0);
+		expect(form?.allowed_fields).toHaveLength(0);
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			_mm_form_key: formKey,
+			name: 'Ada',
+			email: 'ada@example.test'
+		});
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		expect(message.subject).toBe('Malformed JSON Form');
+	});
+
+	test('returns standardized ApiError response when form email sending fails', async () => {
+		const transport = ctx!.store.transport!;
+		const originalSendMail = transport.sendMail.bind(transport);
+		transport.sendMail = (async () => {
+			throw new Error('smtp-broken');
+		}) as typeof transport.sendMail;
+
+		try {
+			const res = await api.post('/api/v1/form/message').send({
+				_mm_form_key: ctx!.contactFormKey,
+				name: 'Ada',
+				email: 'ada@example.test'
+			});
+
+			expect(res.status).toBe(500);
+			expect(String(res.body?.message ?? '')).toContain('Error sending email: smtp-broken');
+			expect(res.body?.error).toBeUndefined();
+		} finally {
+			transport.sendMail = originalSendMail;
+		}
 	});
 
 	test('requires _mm_form_key for public form submissions', async () => {
