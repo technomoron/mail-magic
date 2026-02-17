@@ -8,7 +8,8 @@ import { api_recipient } from '../models/recipient.js';
 import { buildFormTemplateRecord, buildFormTemplatePaths, buildRecipientTo, buildReplyToValue, buildSubmissionContext, enforceAttachmentPolicy, enforceCaptchaPolicy, filterSubmissionFields, getPrimaryRecipientInfo, normalizeRecipientEmail, normalizeRecipientIdname, normalizeRecipientName, parseIdnameList, parseFormTemplatePayload, parseRecipientPayload, parsePublicSubmissionOrThrow, resolveFormKeyForTemplate, resolveFormKeyForRecipient, resolveRecipients, validateFormTemplatePayload } from '../util/forms.js';
 import { FixedWindowRateLimiter, enforceFormRateLimit } from '../util/ratelimit.js';
 import { buildAttachments, cleanupUploadedFiles } from '../util/uploads.js';
-import { buildRequestMeta, getBodyValue } from '../util.js';
+import { getBodyValue } from '../util/utils.js';
+import { buildRequestMeta } from '../util.js';
 import { assert_domain_and_user } from './auth.js';
 export class FormAPI extends ApiModule {
     rateLimiter = new FixedWindowRateLimiter();

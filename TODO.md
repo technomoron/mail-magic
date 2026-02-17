@@ -1,5 +1,14 @@
 # TODO: REVIEW.md Follow-up (2026-02-17)
 
+## REVIEW
+
+- Trust model clarification:
+  Authenticated template authors are not automatically trusted. They may be foreign developers or customers.
+- Impact on review item #1:
+  Treat untrusted template authors as a higher-risk scenario. Field sanitization alone is insufficient; template trust controls are the key concern.
+- Current intent:
+  No implementation change requested in this step. Keep this note as context for future security decisions.
+
 ## Critical / Security
 
 - [ ] **#1 SSTI via Nunjucks vars**  
@@ -7,27 +16,7 @@
        Action: Keep `AUTOESCAPE_HTML=true` as default; document trust boundary for template authors and `|safe` usage.  
        Pitfalls: Treating this as direct SSTI may cause over-engineering in the wrong layer.
 
-- [ ] **#2 Legacy plaintext token fallback (`server.ts`)**  
-       Decision: `agree`  
-       Action: Add env kill-switch for legacy lookup; plan removal in next major release.  
-       Pitfalls: Immediate removal can break deployments with unmigrated tokens.
-
 ## Bugs / Correctness
-
-- [ ] **#5 Duplicate `normalizeRoute` (`index.ts`, `swagger.ts`)**  
-       Decision: `agree`  
-       Action: Extract shared helper in utility module and reuse.  
-       Pitfalls: Low-value refactor churn.
-
-- [ ] **#6 Duplicate `normalizeBoolean`/`getBodyValue` claim**  
-       Decision: `disagree` (outdated finding)  
-       Action: No code change needed; keep single source in `util/utils.ts`.  
-       Pitfalls: Fixing non-issue could introduce real divergence.
-
-- [ ] **#9 Dead null check after `createTransport()`**  
-       Decision: `agree`  
-       Action: Remove unreachable null check.  
-       Pitfalls: None.
 
 - [ ] **#10 Module-level mutable preprocess config (`mail-magic-client`)**  
        Decision: `agree`  
@@ -85,8 +74,8 @@
 
 ## Suggested Implementation Order
 
-- [ ] **Now (high value / low risk):** #2, #13, #12, #15, #16
-- [ ] **Next:** #9, #5, #19, #20
+- [ ] **Now (high value / low risk):** #13, #12, #15, #16
+- [ ] **Next:** #19, #20
 - [ ] **Backlog / design:** #1, #10, #11, #14, #18
 
 ## Completed
@@ -115,4 +104,27 @@
 - [x] **#17 Env description typo ("WP database")**  
        Decision: `agree`  
        Action: Updated `DB_TYPE` description to API-database wording and added test coverage.  
+       Pitfalls: None.
+
+- [x] **#2 Legacy plaintext token fallback (`server.ts`)**  
+       Decision: `agree`  
+       Action: Removed plaintext-token fallback in request authentication; API auth is now `token_hmac` only. Updated
+      migration test coverage to verify pre-migration rejection and post-migration success.  
+       Pitfalls: Deployments with unmigrated plaintext tokens must run migration before legacy tokens can authenticate.
+
+- [x] **#5 Duplicate `normalizeRoute` (`index.ts`, `swagger.ts`)**  
+       Decision: `agree`  
+       Action: Extracted shared `normalizeRoute` helper into `src/util/route.ts` and reused in both modules. Added test
+      coverage.
+       Pitfalls: Minimal refactor risk only.
+
+- [x] **#6 Duplicate `normalizeBoolean`/`getBodyValue` claim**  
+       Decision: `disagree` (outdated finding)  
+       Action: Confirmed single-source implementations in `util/utils.ts`; standardized `getBodyValue` imports to
+      reference `util/utils` directly where used.
+       Pitfalls: None.
+
+- [x] **#9 Dead null check after `createTransport()`**  
+       Decision: `agree`  
+       Action: Removed unreachable `if (!mailer)` guard in transport creation.
        Pitfalls: None.

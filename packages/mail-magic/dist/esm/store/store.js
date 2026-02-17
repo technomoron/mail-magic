@@ -26,9 +26,6 @@ function create_mail_transport(vars) {
     const mailer = createTransport({
         ...args
     });
-    if (!mailer) {
-        throw new Error('Unable to create mailer');
-    }
     return mailer;
 }
 export class mailStore {

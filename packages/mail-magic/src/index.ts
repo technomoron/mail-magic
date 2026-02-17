@@ -6,6 +6,7 @@ import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
 import { MailStoreVars, mailStore } from './store/store.js';
 import { installMailMagicSwagger } from './swagger.js';
+import { normalizeRoute } from './util/route.js';
 
 import type { ApiModule, ApiServerConf } from '@technomoron/api-server-base';
 
@@ -18,21 +19,6 @@ export type MailMagicServerBootstrap = {
 };
 
 export const STARTUP_ERROR_MESSAGE = 'Failed to start mail-magic:';
-
-function normalizeRoute(value: string, fallback = ''): string {
-	if (!value) {
-		return fallback;
-	}
-	const trimmed = value.trim();
-	if (!trimmed) {
-		return fallback;
-	}
-	const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-	if (withLeading === '/') {
-		return withLeading;
-	}
-	return withLeading.replace(/\/+$/, '');
-}
 
 function mergeStaticDirs(
 	base: Record<string, string>,

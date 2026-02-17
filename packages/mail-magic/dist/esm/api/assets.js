@@ -5,7 +5,8 @@ import { api_form } from '../models/form.js';
 import { api_txmail } from '../models/txmail.js';
 import { SEGMENT_PATTERN, normalizeSubdir } from '../util/paths.js';
 import { moveUploadedFiles } from '../util/uploads.js';
-import { decodeComponent, getBodyValue, sendFileAsync } from '../util.js';
+import { getBodyValue } from '../util/utils.js';
+import { decodeComponent, sendFileAsync } from '../util.js';
 import { assert_domain_and_user } from './auth.js';
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 export class AssetAPI extends ApiModule {

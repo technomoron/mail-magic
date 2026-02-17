@@ -23,21 +23,7 @@ export class mailApiServer extends ApiServer {
 		if (user) {
 			return { uid: user.user_id } as ApiKey;
 		}
-
-		// Backwards-compatible fallback for legacy databases that still store plaintext tokens.
-		const legacy = await api_user.findOne({ where: { token } });
-		if (!legacy) {
-			this.storage.print_debug('Unable to find user for api key');
-			return null;
-		}
-		try {
-			await legacy.update({ token_hmac, token: '' });
-		} catch (err) {
-			// Don't leak token data; just surface the update failure for debugging.
-			this.storage.print_debug(
-				`Unable to migrate legacy api token: ${err instanceof Error ? err.message : String(err)}`
-			);
-		}
-		return { uid: legacy.user_id } as ApiKey;
+		this.storage.print_debug('Unable to find user for api key');
+		return null;
 	}
 }

@@ -31,7 +31,8 @@ import {
 } from '../util/forms.js';
 import { FixedWindowRateLimiter, enforceFormRateLimit } from '../util/ratelimit.js';
 import { buildAttachments, cleanupUploadedFiles } from '../util/uploads.js';
-import { buildRequestMeta, getBodyValue } from '../util.js';
+import { getBodyValue } from '../util/utils.js';
+import { buildRequestMeta } from '../util.js';
 
 import { assert_domain_and_user } from './auth.js';
 

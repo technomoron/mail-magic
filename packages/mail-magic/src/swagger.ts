@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { normalizeRoute } from './util/route.js';
+
 import type { mailApiServer } from './server.js';
 import type { NextFunction, Request, Response } from 'express';
 
@@ -12,21 +14,6 @@ type SwaggerInstallOptions = {
 	swaggerEnabled?: boolean;
 	swaggerPath?: string;
 };
-
-function normalizeRoute(value: string, fallback = ''): string {
-	if (!value) {
-		return fallback;
-	}
-	const trimmed = value.trim();
-	if (!trimmed) {
-		return fallback;
-	}
-	const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-	if (withLeading === '/') {
-		return withLeading;
-	}
-	return withLeading.replace(/\/+$/, '');
-}
 
 function replacePrefix(input: string, from: string, to: string): string {
 	if (input === from) {

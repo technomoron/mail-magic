@@ -1,3 +1,16 @@
+Version 1.0.36 (2026-02-17)
+
+- Remove legacy plaintext-token fallback from request authentication; API key auth
+  now requires `token_hmac`.
+- Update token migration regression coverage to verify auth rejection before
+  migration and success after migration.
+- Extract shared `normalizeRoute` helper and reuse it across bootstrap and swagger
+  modules.
+- Standardize `getBodyValue` usage to `util/utils` imports in API modules for
+  clearer utility ownership.
+- Remove unreachable null check after `createTransport()`.
+- Add utility test coverage for route normalization.
+
 Version 1.0.35 (2026-02-17)
 
 - Enforce deterministic locale resolution for transactional template sends:
@@ -18,6 +31,10 @@ Version 1.0.35 (2026-02-17)
 - Add regression tests for malformed JSON getter handling, standardized form-send
   failure responses, sqlite PRAGMA guard helper behavior, startup error message,
   and env option description text.
+- Disallow legacy plaintext-token fallback during API authentication; requests now
+  authenticate strictly via `token_hmac`.
+- Update token migration regression coverage to verify plaintext auth rejection
+  prior to migration and successful auth after migration.
 
 Version 1.0.34 (2026-02-10)
 

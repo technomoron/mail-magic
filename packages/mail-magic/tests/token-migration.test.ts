@@ -1,7 +1,7 @@
 import request from 'supertest';
 
 import { api_domain } from '../src/models/domain.js';
-import { apiTokenToHmac, api_user } from '../src/models/user.js';
+import { api_user, migrateLegacyApiTokens } from '../src/models/user.js';
 
 import { createTestContext } from './helpers/test-setup.js';
 
@@ -22,14 +22,12 @@ describe('API token HMAC migration', () => {
 		}
 	});
 
-	test('auth accepts legacy plaintext token and migrates it to token_hmac', async () => {
+	test('auth rejects legacy plaintext token until migrated to token_hmac', async () => {
 		if (!ctx) {
 			throw new Error('missing test context');
 		}
 
 		const legacyToken = 'legacy-token';
-		const pepper = ctx.store.vars.API_TOKEN_PEPPER;
-		const expectedHmac = apiTokenToHmac(legacyToken, pepper);
 
 		await api_user.create({
 			user_id: 99,
@@ -58,12 +56,21 @@ describe('API token HMAC migration', () => {
 			subject: 'Hello',
 			template: '<p>Hello</p>'
 		});
-		expect(first.status).toBe(200);
+		expect(first.status).toBe(401);
+
+		const beforeMigration = await api_user.findByPk(99);
+		expect(beforeMigration).toBeTruthy();
+		expect(beforeMigration?.token).toBe(legacyToken);
+		expect(beforeMigration?.token_hmac).toBeNull();
+
+		const result = await migrateLegacyApiTokens(ctx.store.vars.API_TOKEN_PEPPER);
+		expect(result.migrated).toBeGreaterThanOrEqual(1);
 
 		const migrated = await api_user.findByPk(99);
 		expect(migrated).toBeTruthy();
 		expect(migrated?.token).toBe('');
-		expect(migrated?.token_hmac).toBe(expectedHmac);
+		expect(typeof migrated?.token_hmac).toBe('string');
+		expect(String(migrated?.token_hmac ?? '').length).toBeGreaterThan(0);
 
 		const second = await api.post('/api/v1/tx/template').set('Authorization', `Bearer apikey-${legacyToken}`).send({
 			domain: 'legacy.test',

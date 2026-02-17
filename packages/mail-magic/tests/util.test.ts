@@ -1,6 +1,7 @@
 import { STARTUP_ERROR_MESSAGE } from '../src/index.js';
 import { usesSqlitePragmas } from '../src/models/db.js';
 import { envOptions } from '../src/store/envloader.js';
+import { normalizeRoute } from '../src/util/route.js';
 import { buildRequestMeta, normalizeSlug } from '../src/util.js';
 
 import type { Sequelize } from 'sequelize';
@@ -41,5 +42,12 @@ describe('util', () => {
 	test('DB_TYPE env description is API-database specific', () => {
 		expect(envOptions.DB_TYPE.description).toBe('Database type for the API database');
 		expect(envOptions.DB_TYPE.description.includes('WP')).toBe(false);
+	});
+
+	test('normalizeRoute normalizes leading/trailing slashes', () => {
+		expect(normalizeRoute('', '/api')).toBe('/api');
+		expect(normalizeRoute('api/', '/x')).toBe('/api');
+		expect(normalizeRoute('/api///', '/x')).toBe('/api');
+		expect(normalizeRoute('/', '/x')).toBe('/');
 	});
 });

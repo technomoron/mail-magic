@@ -1,20 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-function normalizeRoute(value, fallback = '') {
-    if (!value) {
-        return fallback;
-    }
-    const trimmed = value.trim();
-    if (!trimmed) {
-        return fallback;
-    }
-    const withLeading = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-    if (withLeading === '/') {
-        return withLeading;
-    }
-    return withLeading.replace(/\/+$/, '');
-}
+import { normalizeRoute } from './util/route.js';
 function replacePrefix(input, from, to) {
     if (input === from) {
         return to;

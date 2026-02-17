@@ -2,7 +2,7 @@ import { ApiError } from '@technomoron/api-server-base';
 
 import { api_domain } from '../models/domain.js';
 import { api_user } from '../models/user.js';
-import { getBodyValue } from '../util.js';
+import { getBodyValue } from '../util/utils.js';
 
 import type { mailApiRequest } from '../types.js';
 
