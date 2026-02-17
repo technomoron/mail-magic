@@ -12,12 +12,6 @@ import { envOptions } from './envloader.js';
 
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
-interface api_key {
-	keyid: string;
-	uid: number;
-	domain: number;
-}
-
 type UploadedFile = {
 	path: string;
 	filename?: string;
@@ -43,7 +37,6 @@ function create_mail_transport(vars: MailStoreVars): Transporter {
 	if (user && pass) {
 		args.auth = { user, pass };
 	}
-	// console.log(JSON.stringify(args, undefined, 2));
 
 	const mailer: Transporter = createTransport({
 		...args
@@ -51,24 +44,12 @@ function create_mail_transport(vars: MailStoreVars): Transporter {
 	return mailer;
 }
 
-export interface ImailStore {
-	vars: MailStoreVars;
-	transport?: Transporter<SMTPTransport.SentMessageInfo>;
-	keys: Record<string, api_key>;
-	configpath: string;
-	deflocale?: string;
-	uploadTemplate?: string;
-	uploadStagingPath?: string;
-}
-
-export class mailStore implements ImailStore {
+export class mailStore {
 	private env!: envConfig<typeof envOptions>;
 	vars!: MailStoreVars;
 	transport?: Transporter<SMTPTransport.SentMessageInfo>;
 	api_db: Sequelize | null = null;
-	keys: Record<string, api_key> = {};
 	configpath = '';
-	deflocale?: string;
 	uploadTemplate?: string;
 	uploadStagingPath?: string;
 
@@ -139,18 +120,6 @@ export class mailStore implements ImailStore {
 		);
 	}
 
-	private async load_api_keys(cfgpath: string): Promise<Record<string, api_key>> {
-		const keyfile = path.resolve(cfgpath, 'api-keys.json');
-		if (fs.existsSync(keyfile)) {
-			const raw = fs.readFileSync(keyfile, 'utf-8');
-			const jsonData = JSON.parse(raw) as Record<string, api_key>;
-			this.print_debug(`API Key Database loaded from ${keyfile}`);
-			return jsonData;
-		}
-		this.print_debug(`No api-keys.json file found: tried ${keyfile}`);
-		return {};
-	}
-
 	async init(overrides: Partial<MailStoreVars> = {}): Promise<this> {
 		// Load env config only via EnvLoader + envOptions (avoid ad-hoc `process.env` parsing here).
 		// If DEBUG is enabled, re-load with EnvLoader debug output enabled.
@@ -204,8 +173,6 @@ export class mailStore implements ImailStore {
 			}
 		}
 
-		// this.keys = await this.load_api_keys(this.configpath);
-
 		this.transport = await create_mail_transport(this.vars);
 
 		this.api_db = await connect_api_db(this);
@@ -223,9 +190,5 @@ export class mailStore implements ImailStore {
 		}
 
 		return this;
-	}
-
-	public get_api_key(key: string): api_key | null {
-		return this.keys[key] || null;
 	}
 }

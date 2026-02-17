@@ -1,21 +1,11 @@
 import { ApiModule, ApiError } from '@technomoron/api-server-base';
-import emailAddresses from 'email-addresses';
 import { convert } from 'html-to-text';
 import nunjucks from 'nunjucks';
 import { api_txmail } from '../models/txmail.js';
+import { validateEmail } from '../util/email.js';
 import { buildRequestMeta } from '../util.js';
 import { assert_domain_and_user } from './auth.js';
 export class MailerAPI extends ApiModule {
-    //
-    // Validate and return the parsed email address
-    //
-    validateEmail(email) {
-        const parsed = emailAddresses.parseOneAddress(email);
-        if (parsed) {
-            return parsed.address;
-        }
-        return undefined;
-    }
     //
     // Validate a set of email addresses. Return arrays of invalid
     // and valid email addresses.
@@ -27,7 +17,7 @@ export class MailerAPI extends ApiModule {
             .map((email) => email.trim())
             .filter((email) => email !== '');
         emails.forEach((email) => {
-            const addr = this.validateEmail(email);
+            const addr = validateEmail(email);
             if (addr) {
                 valid.push(addr);
             }
@@ -56,13 +46,6 @@ export class MailerAPI extends ApiModule {
             sender,
             template
         };
-        /*
-        console.log(JSON.stringify({
-        user: apireq.user,
-        domain: apireq.domain,
-        domain_id: apireq.domain.domain_id,
-        data
-        }, undefined, 2)); */
         try {
             const [templateRecord, created] = await api_txmail.upsert(data, {
                 returning: true
@@ -94,7 +77,6 @@ export class MailerAPI extends ApiModule {
             }
         }
         const thevars = parsedVars;
-        // const dbdomain = await api_domain.findOne({ where: { domain } });
         const { valid, invalid } = this.validateEmails(rcpt);
         if (invalid.length > 0) {
             throw new ApiError({ code: 400, message: 'Invalid email address(es): ' + invalid.join(',') });
@@ -145,7 +127,7 @@ export class MailerAPI extends ApiModule {
         const replyToValue = (replyTo || reply_to);
         let normalizedReplyTo;
         if (replyToValue) {
-            normalizedReplyTo = this.validateEmail(replyToValue);
+            normalizedReplyTo = validateEmail(replyToValue);
             if (!normalizedReplyTo) {
                 throw new ApiError({ code: 400, message: 'Invalid reply-to email address' });
             }
@@ -191,7 +173,6 @@ export class MailerAPI extends ApiModule {
             return [200, { Status: 'OK', Message: 'Emails sent successfully' }];
         }
         catch (error) {
-            // console.log(JSON.stringify(e, null, 2));
             throw new ApiError({
                 code: 500,
                 message: error instanceof Error ? error.message : String(error)

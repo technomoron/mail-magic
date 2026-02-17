@@ -22,7 +22,6 @@ function create_mail_transport(vars) {
     if (user && pass) {
         args.auth = { user, pass };
     }
-    // console.log(JSON.stringify(args, undefined, 2));
     const mailer = createTransport({
         ...args
     });
@@ -33,9 +32,7 @@ export class mailStore {
     vars;
     transport;
     api_db = null;
-    keys = {};
     configpath = '';
-    deflocale;
     uploadTemplate;
     uploadStagingPath;
     print_debug(msg) {
@@ -99,17 +96,6 @@ export class mailStore {
             }
         }));
     }
-    async load_api_keys(cfgpath) {
-        const keyfile = path.resolve(cfgpath, 'api-keys.json');
-        if (fs.existsSync(keyfile)) {
-            const raw = fs.readFileSync(keyfile, 'utf-8');
-            const jsonData = JSON.parse(raw);
-            this.print_debug(`API Key Database loaded from ${keyfile}`);
-            return jsonData;
-        }
-        this.print_debug(`No api-keys.json file found: tried ${keyfile}`);
-        return {};
-    }
     async init(overrides = {}) {
         // Load env config only via EnvLoader + envOptions (avoid ad-hoc `process.env` parsing here).
         // If DEBUG is enabled, re-load with EnvLoader debug output enabled.
@@ -165,7 +151,6 @@ export class mailStore {
                 this.print_debug(`Unable to create upload staging path: ${err}`);
             }
         }
-        // this.keys = await this.load_api_keys(this.configpath);
         this.transport = await create_mail_transport(this.vars);
         this.api_db = await connect_api_db(this);
         if (this.vars.DB_AUTO_RELOAD) {
@@ -181,8 +166,5 @@ export class mailStore {
             });
         }
         return this;
-    }
-    get_api_key(key) {
-        return this.keys[key] || null;
     }
 }

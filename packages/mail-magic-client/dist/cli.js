@@ -5,27 +5,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
 const readline_1 = __importDefault(require("readline"));
 const commander_1 = require("commander");
 const cli_env_1 = require("./cli-env");
 const cli_helpers_1 = require("./cli-helpers");
+const cli_version_1 = require("./cli-version");
 const mail_magic_client_1 = __importDefault(require("./mail-magic-client"));
 const preprocess_1 = require("./preprocess");
 const program = new commander_1.Command();
 const envDefaults = (0, cli_env_1.loadCliEnv)();
 const defaultToken = (0, cli_env_1.resolveToken)(envDefaults);
 const apiDefault = envDefaults.api || 'http://localhost:3000';
-function resolvePackageVersion() {
-    try {
-        const raw = fs_1.default.readFileSync(path_1.default.join(__dirname, '../package.json'), 'utf8');
-        const data = JSON.parse(raw);
-        return typeof data.version === 'string' && data.version ? data.version : 'unknown';
-    }
-    catch {
-        return 'unknown';
-    }
-}
 program.option('-a, --api <api>', 'Base API endpoint', apiDefault);
 if (defaultToken) {
     program.option('-t, --token <token>', 'Authentication token in the format "username:token"', defaultToken);
@@ -155,7 +145,7 @@ program
     .command('version')
     .description('Show current client version')
     .action(async () => {
-    console.log(resolvePackageVersion());
+    console.log((0, cli_version_1.resolvePackageVersion)());
 });
 program
     .command('compile')

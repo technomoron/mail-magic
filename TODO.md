@@ -2,6 +2,8 @@
 
 ## REVIEW
 
+- Housekeeping rule:
+  Always move finished items out of active sections into `## Completed`.
 - Trust model clarification:
   Authenticated template authors are not automatically trusted. They may be foreign developers or customers.
 - Impact on review item #1:
@@ -47,36 +49,11 @@
 
 ## Code Quality / Cleanup
 
-- [ ] **#15 Commented-out code cleanup**  
-       Decision: `agree`  
-       Action: Remove stale commented debug/dead lines across server/client files.  
-       Pitfalls: Avoid removing explanatory comments still useful for maintenance.
-
-- [ ] **#16 Unused code cleanup (`load_api_keys`, `keys`, interfaces)**  
-       Decision: `agree`  
-       Action: Remove dead code paths or wire them back with tests if intentionally retained.  
-       Pitfalls: Check for hidden internal usage before deleting.
-
-- [ ] **#18 Client `validateTemplate` hardcoded loader path**  
-       Decision: `partially-agree`  
-       Action: Make loader path configurable or convert validation to syntax-only where appropriate.  
-       Pitfalls: Changing validation strictness may break existing workflows.
-
-- [ ] **#19 `storeTemplate` vs `storeTxTemplate` duplication**  
-       Decision: `agree` (compatibility-driven)  
-       Action: Keep alias for backward compatibility and mark one as deprecated.  
-       Pitfalls: Removing alias too early is a breaking change.
-
-- [ ] **#20 CLI `__dirname` usage**  
-       Decision: `partially-disagree` (works in current CJS build)  
-       Action: Optionally harden path resolution to be ESM-safe for future build changes.  
-       Pitfalls: CJS/ESM compatibility handling can introduce path bugs.
-
 ## Suggested Implementation Order
 
-- [ ] **Now (high value / low risk):** #13, #12, #15, #16
-- [ ] **Next:** #19, #20
-- [ ] **Backlog / design:** #1, #10, #11, #14, #18
+- [ ] **Now (high value / low risk):** #13, #12
+- [ ] **Next:** #10
+- [ ] **Backlog / design:** #1, #11, #14
 
 ## Completed
 
@@ -128,3 +105,30 @@
        Decision: `agree`  
        Action: Removed unreachable `if (!mailer)` guard in transport creation.
        Pitfalls: None.
+
+- [x] **#15 Commented-out code cleanup**  
+       Decision: `agree`  
+       Action: Removed stale commented-out debug/dead code in server/client source where appropriate.
+       Pitfalls: Kept explanatory comments that document behavior.
+
+- [x] **#16 Unused code cleanup (`load_api_keys`, `keys`, interfaces)**  
+       Decision: `agree`  
+       Action: Removed unused key-loading path (`api_key`, `ImailStore`, `keys`, `load_api_keys`, `get_api_key`) and
+      consolidated duplicated mail validation usage.
+       Pitfalls: Verified no remaining references before deletion.
+
+- [x] **#18 Client `validateTemplate` hardcoded loader path**  
+       Decision: `partially-agree`  
+       Action: Switched client template validation to syntax compile without hardcoded cwd loader dependency. Added tests.
+       Pitfalls: Include path resolution is now intentionally deferred to server-side processing.
+
+- [x] **#19 `storeTemplate` vs `storeTxTemplate` duplication**  
+       Decision: `agree` (compatibility-driven)  
+       Action: Kept backward-compatible alias, but removed duplicated validation logic by delegating directly to
+      `storeTxTemplate`. Added alias behavior test.
+       Pitfalls: No breaking API change introduced.
+
+- [x] **#20 CLI `__dirname` usage**  
+       Decision: `partially-disagree` (works in current CJS build)  
+       Action: Replaced `__dirname` package-version lookup with argv/cwd-based resolver and extracted helper for tests.
+       Pitfalls: Resolver now depends on executable location conventions; added fallback candidates.

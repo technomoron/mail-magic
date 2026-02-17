@@ -107,13 +107,11 @@ class templateClient {
 			headers['Content-Type'] = 'application/json';
 			options.body = JSON.stringify(body);
 		}
-		//        console.log(JSON.stringify({ options, url }));
 		const response = await fetch(url, options);
 		const j = await response.json();
 		if (response.ok) {
 			return j;
 		}
-		// console.log(JSON.stringify(j, undefined, 2));
 		if (j && j.message) {
 			throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
 		} else {
@@ -158,9 +156,15 @@ class templateClient {
 
 	private validateTemplate(template: string): void {
 		try {
-			const env = new nunjucks.Environment(new nunjucks.FileSystemLoader(['./templates']));
-			env.renderString(template, {});
+			const env = new nunjucks.Environment(null, { autoescape: true });
+			const compiled = nunjucks.compile(template, env);
+			compiled.render({});
 		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error);
+			// Syntax validation should not require local template loaders.
+			if (/template not found|no loader|unable to find template/i.test(message)) {
+				return;
+			}
 			if (error instanceof Error) {
 				throw new Error(`Template validation failed: ${error.message}`);
 			} else {
@@ -228,13 +232,7 @@ class templateClient {
 	}
 
 	async storeTemplate(td: templateData): Promise<unknown> {
-		if (!td.template) {
-			throw new Error('No template data provided');
-		}
-		this.validateTemplate(td.template);
-		if (td.sender) {
-			this.validateSender(td.sender);
-		}
+		// Backward-compatible alias for transactional template storage.
 		return this.storeTxTemplate(td);
 	}
 
@@ -267,8 +265,6 @@ class templateClient {
 			throw new Error('Invalid email address(es): ' + invalid.join(','));
 		}
 
-		// this.validateTemplate(template);
-
 		const body = {
 			name: std.name,
 			rcpt: std.rcpt,
@@ -278,7 +274,6 @@ class templateClient {
 			replyTo: std.replyTo,
 			headers: std.headers
 		};
-		// console.log(JSON.stringify(body, undefined, 2));
 		if (std.attachments && std.attachments.length > 0) {
 			if (std.headers) {
 				throw new Error('Headers are not supported with attachment uploads');

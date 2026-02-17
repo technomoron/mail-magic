@@ -1,3 +1,10 @@
+Version 1.0.37 (2026-02-17)
+
+- Remove stale commented-out debug code from server mailer/store paths.
+- Remove unused legacy API-key store scaffolding from `mailStore` (`api_key`,
+  `ImailStore`, `keys`, `load_api_keys`, `get_api_key`).
+- Consolidate mailer address validation by reusing shared `util/email` helpers.
+
 Version 1.0.36 (2026-02-17)
 
 - Remove legacy plaintext-token fallback from request authentication; API key auth

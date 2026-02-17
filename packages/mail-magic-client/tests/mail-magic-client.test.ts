@@ -42,6 +42,37 @@ describe('TemplateClient', () => {
 		expect(body.domain).toBe('example.test');
 	});
 
+	it('storeTemplate delegates to storeTxTemplate alias', async () => {
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		const spy = vi.spyOn(client, 'storeTxTemplate').mockResolvedValue({ Status: 'OK' });
+		const payload = {
+			template: '<p>Hello {{ name }}</p>',
+			name: 'welcome',
+			domain: 'example.test',
+			sender: 'Test Sender <sender@example.test>'
+		};
+
+		await client.storeTemplate(payload);
+
+		expect(spy).toHaveBeenCalledTimes(1);
+		expect(spy).toHaveBeenCalledWith(payload);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it('validates templates without requiring a cwd templates loader', async () => {
+		const client = new TemplateClient('http://localhost:4000', 'test-token');
+		await client.storeTemplate({
+			template: '{% include "partials/header.njk" %}<p>Hello</p>',
+			name: 'include-template',
+			domain: 'example.test',
+			sender: 'Test Sender <sender@example.test>'
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('http://localhost:4000/api/v1/tx/template');
+	});
+
 	it('rejects invalid templates before sending', async () => {
 		const client = new TemplateClient('http://localhost:4000', 'test-token');
 		await expect(

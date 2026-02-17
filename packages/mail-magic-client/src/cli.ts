@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import fs from 'fs';
-import path from 'path';
 import readline from 'readline';
 
 import { Command } from 'commander';
 
 import { loadCliEnv, resolveToken } from './cli-env';
 import { pushTemplate, pushTemplateDir } from './cli-helpers';
+import { resolvePackageVersion } from './cli-version';
 import TemplateClient from './mail-magic-client';
 import { do_the_template_thing } from './preprocess';
 
@@ -19,16 +19,6 @@ const envDefaults = loadCliEnv();
 const defaultToken = resolveToken(envDefaults);
 
 const apiDefault = envDefaults.api || 'http://localhost:3000';
-
-function resolvePackageVersion(): string {
-	try {
-		const raw = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8');
-		const data = JSON.parse(raw) as { version?: string };
-		return typeof data.version === 'string' && data.version ? data.version : 'unknown';
-	} catch {
-		return 'unknown';
-	}
-}
 
 program.option('-a, --api <api>', 'Base API endpoint', apiDefault);
 if (defaultToken) {
