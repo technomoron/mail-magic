@@ -32,13 +32,11 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 
 		const templateType = templateTypeRaw.toLowerCase();
 		const domainId = apireq.domain!.domain_id;
-		const deflocale = this.server.storage.deflocale || '';
 
 		if (templateType === 'tx') {
 			const template =
 				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale } })) ||
-				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale: deflocale } })) ||
-				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId } }));
+				(await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale: '' } }));
 			if (!template) {
 				throw new ApiError({
 					code: 404,
@@ -57,8 +55,7 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 		if (templateType === 'form') {
 			const form =
 				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale } })) ||
-				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale: deflocale } })) ||
-				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId } }));
+				(await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale: '' } }));
 			if (!form) {
 				throw new ApiError({
 					code: 404,

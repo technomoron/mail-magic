@@ -168,6 +168,118 @@ describe('mail-magic API', () => {
 		}
 	});
 
+	test('resolves tx locale in deterministic order: requested then root fallback', async () => {
+		const createRes = await api
+			.post('/api/v1/tx/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				name: 'root-fallback-only',
+				domain: ctx!.domainName,
+				locale: '',
+				sender: 'sender@example.test',
+				subject: 'Root Locale Subject',
+				template: '<p>Root Locale {{ name }}</p>'
+			});
+		expect(createRes.status).toBe(200);
+
+		const sendRes = await api
+			.post('/api/v1/tx/message')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.field('name', 'root-fallback-only')
+			.field('domain', ctx!.domainName)
+			.field('locale', 'de')
+			.field('rcpt', 'recipient@example.test')
+			.field('vars', JSON.stringify({ name: 'Ada' }));
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		expect(message.subject).toBe('Root Locale Subject');
+		const html = typeof message.html === 'string' ? message.html : String(message.html ?? '');
+		expect(html).toContain('Root Locale Ada');
+	});
+
+	test('does not fall back to arbitrary tx locale when requested/root are missing', async () => {
+		const createRes = await api
+			.post('/api/v1/tx/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				name: 'fr-only-template',
+				domain: ctx!.domainName,
+				locale: 'fr',
+				sender: 'sender@example.test',
+				subject: 'French Subject',
+				template: '<p>Bonjour {{ name }}</p>'
+			});
+		expect(createRes.status).toBe(200);
+
+		const sendRes = await api
+			.post('/api/v1/tx/message')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.field('name', 'fr-only-template')
+			.field('domain', ctx!.domainName)
+			.field('locale', 'de')
+			.field('rcpt', 'recipient@example.test')
+			.field('vars', JSON.stringify({ name: 'Ada' }));
+		expect(sendRes.status).toBe(404);
+	});
+
+	test('does not fall back to arbitrary tx locale in template asset uploads', async () => {
+		const createRes = await api
+			.post('/api/v1/tx/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				name: 'assets-fr-only-tx',
+				domain: ctx!.domainName,
+				locale: 'fr',
+				sender: 'sender@example.test',
+				subject: 'French Asset Subject',
+				template: '<p>Bonjour {{ name }}</p>'
+			});
+		expect(createRes.status).toBe(200);
+
+		const uploadPath = path.join(ctx!.tempDir, 'locale-miss-tx-asset.txt');
+		fs.writeFileSync(uploadPath, 'tx locale miss');
+
+		const res = await api
+			.post('/api/v1/assets')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.field('domain', ctx!.domainName)
+			.field('templateType', 'tx')
+			.field('template', 'assets-fr-only-tx')
+			.field('locale', 'de')
+			.attach('asset', uploadPath);
+		expect(res.status).toBe(404);
+	});
+
+	test('does not fall back to arbitrary form locale in template asset uploads', async () => {
+		const formRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'assets-fr-only-form',
+				locale: 'fr',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'French Form',
+				template: '<p>Bonjour {{ _fields_.msg }}</p>'
+			});
+		expect(formRes.status).toBe(200);
+
+		const uploadPath = path.join(ctx!.tempDir, 'locale-miss-form-asset.txt');
+		fs.writeFileSync(uploadPath, 'form locale miss');
+
+		const res = await api
+			.post('/api/v1/assets')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.field('domain', ctx!.domainName)
+			.field('templateType', 'form')
+			.field('template', 'assets-fr-only-form')
+			.field('locale', 'de')
+			.attach('asset', uploadPath);
+		expect(res.status).toBe(404);
+	});
+
 	test('requires _mm_form_key for public form submissions', async () => {
 		const res = await api.post('/api/v1/form/message').send({
 			name: 'Ada',

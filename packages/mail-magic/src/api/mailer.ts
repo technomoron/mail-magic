@@ -121,14 +121,12 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			throw new ApiError({ code: 400, message: 'Invalid email address(es): ' + invalid.join(',') });
 		}
 		let template: api_txmail | null = null;
-		const deflocale = this.server.storage.deflocale || '';
 		const domain_id = apireq.domain!.domain_id;
 
 		try {
 			template =
 				(await api_txmail.findOne({ where: { name, domain_id, locale } })) ||
-				(await api_txmail.findOne({ where: { name, domain_id, locale: deflocale } })) ||
-				(await api_txmail.findOne({ where: { name, domain_id } }));
+				(await api_txmail.findOne({ where: { name, domain_id, locale: '' } }));
 		} catch (error: unknown) {
 			throw new ApiError({
 				code: 500,

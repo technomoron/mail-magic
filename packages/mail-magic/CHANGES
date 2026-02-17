@@ -1,3 +1,14 @@
+Version 1.0.35 (2026-02-17)
+
+- Enforce deterministic locale resolution for transactional template sends:
+  requested locale first, then root fallback (`locale=''`) only.
+- Enforce the same deterministic locale resolution for template-scoped asset uploads
+  (`POST /api/v1/assets`) for both `tx` and `form` template types.
+- Remove non-deterministic fallback to arbitrary locale records when requested/root
+  locales are missing.
+- Add regression tests covering deterministic locale fallback and missing-locale
+  behavior for both transactional sends and template asset upload resolution.
+
 Version 1.0.34 (2026-02-10)
 
 - Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
