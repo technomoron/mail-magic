@@ -13,8 +13,8 @@ Send an optional receipt email to the submitter after `POST /v1/form/message` su
 - Support a domain default receipt template name (example: `form-submission`).
 - Support per-form override via a new optional form field (example: `receipt_template`).
 - Only send when submitter email exists and validates (for example from `_fields_.email`).
-- Receipt should include submitted field values and a text-only file summary (filenames only), without attaching uploaded
-  files.
+- Receipt should include submitted field values and a text-only file summary (filenames only), without attaching
+  uploaded files.
 
 ### Locale strategy
 

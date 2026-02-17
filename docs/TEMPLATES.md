@@ -6,7 +6,7 @@ and assets (public URLs vs inline CID attachments) work.
 Mail Magic uses:
 
 - Nunjucks syntax inside templates (`.njk`) for variables/logic and `extends`/`include`.
-- A preprocessing step that *flattens* template hierarchies and rewrites `asset('...')` references.
+- A preprocessing step that _flattens_ template hierarchies and rewrites `asset('...')` references.
 
 ## Directory Layout
 
@@ -63,8 +63,8 @@ ${CONFIG_PATH}/example.com/form-template/en/contact.njk
 ${CONFIG_PATH}/example.com/form-template/fr/contact.njk
 ```
 
-Includes/extends are resolved relative to the current template root. For example, inside
-`tx-template/fr/welcome.njk`, this will load `tx-template/fr/base.njk`:
+Includes/extends are resolved relative to the current template root. For example, inside `tx-template/fr/welcome.njk`,
+this will load `tx-template/fr/base.njk`:
 
 ```njk
 {% extends "base.njk" %}
@@ -106,11 +106,11 @@ Example:
 
 ```json
 {
-  "name": "welcome",
-  "domain": "example.com",
-  "locale": "fr",
-  "rcpt": "user@example.com",
-  "vars": { "name": "Jean" }
+	"name": "welcome",
+	"domain": "example.com",
+	"locale": "fr",
+	"rcpt": "user@example.com",
+	"vars": { "name": "Jean" }
 }
 ```
 
@@ -120,8 +120,8 @@ Forms are ultimately selected by `form_key` on public submission (`/v1/form/mess
 
 - `POST /v1/form/template` stores the form template record under `(domain, idname, locale)` and returns a `form_key`.
 - If you create `contact` in `en` and `fr`, you will get two different `form_key` values.
-- Public form submissions use `_mm_form_key` to pick the form; `_mm_locale` is exposed to the template as a value (and is
-  used elsewhere such as recipient-resolution inputs), but it does not override which form template is selected.
+- Public form submissions use `_mm_form_key` to pick the form; `_mm_locale` is exposed to the template as a value (and
+  is used elsewhere such as recipient-resolution inputs), but it does not override which form template is selected.
 
 ### Asset upload API: locale matters when targeting template directories
 
@@ -216,7 +216,7 @@ During preprocessing/import this becomes a URL like:
 ${ASSET_PUBLIC_BASE-or-API_URL}${ASSET_ROUTE}/${domain}/files/banner.png
 ```
 
-The asset is *not* embedded in the HTML; it will be fetched by the email client.
+The asset is _not_ embedded in the HTML; it will be fetched by the email client.
 
 ### Inline assets (CID)
 
@@ -250,12 +250,12 @@ CID rules/notes:
 There are two different things people call “attachments”:
 
 1. Template assets (from `asset('...')`)
-   - These are discovered during preprocessing/import and stored on the template/form record as `files`.
-   - Inline assets (the `true` flag) are attached with a `contentId` so `cid:...` works.
+    - These are discovered during preprocessing/import and stored on the template/form record as `files`.
+    - Inline assets (the `true` flag) are attached with a `contentId` so `cid:...` works.
 
 2. Runtime attachments (uploaded with the send request)
-   - Transactional send supports uploading files with the API call.
-   - Form submissions support uploading files with `_mm_file*`.
+    - Transactional send supports uploading files with the API call.
+    - Form submissions support uploading files with `_mm_file*`.
 
 ### Transactional: what gets attached
 
@@ -317,14 +317,14 @@ Example snippet:
 
 ## Preprocessing/Import: The Important Constraint
 
-Template *hierarchies* (`extends`/`include`) and `asset('...')` rewriting happen when Mail Magic loads templates from the
-config filesystem and preprocesses them into a single stored template string.
+Template _hierarchies_ (`extends`/`include`) and `asset('...')` rewriting happen when Mail Magic loads templates from
+the config filesystem and preprocesses them into a single stored template string.
 
 That means:
 
 - If you store a template directly via the API (`/v1/tx/template` or `/v1/form/template`), it is stored “as-is”.
-- API-stored templates are rendered with `renderString()` (no filesystem loader), so `extends`/`include` can’t load other
-  files, and `asset('...')` won’t be rewritten.
+- API-stored templates are rendered with `renderString()` (no filesystem loader), so `extends`/`include` can’t load
+  other files, and `asset('...')` won’t be rewritten.
 
 If you want parent templates/includes/assets:
 
@@ -335,5 +335,5 @@ If you want parent templates/includes/assets:
 
 - Asset files must live under `${domain}/assets/` for `asset('...')` to resolve.
 - `asset('...', true)` is the only way to get a `cid:` URL that will render reliably across clients.
-- Don’t rely on `extends`/`include` working in templates stored via the API; use filesystem-imported templates if you want
-  hierarchies.
+- Don’t rely on `extends`/`include` working in templates stored via the API; use filesystem-imported templates if you
+  want hierarchies.
