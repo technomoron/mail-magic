@@ -22,7 +22,7 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/technomoron/mail-magic.git",
-		"directory": "packages/mail-magic-client"
+		"directory": "packages/client"
 	},
 	"author": "Bjørn Erik Jacobsen",
 	"license": "MIT",

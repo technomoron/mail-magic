@@ -9,11 +9,11 @@ const root = path.resolve(__dirname, '..');
 const mappings = [
 	{
 		source: path.join(root, 'packages', 'common', 'template-preprocess.ts'),
-		target: path.join(root, 'packages', 'mm-cli', 'src', 'shared-template-preprocess.ts')
+		target: path.join(root, 'packages', 'cli', 'src', 'shared-template-preprocess.ts')
 	},
 	{
 		source: path.join(root, 'packages', 'common', 'template-flatten.ts'),
-		target: path.join(root, 'packages', 'mail-magic', 'src', 'util', 'shared-template-flatten.ts')
+		target: path.join(root, 'packages', 'server', 'src', 'util', 'shared-template-flatten.ts')
 	}
 ];
 

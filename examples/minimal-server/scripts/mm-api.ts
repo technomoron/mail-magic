@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import TemplateClient from '../../../packages/mail-magic-client/src/mail-magic-client.ts';
+import TemplateClient from '../../../packages/client/src/mail-magic-client.ts';
 
 type Command = 'template' | 'asset' | 'path';
 

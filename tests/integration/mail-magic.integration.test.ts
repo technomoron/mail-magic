@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { api_form } from '../../packages/mail-magic/src/models/form.js';
-import { api_txmail } from '../../packages/mail-magic/src/models/txmail.js';
+import { api_form } from '../../packages/server/src/models/form.js';
+import { api_txmail } from '../../packages/server/src/models/txmail.js';
 import { createIntegrationContext } from '../helpers/integration-setup.js';
 
 import type { IntegrationContext } from '../helpers/integration-setup.js';

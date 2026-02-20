@@ -12,7 +12,7 @@ export function resolvePackageVersion(options: ResolveOptions = {}): string {
 	const candidates = [
 		argv1 ? path.resolve(path.dirname(argv1), '../package.json') : '',
 		path.resolve(cwd, 'package.json'),
-		path.resolve(cwd, 'packages/mm-cli/package.json')
+		path.resolve(cwd, 'packages/cli/package.json')
 	].filter(Boolean);
 
 	for (const candidate of candidates) {

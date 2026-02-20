@@ -1,4 +1,4 @@
-import TemplateClient from '../../../packages/mail-magic-client/src/mail-magic-client.ts';
+import TemplateClient from '../../../packages/client/src/mail-magic-client.ts';
 
 const baseUrl = 'http://127.0.0.1:3776';
 const token = 'example-token';

@@ -22,7 +22,7 @@
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/technomoron/mail-magic.git",
-		"directory": "packages/mail-magic"
+		"directory": "packages/server"
 	},
 	"scripts": {
 		"start": "node dist/esm/index.js",

@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { startMailMagicServer } from '../../packages/mail-magic/src/index.ts';
+import { startMailMagicServer } from '../../packages/server/src/index.ts';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.join(root, 'data');

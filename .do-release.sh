@@ -3,10 +3,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-if [ -d "$ROOT/packages/mail-magic" ] && [ -d "$ROOT/packages/mail-magic-client" ]; then
+if [ -d "$ROOT/packages/server" ] && [ -d "$ROOT/packages/client" ]; then
 	PACKAGE_DIRS=(
-		"$ROOT/packages/mail-magic"
-		"$ROOT/packages/mail-magic-client"
+		"$ROOT/packages/server"
+		"$ROOT/packages/client"
 	)
 else
 	PACKAGE_DIRS=(

@@ -308,5 +308,5 @@ pnpm -w --filter @technomoron/mail-magic cleanbuild
 
 Documentation:
 
-- `packages/mail-magic/docs/tutorial.md` is a hands-on config walkthrough.
-- `packages/mail-magic/docs/form-security.md` covers the public form endpoint contract and recommended mitigations.
+- `packages/server/docs/tutorial.md` is a hands-on config walkthrough.
+- `packages/server/docs/form-security.md` covers the public form endpoint contract and recommended mitigations.

@@ -1,4 +1,4 @@
-import TemplateClient from '../../../packages/mail-magic-client/src/mail-magic-client.ts';
+import TemplateClient from '../../../packages/client/src/mail-magic-client.ts';
 
 type Mode = 'tx' | 'form' | 'both';
 
