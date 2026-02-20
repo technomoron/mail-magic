@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { simpleParser } from 'mailparser';
 import { SMTPServer } from 'smtp-server';
@@ -13,7 +14,8 @@ import { createMailMagicServer } from '../../packages/server/src/index.js';
 import type { ParsedMail } from 'mailparser';
 import type { Server } from 'node:http';
 
-const FIXTURE_ROOT = path.join(process.cwd(), 'tests', 'fixtures');
+const THIS_DIR = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURE_ROOT = path.resolve(THIS_DIR, '..', 'fixtures');
 const CONFIG_FIXTURE = path.join(FIXTURE_ROOT, 'config');
 const ATTACHMENT_FIXTURE = path.join(FIXTURE_ROOT, 'uploads', 'sample-attachment.txt');
 

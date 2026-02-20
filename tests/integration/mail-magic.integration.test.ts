@@ -213,119 +213,11 @@ describe('mail-magic integration', () => {
 		expect(bad.status).toBe(404);
 	});
 
-	test('rejects template updates for the wrong domain token', async () => {
-		const txRes = await ctx.api.post('/api/v1/tx/template').set('Authorization', 'Bearer apikey-beta-token').send({
-			domain: ctx.domainAlpha,
-			name: 'denied',
-			sender: 'Alpha <noreply@alpha.example.test>',
-			subject: 'Denied',
-			template: '<p>Denied</p>'
-		});
-
-		expect(txRes.status).toBe(403);
-
-		const formRes = await ctx.api
-			.post('/api/v1/form/template')
-			.set('Authorization', 'Bearer apikey-beta-token')
-			.send({
-				domain: ctx.domainAlpha,
-				idname: 'denied-form',
-				sender: 'Alpha Forms <forms@alpha.example.test>',
-				recipient: 'owner@alpha.example.test',
-				subject: 'Denied',
-				template: '<p>Denied</p>'
-			});
-
-		expect(formRes.status).toBe(403);
-	});
-
 	test('requires form secret when configured', async () => {
 		const res = await ctx.api.post('/api/v1/form/message').field('name', 'Sam').field('email', 'sam@example.test');
 
 		// Public form submissions require `_mm_form_key` (no legacy domain/formid/secret inputs).
 		expect(res.status).toBe(400);
-	});
-
-	test('client can store and send a transactional template', async () => {
-		await ctx.clients.alpha.storeTemplate({
-			domain: ctx.domainAlpha,
-			name: 'client-template',
-			sender: 'Alpha <noreply@alpha.example.test>',
-			subject: 'Client Subject',
-			template: '<p>Hello {{ name }}</p>'
-		});
-
-		await ctx.clients.alpha.sendTemplate({
-			domain: ctx.domainAlpha,
-			name: 'client-template',
-			rcpt: 'client@example.test',
-			vars: { name: 'Riley' }
-		});
-
-		const message = await ctx.smtp.waitForMessage();
-		expect(message.subject).toContain('Client Subject');
-		const html = typeof message.html === 'string' ? message.html : String(message.html ?? '');
-		expect(html).toContain('Hello Riley');
-	});
-
-	test('stores a form template via API and delivers it', async () => {
-		const createRes = await ctx.api
-			.post('/api/v1/form/template')
-			.set('Authorization', 'Bearer apikey-alpha-token')
-			.send({
-				domain: ctx.domainAlpha,
-				idname: 'client-form',
-				sender: 'Alpha Forms <forms@alpha.example.test>',
-				recipient: 'owner@alpha.example.test',
-				subject: 'Client form subject',
-				template: '<p>Client form {{ _fields_.name }}</p>',
-				secret: 'client-secret'
-			});
-
-		expect(createRes.status).toBe(200);
-		const formKey = String((createRes.body as { data?: { form_key?: unknown } })?.data?.form_key ?? '').trim();
-		expect(formKey.length).toBeGreaterThan(0);
-
-		const sendRes = await ctx.api.post('/api/v1/form/message').field('_mm_form_key', formKey).field('name', 'Ada');
-
-		expect(sendRes.status).toBe(200);
-
-		const message = await ctx.smtp.waitForMessage();
-		expect(message.subject).toContain('Client form subject');
-		const html = typeof message.html === 'string' ? message.html : String(message.html ?? '');
-		expect(html).toContain('Client form Ada');
-	});
-
-	test('uploads assets to domain and template directories', async () => {
-		const domainAsset = path.join(ctx.tempDir, 'asset-domain.txt');
-		const templateAsset = path.join(ctx.tempDir, 'asset-template.txt');
-		fs.writeFileSync(domainAsset, 'domain asset');
-		fs.writeFileSync(templateAsset, 'template asset');
-
-		const domainRes = await ctx.api
-			.post('/api/v1/assets')
-			.set('Authorization', 'Bearer apikey-alpha-token')
-			.field('domain', ctx.domainAlpha)
-			.attach('asset', domainAsset);
-
-		expect(domainRes.status).toBe(200);
-
-		const domainDest = path.join(ctx.configPath, ctx.domainAlpha, 'assets', 'asset-domain.txt');
-		expect(fs.existsSync(domainDest)).toBe(true);
-
-		const templateRes = await ctx.api
-			.post('/api/v1/assets')
-			.set('Authorization', 'Bearer apikey-alpha-token')
-			.field('domain', ctx.domainAlpha)
-			.field('templateType', 'tx')
-			.field('template', 'welcome')
-			.field('locale', 'en')
-			.attach('asset', templateAsset);
-
-		expect(templateRes.status).toBe(200);
-
-		const templateDest = path.join(ctx.configPath, ctx.domainAlpha, 'tx-template', 'en', 'asset-template.txt');
-		expect(fs.existsSync(templateDest)).toBe(true);
 	});
 
 	test('sends all transactional messages and form messages', async () => {

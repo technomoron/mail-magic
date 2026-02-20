@@ -68,6 +68,11 @@ export const envOptions = defineEnvOptions({
 		description: 'Path to directory where config files are located',
 		default: './data/'
 	},
+	GEN_ENV_TEMPLATE: {
+		description: 'Write .env-dist to current working directory on startup',
+		default: false,
+		type: 'boolean'
+	},
 	DB_USER: {
 		description: 'Database username for API database'
 	},

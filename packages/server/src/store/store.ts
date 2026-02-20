@@ -194,7 +194,9 @@ export class mailStore {
 		if (this.vars.FORM_CAPTCHA_REQUIRED && !String(this.vars.FORM_CAPTCHA_SECRET ?? '').trim()) {
 			throw new Error('FORM_CAPTCHA_SECRET must be set when FORM_CAPTCHA_REQUIRED=true');
 		}
-		EnvLoader.genTemplate(envOptions, '.env-dist');
+		if (this.vars.GEN_ENV_TEMPLATE) {
+			EnvLoader.genTemplate(envOptions, '.env-dist');
+		}
 		const p = this.vars.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
 		console.log(`Config path is ${this.configpath}`);
