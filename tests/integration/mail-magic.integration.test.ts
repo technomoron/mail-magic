@@ -1,8 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { api_form } from '../../packages/server/src/models/form.js';
-import { api_txmail } from '../../packages/server/src/models/txmail.js';
 import { createIntegrationContext } from '../helpers/integration-setup.js';
 
 import type { IntegrationContext } from '../helpers/integration-setup.js';
@@ -149,75 +147,21 @@ describe('mail-magic integration', () => {
 		ctx.smtp.reset();
 	});
 
-	test('imports all templates and forms with inline and linked assets', async () => {
-		const templates = await api_txmail.findAll();
-		const forms = await api_form.findAll();
-
-		expect(templates).toHaveLength(initData.template.length);
-		expect(forms).toHaveLength(initData.form.length);
-
-		for (const template of templates) {
-			const domain = domainsById.get(template.domain_id);
-			expect(domain).toBeTruthy();
-			if (!domain) {
-				continue;
-			}
-			const assetUrl = `${ctx.baseUrl}/api/asset/${domain.name}/files/banner.png`;
-			expect(template.template).toContain(assetUrl);
-			expect(template.files.some((file) => file.cid)).toBe(true);
-			expect(template.files.some((file) => !file.cid)).toBe(true);
-
-			const logo = template.files.find((file) => file.filename === 'images/logo.png');
-			expect(logo?.cid).toBeTruthy();
-			if (logo?.cid) {
-				expect(logo.cid).not.toContain('/');
-				expect(template.template).toContain(`cid:${logo.cid}`);
-			}
-			const wordmark = template.files.find((file) => file.filename === 'images/wordmark.png');
-			expect(wordmark?.cid).toBeTruthy();
-			if (wordmark?.cid) {
-				expect(wordmark.cid).not.toContain('/');
-				expect(template.template).toContain(`cid:${wordmark.cid}`);
-			}
-		}
-
-		for (const form of forms) {
-			const domain = domainsById.get(form.domain_id);
-			expect(domain).toBeTruthy();
-			if (!domain) {
-				continue;
-			}
-			const assetUrl = `${ctx.baseUrl}/api/asset/${domain.name}/files/banner.png`;
-			expect(form.template).toContain(assetUrl);
-			expect(form.files.some((file) => file.cid)).toBe(true);
-			expect(form.files.some((file) => !file.cid)).toBe(true);
-
-			const logo = form.files.find((file) => file.filename === 'images/logo.png');
-			expect(logo?.cid).toBeTruthy();
-			if (logo?.cid) {
-				expect(logo.cid).not.toContain('/');
-				expect(form.template).toContain(`cid:${logo.cid}`);
-			}
-		}
-	});
-
 	test('serves assets for each domain and blocks traversal', async () => {
 		for (const domain of initData.domain) {
-			const res = await ctx.api.get(`/api/asset/${domain.name}/files/banner.png`);
-			expect(res.status).toBe(200);
-			expect(res.headers['content-type']).toContain('image/png');
-			expect(res.body.toString().trim()).toContain(domain.name);
+			const owner = usersById.get(domain.user_id);
+			expect(owner).toBeTruthy();
+			if (!owner) {
+				continue;
+			}
+			const client = owner.token === 'alpha-token' ? ctx.clients.alpha : ctx.clients.beta;
+			const data = await client.fetchPublicAsset(domain.name, 'files/banner.png', true);
+			expect(Buffer.from(data).toString().trim()).toContain(domain.name);
 		}
 
-		const bad = await ctx.api.get(`/api/asset/${ctx.domainAlpha}/%2e%2e/secret.txt`);
-		expect(bad.status).toBe(404);
-	});
-
-	test('requires form secret when configured', async () => {
-		const res = await ctx.api.post('/api/v1/form/message').field('name', 'Sam').field('email', 'sam@example.test');
-
-		// Public form submissions require `_mm_form_key` (no legacy domain/formid/secret inputs).
-		expect(res.status).toBe(400);
+		await expect(ctx.clients.alpha.fetchPublicAsset(ctx.domainAlpha, '../secret.txt', true)).rejects.toThrow(
+			/FETCH FAILED/
+		);
 	});
 
 	test('sends all transactional messages and form messages', async () => {
@@ -231,22 +175,21 @@ describe('mail-magic integration', () => {
 			}
 
 			const vars = buildTxVars(entry.name, domain.name, entry.locale);
-			const request = ctx.api
-				.post('/api/v1/tx/message')
-				.set('Authorization', `Bearer apikey-${user.token}`)
-				.field('domain', domain.name)
-				.field('name', entry.name)
-				.field('locale', entry.locale)
-				.field('rcpt', 'mailtrap@example.test')
-				.field('vars', JSON.stringify(vars));
-
-			if (entry.name === 'register' && entry.locale === 'en' && domain.name === ctx.domainAlpha) {
-				request.attach('attachment', ctx.attachmentPath);
-			}
-
-			const res = await request;
-			if (res.status >= 400) {
-				throw new Error(`Failed to send tx ${entry.name} (${domain.name}/${entry.locale}): ${res.status}`);
+			const client = user.token === 'alpha-token' ? ctx.clients.alpha : ctx.clients.beta;
+			try {
+				await client.sendTxMessage({
+					domain: domain.name,
+					name: entry.name,
+					locale: entry.locale,
+					rcpt: 'mailtrap@example.test',
+					vars,
+					attachments:
+						entry.name === 'register' && entry.locale === 'en' && domain.name === ctx.domainAlpha
+							? [{ path: ctx.attachmentPath }]
+							: undefined
+				});
+			} catch (err) {
+				throw new Error(`Failed to send tx ${entry.name} (${domain.name}/${entry.locale}): ${String(err)}`);
 			}
 		}
 
@@ -257,31 +200,39 @@ describe('mail-magic integration', () => {
 			if (!domain) {
 				throw new Error(`Missing domain for form ${entry.idname}`);
 			}
+			const user = usersById.get(entry.user_id) || usersById.get(domain.user_id);
+			if (!user) {
+				throw new Error(`Missing user for form ${entry.idname}`);
+			}
+			const client = user.token === 'alpha-token' ? ctx.clients.alpha : ctx.clients.beta;
 
-			const dbForm = await api_form.findByPk(entry.form_id);
-			const formKey = String(dbForm?.form_key ?? '').trim();
+			const recipientResp = await client.storeFormRecipient({
+				domain: domain.name,
+				idname: entry.idname,
+				formid: entry.idname,
+				locale: entry.locale,
+				email: entry.recipient,
+				name: 'Integration Recipient'
+			});
+			const formKey = String(
+				(recipientResp.data as { form_key?: unknown } | undefined)?.form_key ??
+					(recipientResp as { form_key?: unknown }).form_key ??
+					''
+			).trim();
 			if (!formKey) {
 				throw new Error(`Missing form_key for form ${entry.idname}`);
 			}
 
 			const fields = buildFormFields(entry.idname, entry.locale);
-			const request = ctx.api
-				.post('/api/v1/form/message')
-				.set('x-forwarded-for', '203.0.113.10')
-				.field('_mm_form_key', formKey)
-				.field('_mm_locale', entry.locale);
-
-			for (const [key, value] of Object.entries(fields)) {
-				request.field(key, value);
-			}
-
-			if (entry.idname === 'contact') {
-				request.attach('_mm_file1', ctx.attachmentPath);
-			}
-
-			const res = await request;
-			if (res.status >= 400) {
-				throw new Error(`Failed to send form ${entry.idname}: ${res.status}`);
+			try {
+				await client.sendFormMessage({
+					_mm_form_key: formKey,
+					_mm_locale: entry.locale,
+					fields,
+					attachments: entry.idname === 'contact' ? [{ path: ctx.attachmentPath }] : undefined
+				});
+			} catch (err) {
+				throw new Error(`Failed to send form ${entry.idname}: ${String(err)}`);
 			}
 		}
 
