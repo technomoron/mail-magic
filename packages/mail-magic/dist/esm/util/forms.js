@@ -90,15 +90,13 @@ export async function enforceCaptchaPolicy(params) {
 }
 export function buildReplyToValue(form, fields) {
     const forced = typeof form.replyto_email === 'string' ? form.replyto_email.trim() : '';
-    const forcedValue = forced ? forced : '';
     if (form.replyto_from_fields) {
         const extracted = extractReplyToFromSubmission(fields);
         if (extracted) {
             return extracted;
         }
-        return forcedValue || undefined;
     }
-    return forcedValue || undefined;
+    return forced || undefined;
 }
 export function parseIdnameList(value, field) {
     if (value === undefined || value === null || value === '') {

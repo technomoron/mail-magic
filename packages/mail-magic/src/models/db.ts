@@ -1,6 +1,7 @@
 import { Sequelize } from 'sequelize';
 
 import { mailStore } from '../store/store.js';
+
 import { init_api_domain, api_domain } from './domain.js';
 import { init_api_form, api_form } from './form.js';
 import { importData } from './init.js';

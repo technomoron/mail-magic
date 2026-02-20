@@ -11,12 +11,13 @@ export class MailerAPI extends ApiModule {
     // and valid email addresses.
     //
     validateEmails(list) {
-        const valid = [], invalid = [];
+        const valid = [];
+        const invalid = [];
         const emails = list
             .split(',')
             .map((email) => email.trim())
             .filter((email) => email !== '');
-        emails.forEach((email) => {
+        for (const email of emails) {
             const addr = validateEmail(email);
             if (addr) {
                 valid.push(addr);
@@ -24,7 +25,7 @@ export class MailerAPI extends ApiModule {
             else {
                 invalid.push(email);
             }
-        });
+        }
         return { valid, invalid };
     }
     // Store a template in the database

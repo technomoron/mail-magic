@@ -100,7 +100,7 @@ export async function connect_api_db(store) {
     console.log('DB INIT');
     const env = store.vars;
     const dbparams = {
-        logging: false, // env.DB_LOG ? console.log : false,
+        logging: env.DB_LOG ? console.log : false,
         dialect: env.DB_TYPE,
         dialectOptions: {
             charset: 'utf8mb4'

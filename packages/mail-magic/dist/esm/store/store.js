@@ -22,10 +22,7 @@ function create_mail_transport(vars) {
     if (user && pass) {
         args.auth = { user, pass };
     }
-    const mailer = createTransport({
-        ...args
-    });
-    return mailer;
+    return createTransport(args);
 }
 export function enableInitDataAutoReload(ctx, reload) {
     if (!ctx.vars.DB_AUTO_RELOAD) {

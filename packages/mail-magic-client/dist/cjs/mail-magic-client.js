@@ -55,12 +55,13 @@ class TemplateClient {
         return this.request('DELETE', command, body);
     }
     validateEmails(list) {
-        const valid = [], invalid = [];
+        const valid = [];
+        const invalid = [];
         const emails = list
             .split(',')
             .map((email) => email.trim())
             .filter((email) => email !== '');
-        emails.forEach((email) => {
+        for (const email of emails) {
             const parsed = email_addresses_1.default.parseOneAddress(email);
             if (parsed && parsed.address) {
                 valid.push(parsed.address);
@@ -68,7 +69,7 @@ class TemplateClient {
             else {
                 invalid.push(email);
             }
-        });
+        }
         return { valid, invalid };
     }
     validateTemplate(template) {

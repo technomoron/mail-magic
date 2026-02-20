@@ -7,7 +7,7 @@ shared compile implementation.
 
 ## Scope Summary
 
-- Shared template compiler code in `shared/` synced into package-local sources at build/test time
+- Shared template compiler code in `packages/common/` synced into package-local sources at build/test time
 - Deterministic `push-dir` behavior across templates/forms/assets
 - Metadata sync model that avoids hard-coding numeric IDs in source config
 - Optional write-back for resolved IDs/keys with safe defaults

@@ -14,8 +14,8 @@ This file captures workspace-level changes (tooling, repo layout, etc) and is no
 - Workspace scripts now include `sync:shared`, `cli`, and `test:cli`; root
   `test` now runs CLI tests.
 - Code clarity pass across the workspace: merge duplicate conditionals and
-  replace `forEach` with `for...of` in `shared/template-preprocess.ts`; sync
-  shared copies via `scripts/sync-shared-code.cjs`.
+  replace `forEach` with `for...of` in `packages/common/template-preprocess.ts`;
+  sync shared copies via `scripts/sync-shared-code.cjs`.
 
 ## 2026-02-08
 
