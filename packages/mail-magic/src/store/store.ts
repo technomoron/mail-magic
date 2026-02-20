@@ -47,10 +47,7 @@ function create_mail_transport(vars: MailStoreVars): Transporter {
 		args.auth = { user, pass };
 	}
 
-	const mailer: Transporter = createTransport({
-		...args
-	});
-	return mailer;
+	return createTransport(args);
 }
 
 export function enableInitDataAutoReload(ctx: AutoReloadContext, reload: () => void): AutoReloadHandle | null {

@@ -3,13 +3,12 @@
 import fs from 'fs';
 import readline from 'readline';
 
+import TemplateClient from '@technomoron/mail-magic-client';
 import { Command } from 'commander';
 
 import { loadCliEnv, resolveToken } from './cli-env';
-import { pushTemplate, pushTemplateDir } from './cli-helpers';
+import { compileConfigTree, pushTemplate, pushTemplateDir } from './cli-helpers';
 import { resolvePackageVersion } from './cli-version';
-import TemplateClient from './mail-magic-client';
-import { do_the_template_thing } from './preprocess';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 type JsonObject = Record<string, JsonValue>;
@@ -155,19 +154,29 @@ program
 
 program
 	.command('compile')
-	.description('Compile templates by resolving inheritance and processing with FFE')
-	.option('-i, --input <input>', 'Input directory', './templates')
-	.option('-o, --output <output>', 'Output directory', './templates-dist')
-	.option('-c, --css <css>', 'Path to Foundation for Emails CSS', './templates/foundation-emails.css')
-	.option('-t, --template <template>', 'Process a specific template only')
+	.description('Compile templates from a config-tree directory to an output directory')
+	.option('-i, --input <input>', 'Config directory (contains init-data.json)', './data')
+	.option('-o, --output <output>', 'Output directory for compiled templates', './compiled')
+	.option('-c, --css <css>', 'Path to Foundation for Emails CSS (optional)')
+	.option('-d, --domain <domain>', 'Domain to compile (required if multiple domains are present)')
+	.option('--tx', 'Compile transactional templates only')
+	.option('--form', 'Compile form templates only')
 	.action(async (cmdOptions) => {
 		try {
-			await do_the_template_thing({
-				src_dir: cmdOptions.input,
-				dist_dir: cmdOptions.output,
-				css_path: cmdOptions.css,
-				tplname: cmdOptions.template // Pass undefined if not specified
+			const includeTx = cmdOptions.tx || !cmdOptions.form;
+			const includeForms = cmdOptions.form || !cmdOptions.tx;
+
+			const summary = await compileConfigTree({
+				input: cmdOptions.input,
+				output: cmdOptions.output,
+				domain: cmdOptions.domain || program.opts().domain,
+				css: cmdOptions.css,
+				includeTx,
+				includeForms
 			});
+			console.log(
+				`Compiled ${summary.templates} tx template(s) and ${summary.forms} form template(s) to ${cmdOptions.output}`
+			);
 		} catch (error) {
 			if (error instanceof Error) {
 				console.error('Error:', error.message);

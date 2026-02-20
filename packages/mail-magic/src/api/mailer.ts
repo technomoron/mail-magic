@@ -18,21 +18,21 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 	//
 
 	validateEmails(list: string): { valid: string[]; invalid: string[] } {
-		const valid = [] as string[],
-			invalid = [] as string[];
+		const valid: string[] = [];
+		const invalid: string[] = [];
 
 		const emails = list
 			.split(',')
 			.map((email) => email.trim())
 			.filter((email) => email !== '');
-		emails.forEach((email) => {
+		for (const email of emails) {
 			const addr = validateEmail(email);
 			if (addr) {
 				valid.push(addr);
 			} else {
 				invalid.push(email);
 			}
-		});
+		}
 		return { valid, invalid };
 	}
 

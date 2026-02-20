@@ -114,17 +114,15 @@ export function buildReplyToValue(
 	fields: Record<string, unknown>
 ) {
 	const forced = typeof form.replyto_email === 'string' ? form.replyto_email.trim() : '';
-	const forcedValue = forced ? forced : '';
 
 	if (form.replyto_from_fields) {
 		const extracted = extractReplyToFromSubmission(fields);
 		if (extracted) {
 			return extracted;
 		}
-		return forcedValue || undefined;
 	}
 
-	return forcedValue || undefined;
+	return forced || undefined;
 }
 
 export function parseIdnameList(value: unknown, field: string): string[] {

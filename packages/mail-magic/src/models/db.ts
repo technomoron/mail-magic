@@ -1,6 +1,6 @@
 import { Sequelize } from 'sequelize';
 
-import { mailStore } from './../store/store.js';
+import { mailStore } from '../store/store.js';
 import { init_api_domain, api_domain } from './domain.js';
 import { init_api_form, api_form } from './form.js';
 import { importData } from './init.js';
@@ -114,7 +114,7 @@ export async function connect_api_db(store: mailStore): Promise<Sequelize> {
 
 	const env = store.vars;
 	const dbparams: Options = {
-		logging: false, // env.DB_LOG ? console.log : false,
+		logging: env.DB_LOG ? console.log : false,
 		dialect: env.DB_TYPE as Dialect,
 		dialectOptions: {
 			charset: 'utf8mb4'

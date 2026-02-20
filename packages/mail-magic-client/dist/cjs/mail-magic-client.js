@@ -7,7 +7,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const email_addresses_1 = __importDefault(require("email-addresses"));
 const nunjucks_1 = __importDefault(require("nunjucks"));
-class templateClient {
+class TemplateClient {
     constructor(baseURL, apiKey) {
         this.baseURL = baseURL;
         this.apiKey = apiKey;
@@ -325,4 +325,4 @@ class templateClient {
         return response.arrayBuffer();
     }
 }
-exports.default = templateClient;
+exports.default = TemplateClient;

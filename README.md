@@ -3,7 +3,8 @@
 This repository contains:
 
 - `packages/mail-magic` - server (`@technomoron/mail-magic`)
-- `packages/mail-magic-client` - client library + CLI (`@technomoron/mail-magic-client`)
+- `packages/mail-magic-client` - typed client library (`@technomoron/mail-magic-client`)
+- `packages/mm-cli` - CLI (`@technomoron/mail-magic-cli`)
 - `packages/mail-magic-admin` - admin UI placeholder (`@technomoron/mail-magic-admin`)
 
 Package documentation:
@@ -11,6 +12,7 @@ Package documentation:
 - `packages/mail-magic/README.md`
 - `packages/mail-magic/TUTORIAL.MD`
 - `packages/mail-magic-client/README.md`
+- `packages/mm-cli/README.md`
 
 Development is optimized for `pnpm` (faster installs/hoisting). CI/publishing can use npm as a fallback.
 

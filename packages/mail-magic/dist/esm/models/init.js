@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { Unyuck } from '@technomoron/unyuck';
 import { z } from 'zod';
 import { buildAssetUrl } from '../util/paths.js';
+import { flattenTemplateWithAssets } from '../util/shared-template-flatten.js';
 import { user_and_domain } from '../util.js';
 import { api_domain, api_domain_schema } from './domain.js';
 import { api_form_schema, upsert_form } from './form.js';
@@ -52,35 +52,14 @@ async function _load_template(store, filename, pathname, user, domain, locale, t
         }
         const assetBaseUrl = store.vars.ASSET_PUBLIC_BASE?.trim() ? store.vars.ASSET_PUBLIC_BASE : store.vars.API_URL;
         const assetRoute = store.vars.ASSET_ROUTE;
-        const processor = new Unyuck({
-            basePath: domainRoot,
+        const { html, assets } = flattenTemplateWithAssets({
+            domainRoot,
+            templateKey,
             baseUrl: assetBaseUrl,
-            collectAssets: true,
-            assetFormatter: (ctx) => buildAssetUrl(assetBaseUrl, assetRoute, domain.name, ctx.urlPath)
+            assetFormatter: (urlPath) => buildAssetUrl(assetBaseUrl, assetRoute, domain.name, urlPath),
+            normalizeInlineCid: buildInlineAssetCid
         });
-        const { html: mergedHtml, assets } = processor.flattenWithAssets(templateKey);
-        let html = mergedHtml;
-        const mappedAssets = assets.map((asset) => {
-            const rel = asset.filename.replace(/\\/g, '/');
-            const urlPath = rel.startsWith('assets/') ? rel.slice('assets/'.length) : rel;
-            return {
-                filename: urlPath,
-                path: asset.path,
-                cid: asset.cid ? buildInlineAssetCid(urlPath) : undefined
-            };
-        });
-        for (const asset of assets) {
-            if (!asset.cid) {
-                continue;
-            }
-            const rel = asset.filename.replace(/\\/g, '/');
-            const urlPath = rel.startsWith('assets/') ? rel.slice('assets/'.length) : rel;
-            const desiredCid = buildInlineAssetCid(urlPath);
-            if (asset.cid !== desiredCid) {
-                html = html.replaceAll(`cid:${asset.cid}`, `cid:${desiredCid}`);
-            }
-        }
-        return { html, assets: mappedAssets };
+        return { html, assets: assets };
     }
     catch (err) {
         throw new Error(`Template "${absPath}" failed to preprocess: ${err.message}`);

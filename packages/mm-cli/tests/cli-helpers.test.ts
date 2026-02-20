@@ -4,7 +4,7 @@ import path from 'path';
 
 import { expect, it, vi } from 'vitest';
 
-import { pushTemplate, pushTemplateDir } from '../src/cli-helpers';
+import { compileConfigTree, pushTemplate, pushTemplateDir } from '../src/cli-helpers';
 
 function setupTemplateFixture(): { root: string; templates: string; cssPath: string } {
 	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-'));
@@ -252,4 +252,90 @@ it('skips uploads for single-template dry runs', async () => {
 	expect(summary.name).toBe('welcome');
 
 	fs.rmSync(fixture.root, { recursive: true, force: true });
+});
+
+it('compiles config-tree templates to output directory by default', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-compile-tree-'));
+	const out = path.join(root, 'compiled-out');
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const txRoot = path.join(domainDir, 'tx-template', 'en');
+	const formRoot = path.join(domainDir, 'form-template', 'en');
+	fs.mkdirSync(path.join(domainDir, 'tx-template'), { recursive: true });
+	fs.mkdirSync(txRoot, { recursive: true });
+	fs.mkdirSync(formRoot, { recursive: true });
+
+	fs.writeFileSync(
+		path.join(domainDir, 'tx-template', 'base.njk'),
+		'<html><body>{% block body %}{% endblock %}</body></html>'
+	);
+	fs.writeFileSync(
+		path.join(txRoot, 'welcome.njk'),
+		'{% extends "base.njk" %}{% block body %}<p>Hello</p>{% endblock %}'
+	);
+	fs.writeFileSync(path.join(formRoot, 'contact.njk'), '<p>Form {{ _fields_.name }}</p>');
+
+	const initData = {
+		domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+		template: [{ domain_id: 1, name: 'welcome', locale: 'en' }],
+		form: [
+			{
+				domain_id: 1,
+				idname: 'contact',
+				locale: 'en',
+				sender: 'Forms <forms@alpha.example.test>',
+				recipient: 'owner@alpha.example.test'
+			}
+		]
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	const summary = await compileConfigTree({ input: root, output: out, domain });
+
+	expect(summary.templates).toBe(1);
+	expect(summary.forms).toBe(1);
+	expect(fs.existsSync(path.join(out, domain, 'tx-template', 'en', 'welcome.njk'))).toBe(true);
+	expect(fs.existsSync(path.join(out, domain, 'form-template', 'en', 'contact.njk'))).toBe(true);
+
+	fs.rmSync(root, { recursive: true, force: true });
+});
+
+it('supports tx/form compile filters', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-compile-filter-'));
+	const out = path.join(root, 'compiled-out');
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const txRoot = path.join(domainDir, 'tx-template', 'en');
+	const formRoot = path.join(domainDir, 'form-template', 'en');
+	fs.mkdirSync(path.join(domainDir, 'tx-template'), { recursive: true });
+	fs.mkdirSync(txRoot, { recursive: true });
+	fs.mkdirSync(formRoot, { recursive: true });
+	fs.writeFileSync(
+		path.join(domainDir, 'tx-template', 'base.njk'),
+		'<html><body>{% block body %}{% endblock %}</body></html>'
+	);
+	fs.writeFileSync(path.join(txRoot, 'welcome.njk'), '{% extends "base.njk" %}{% block body %}Tx{% endblock %}');
+	fs.writeFileSync(path.join(formRoot, 'contact.njk'), '<p>Form</p>');
+	const initData = {
+		domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+		template: [{ domain_id: 1, name: 'welcome', locale: 'en' }],
+		form: [
+			{
+				domain_id: 1,
+				idname: 'contact',
+				locale: 'en',
+				sender: 'Forms <forms@alpha.example.test>',
+				recipient: 'owner@alpha.example.test'
+			}
+		]
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	const txOnly = await compileConfigTree({ input: root, output: out, domain, includeTx: true, includeForms: false });
+	expect(txOnly.templates).toBe(1);
+	expect(txOnly.forms).toBe(0);
+	expect(fs.existsSync(path.join(out, domain, 'tx-template', 'en', 'welcome.njk'))).toBe(true);
+	expect(fs.existsSync(path.join(out, domain, 'form-template', 'en', 'contact.njk'))).toBe(false);
+
+	fs.rmSync(root, { recursive: true, force: true });
 });

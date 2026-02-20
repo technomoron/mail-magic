@@ -1,3 +1,14 @@
+Version 1.0.39 (2026-02-19)
+
+- Code clarity pass: restore `DB_LOG` env-driven logging config (was commented
+  out), normalize import path in `db.ts`.
+- Simplify `create_mail_transport` by removing unnecessary spread and
+  intermediate variable.
+- Simplify `buildReplyToValue` by removing redundant variable and duplicate
+  return path in `forms.ts`.
+- Replace `forEach` with `for...of` and use separate `const` declarations in
+  `validateEmails` (`mailer.ts`).
+
 Version 1.0.38 (2026-02-17)
 
 - Prefer `fs.watch` for init-data auto-reload with automatic fallback to

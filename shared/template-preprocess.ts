@@ -271,9 +271,6 @@ function process_template(cfg: CompileCfg, tplname: string, writeOutput = true) 
 			const outputPath = path.join(distRoot, `${tplname}.njk`);
 			fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 			fs.writeFileSync(outputPath, finalHtml);
-		}
-
-		if (writeOutput) {
 			console.log(`Created ${tplname}.njk`);
 		}
 		return finalHtml;
@@ -285,14 +282,14 @@ function process_template(cfg: CompileCfg, tplname: string, writeOutput = true) 
 
 function get_all_files(dir: string, filelist: string[] = []): string[] {
 	const files = fs.readdirSync(dir);
-	files.forEach((file) => {
+	for (const file of files) {
 		const file_path = path.join(dir, file);
 		if (fs.statSync(file_path).isDirectory()) {
 			get_all_files(file_path, filelist);
 		} else {
 			filelist.push(file_path);
 		}
-	});
+	}
 	return filelist;
 }
 

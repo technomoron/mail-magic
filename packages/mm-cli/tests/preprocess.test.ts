@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { compileTemplate } from '../src/preprocess';
+import { compileTemplate } from '../src/shared-template-preprocess';
 
 describe('preprocess config isolation', () => {
 	const cleanupDirs: string[] = [];

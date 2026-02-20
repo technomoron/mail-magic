@@ -1,3 +1,10 @@
+Version 1.0.31 (2026-02-19)
+
+- Extract CLI implementation to dedicated `@technomoron/mail-magic-cli`
+  package; remove CLI build/bin and CLI-only dependencies from this package.
+- Replace `forEach` with `for...of` and use separate `const` declarations in
+  `validateEmails` for consistency with server-side style.
+
 Version 1.0.30 (2026-02-17)
 
 - Refactor template preprocess compilation to use per-invocation configuration

@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import TemplateClient from './mail-magic-client';
-import { compileTemplate } from './preprocess';
+import TemplateClient from '@technomoron/mail-magic-client';
+
+import { compileTemplate } from './shared-template-preprocess';
 
 export interface PushTemplateOptions {
 	api: string;
@@ -410,6 +411,148 @@ export interface PushTemplateDirOptions {
 	includeForms?: boolean;
 	includeAssets?: boolean;
 	dryRun?: boolean;
+}
+
+export interface CompileConfigTreeOptions {
+	input?: string;
+	output?: string;
+	domain?: string;
+	css?: string;
+	includeTx?: boolean;
+	includeForms?: boolean;
+}
+
+export type CompileAction = {
+	kind: 'tx-template' | 'form-template';
+	domain: string;
+	template: string;
+	locale?: string;
+	sourcePath: string;
+	outputPath: string;
+};
+
+export type CompileConfigTreeSummary = {
+	templates: number;
+	forms: number;
+	actions: CompileAction[];
+};
+
+export async function compileConfigTree(options: CompileConfigTreeOptions): Promise<CompileConfigTreeSummary> {
+	const inputRoot = path.resolve(options.input ?? './data');
+	const outputRoot = path.resolve(options.output ?? './compiled');
+	const initData = loadInitData(inputRoot);
+	const domains = initData.domain ?? [];
+	if (!domains.length) {
+		throw new Error('No domains found in init-data.json');
+	}
+
+	const requestedDomain = options.domain;
+	const domainNames = requestedDomain ? [requestedDomain] : domains.length === 1 ? [domains[0].name] : [];
+
+	if (!domainNames.length) {
+		throw new Error('Domain is required when init-data.json contains multiple domains');
+	}
+
+	const includeTx = options.includeTx ?? true;
+	const includeForms = options.includeForms ?? true;
+	const actions: CompileAction[] = [];
+
+	for (const domainName of domainNames) {
+		const domainRecord = domains.find((domain) => domain.name === domainName);
+		if (!domainRecord) {
+			throw new Error(`Domain "${domainName}" not found in init-data.json`);
+		}
+
+		const domainDir = path.join(inputRoot, domainName);
+		if (!fs.existsSync(domainDir)) {
+			throw new Error(`Domain directory not found: ${domainDir}`);
+		}
+
+		const domainLocale = domainRecord.locale || '';
+
+		const txTemplates = (initData.template ?? []).filter(
+			(template) => template.domain_id === domainRecord.domain_id
+		);
+		const formTemplates = (initData.form ?? []).filter((form) => form.domain_id === domainRecord.domain_id);
+
+		if (includeTx) {
+			const txRoot = path.join(domainDir, 'tx-template');
+			const cssPath = resolveCssPath(inputRoot, domainDir, txRoot, options.css);
+			for (const template of txTemplates) {
+				const localeValue = template.locale || domainLocale || '';
+				const localeSlug = normalizeSlug(localeValue);
+				const nameSlug = normalizeSlug(template.name);
+				const resolved = resolveTemplateFile(
+					txRoot,
+					domainName,
+					'tx-template',
+					nameSlug,
+					localeSlug,
+					template.filename
+				);
+				if (!fs.existsSync(resolved.filePath)) {
+					throw new Error(`Template file not found: ${resolved.filePath}`);
+				}
+				const compiled = await compileTemplate({
+					src_dir: txRoot,
+					css_path: cssPath,
+					tplname: resolved.tplname
+				});
+				const outputPath = path.join(outputRoot, domainName, 'tx-template', `${resolved.tplname}.njk`);
+				fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+				fs.writeFileSync(outputPath, compiled);
+				actions.push({
+					kind: 'tx-template',
+					domain: domainName,
+					template: template.name,
+					locale: localeValue,
+					sourcePath: resolved.filePath,
+					outputPath
+				});
+			}
+		}
+
+		if (includeForms) {
+			const formRoot = path.join(domainDir, 'form-template');
+			const cssPath = resolveCssPath(inputRoot, domainDir, formRoot, options.css);
+			for (const form of formTemplates) {
+				const localeValue = form.locale || domainLocale || '';
+				const localeSlug = normalizeSlug(localeValue);
+				const nameSlug = normalizeSlug(form.idname);
+				const resolved = resolveTemplateFile(
+					formRoot,
+					domainName,
+					'form-template',
+					nameSlug,
+					localeSlug,
+					form.filename
+				);
+				if (!fs.existsSync(resolved.filePath)) {
+					throw new Error(`Form template file not found: ${resolved.filePath}`);
+				}
+				const compiled = await compileTemplate({
+					src_dir: formRoot,
+					css_path: cssPath,
+					tplname: resolved.tplname
+				});
+				const outputPath = path.join(outputRoot, domainName, 'form-template', `${resolved.tplname}.njk`);
+				fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+				fs.writeFileSync(outputPath, compiled);
+				actions.push({
+					kind: 'form-template',
+					domain: domainName,
+					template: form.idname,
+					locale: localeValue,
+					sourcePath: resolved.filePath,
+					outputPath
+				});
+			}
+		}
+	}
+
+	const templates = actions.filter((action) => action.kind === 'tx-template').length;
+	const forms = actions.filter((action) => action.kind === 'form-template').length;
+	return { templates, forms, actions };
 }
 
 export async function pushTemplateDir(

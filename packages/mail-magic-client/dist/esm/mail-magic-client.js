@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import emailAddresses from 'email-addresses';
 import nunjucks from 'nunjucks';
-class templateClient {
+class TemplateClient {
     constructor(baseURL, apiKey) {
         this.baseURL = baseURL;
         this.apiKey = apiKey;
@@ -320,4 +320,4 @@ class templateClient {
         return response.arrayBuffer();
     }
 }
-export default templateClient;
+export default TemplateClient;

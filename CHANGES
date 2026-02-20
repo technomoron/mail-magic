@@ -7,6 +7,16 @@ Mail Magic is a monorepo. Release notes are tracked per package:
 
 This file captures workspace-level changes (tooling, repo layout, etc) and is not used for npm releases.
 
+## 2026-02-19
+
+- Extracted CLI code from `@technomoron/mail-magic-client` into a dedicated
+  `packages/mm-cli` workspace package with its own tests, build, and README.
+- Workspace scripts now include `sync:shared`, `cli`, and `test:cli`; root
+  `test` now runs CLI tests.
+- Code clarity pass across the workspace: merge duplicate conditionals and
+  replace `forEach` with `for...of` in `shared/template-preprocess.ts`; sync
+  shared copies via `scripts/sync-shared-code.cjs`.
+
 ## 2026-02-08
 
 - Reorganized docs: moved `packages/mail-magic/IDEAS.md` to `docs/IDEAS.md`, and moved package config examples/tutorial

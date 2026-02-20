@@ -2,14 +2,13 @@
 
 ## REVIEW
 
-- Housekeeping rule:
-  Always move finished items out of active sections into `## Completed`.
-- Trust model clarification:
-  Authenticated template authors are not automatically trusted. They may be foreign developers or customers.
-- Impact on review item #1:
-  Treat untrusted template authors as a higher-risk scenario. Field sanitization alone is insufficient; template trust controls are the key concern.
-- Current intent:
-  No implementation change requested in this step. Keep this note as context for future security decisions.
+- Housekeeping rule: Always move finished items out of active sections into `## Completed`.
+- Trust model clarification: Authenticated template authors are not automatically trusted. They may be foreign
+  developers or customers.
+- Impact on review item #1: Treat untrusted template authors as a higher-risk scenario. Field sanitization alone is
+  insufficient; template trust controls are the key concern.
+- Current intent: No implementation change requested in this step. Keep this note as context for future security
+  decisions.
 
 ## Critical / Security
 
@@ -27,12 +26,10 @@
        Action: Document single-instance limitation; optionally add Redis-backed limiter path.  
        Pitfalls: Extra operational complexity.
 
-
 - [ ] **#13 Sequential recipient resolution queries**  
        Decision: `agree`  
        Action: Batch/parallelize lookup while preserving scoped-over-domain precedence.  
        Pitfalls: Easy to break precedence semantics.
-
 
 ## Code Quality / Cleanup
 
@@ -78,61 +75,55 @@
 - [x] **#5 Duplicate `normalizeRoute` (`index.ts`, `swagger.ts`)**  
        Decision: `agree`  
        Action: Extracted shared `normalizeRoute` helper into `src/util/route.ts` and reused in both modules. Added test
-      coverage.
-       Pitfalls: Minimal refactor risk only.
+      coverage. Pitfalls: Minimal refactor risk only.
 
 - [x] **#6 Duplicate `normalizeBoolean`/`getBodyValue` claim**  
        Decision: `disagree` (outdated finding)  
        Action: Confirmed single-source implementations in `util/utils.ts`; standardized `getBodyValue` imports to
-      reference `util/utils` directly where used.
-       Pitfalls: None.
+      reference `util/utils` directly where used. Pitfalls: None.
 
 - [x] **#9 Dead null check after `createTransport()`**  
        Decision: `agree`  
-       Action: Removed unreachable `if (!mailer)` guard in transport creation.
-       Pitfalls: None.
+       Action: Removed unreachable `if (!mailer)` guard in transport creation. Pitfalls: None.
 
 - [x] **#15 Commented-out code cleanup**  
        Decision: `agree`  
-       Action: Removed stale commented-out debug/dead code in server/client source where appropriate.
-       Pitfalls: Kept explanatory comments that document behavior.
+       Action: Removed stale commented-out debug/dead code in server/client source where appropriate. Pitfalls: Kept
+      explanatory comments that document behavior.
 
 - [x] **#16 Unused code cleanup (`load_api_keys`, `keys`, interfaces)**  
        Decision: `agree`  
        Action: Removed unused key-loading path (`api_key`, `ImailStore`, `keys`, `load_api_keys`, `get_api_key`) and
-      consolidated duplicated mail validation usage.
-       Pitfalls: Verified no remaining references before deletion.
+      consolidated duplicated mail validation usage. Pitfalls: Verified no remaining references before deletion.
 
 - [x] **#18 Client `validateTemplate` hardcoded loader path**  
        Decision: `partially-agree`  
-       Action: Switched client template validation to syntax compile without hardcoded cwd loader dependency. Added tests.
-       Pitfalls: Include path resolution is now intentionally deferred to server-side processing.
+       Action: Switched client template validation to syntax compile without hardcoded cwd loader dependency. Added
+      tests. Pitfalls: Include path resolution is now intentionally deferred to server-side processing.
 
 - [x] **#19 `storeTemplate` vs `storeTxTemplate` duplication**  
        Decision: `agree` (compatibility-driven)  
        Action: Kept backward-compatible alias, but removed duplicated validation logic by delegating directly to
-      `storeTxTemplate`. Added alias behavior test.
-       Pitfalls: No breaking API change introduced.
+      `storeTxTemplate`. Added alias behavior test. Pitfalls: No breaking API change introduced.
 
 - [x] **#20 CLI `__dirname` usage**  
        Decision: `partially-disagree` (works in current CJS build)  
        Action: Replaced `__dirname` package-version lookup with argv/cwd-based resolver and extracted helper for tests.
-       Pitfalls: Resolver now depends on executable location conventions; added fallback candidates.
+      Pitfalls: Resolver now depends on executable location conventions; added fallback candidates.
 
 - [x] **#10 Module-level mutable preprocess config (`mail-magic-client`)**  
        Decision: `agree`  
        Action: Refactored preprocess pipeline to use per-invocation config objects and added regression coverage that
-      verifies options do not leak across compile calls.
-       Pitfalls: None observed after regression coverage.
+      verifies options do not leak across compile calls. Pitfalls: None observed after regression coverage.
 
 - [x] **#12 `fs.watchFile` polling for auto-reload**  
        Decision: `agree`  
        Action: Added `fs.watch` as primary init-data reload watcher with automatic fallback to `fs.watchFile` when
-      unavailable; added tests for primary, fallback, and disabled modes.
-       Pitfalls: Cross-platform watcher differences remain, but fallback is now explicit/tested.
+      unavailable; added tests for primary, fallback, and disabled modes. Pitfalls: Cross-platform watcher differences
+      remain, but fallback is now explicit/tested.
 
 - [x] **#14 Zod/Sequelize schema drift risk**  
        Decision: `agree` (informational)  
        Action: Added schema-vs-model consistency tests that assert Zod object keys match Sequelize attributes for core
-      API models (excluding framework timestamp columns).
-       Pitfalls: Future schema changes now require keeping model attributes in sync or tests will fail.
+      API models (excluding framework timestamp columns). Pitfalls: Future schema changes now require keeping model
+      attributes in sync or tests will fail.

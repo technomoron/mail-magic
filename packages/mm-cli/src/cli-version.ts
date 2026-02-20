@@ -12,7 +12,7 @@ export function resolvePackageVersion(options: ResolveOptions = {}): string {
 	const candidates = [
 		argv1 ? path.resolve(path.dirname(argv1), '../package.json') : '',
 		path.resolve(cwd, 'package.json'),
-		path.resolve(cwd, 'packages/mail-magic-client/package.json')
+		path.resolve(cwd, 'packages/mm-cli/package.json')
 	].filter(Boolean);
 
 	for (const candidate of candidates) {
@@ -22,7 +22,7 @@ export function resolvePackageVersion(options: ResolveOptions = {}): string {
 		try {
 			const raw = fs.readFileSync(candidate, 'utf8');
 			const data = JSON.parse(raw) as { version?: string; name?: string };
-			if (data.name === '@technomoron/mail-magic-client') {
+			if (data.name === '@technomoron/mail-magic-cli') {
 				return typeof data.version === 'string' && data.version ? data.version : 'unknown';
 			}
 		} catch {

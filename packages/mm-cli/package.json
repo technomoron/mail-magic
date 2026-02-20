@@ -1,0 +1,36 @@
+{
+	"name": "@technomoron/mail-magic-cli",
+	"version": "1.0.0",
+	"description": "CLI for mail-magic",
+	"main": "dist/cli.js",
+	"bin": {
+		"mm-cli": "dist/cli.js",
+		"mail-magic-cli": "dist/cli.js"
+	},
+	"scripts": {
+		"prepare": "npm run build",
+		"scrub": "rm -rf node_modules pnpm-lock.yaml dist/",
+		"build": "node ../../scripts/sync-shared-code.cjs && tsc --project tsconfig/tsconfig.json",
+		"test": "node ../../scripts/sync-shared-code.cjs && vitest run --no-cache",
+		"test:watch": "vitest",
+		"lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src ./tests",
+		"lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src ./tests",
+		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,ts,vue,json,css,scss,md}\"",
+		"format": "npm run lintfix && npm run pretty",
+		"cleanbuild": "rm -rf ./dist/ && npm run format && npm run build"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"@technomoron/mail-magic-client": "workspace:*",
+		"cheerio": "^1.1.2",
+		"commander": "^10.0.1",
+		"juice": "^11.0.1",
+		"nunjucks": "^3.2.4"
+	},
+	"devDependencies": {
+		"@types/node": "^20.19.11",
+		"@types/nunjucks": "^3.2.6",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.16"
+	}
+}

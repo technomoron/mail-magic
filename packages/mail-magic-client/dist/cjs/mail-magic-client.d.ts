@@ -3,7 +3,13 @@ type JsonValue = JsonPrimitive | JsonValue[] | {
     [key: string]: JsonValue;
 };
 type RequestBody = JsonValue | object;
-interface templateData {
+export type ApiResponse<T = unknown> = {
+    Status?: string;
+    data?: T;
+    message?: string;
+    [key: string]: unknown;
+};
+export interface StoreTxTemplateInput {
     template: string;
     domain: string;
     sender?: string;
@@ -12,7 +18,7 @@ interface templateData {
     locale?: string;
     part?: boolean;
 }
-interface formTemplateData {
+export interface StoreFormTemplateInput {
     idname: string;
     domain: string;
     template: string;
@@ -26,7 +32,7 @@ interface formTemplateData {
     allowed_fields?: string[] | string;
     captcha_required?: boolean;
 }
-interface formRecipientData {
+export interface StoreFormRecipientInput {
     domain: string;
     idname: string;
     email: string;
@@ -35,7 +41,7 @@ interface formRecipientData {
     formid?: string;
     locale?: string;
 }
-interface sendTemplateData {
+export interface SendTxMessageInput {
     name: string;
     rcpt: string;
     domain: string;
@@ -45,21 +51,21 @@ interface sendTemplateData {
     headers?: Record<string, string>;
     attachments?: AttachmentInput[];
 }
-interface sendFormData {
+export interface SendFormMessageInput {
     _mm_form_key: string;
     _mm_locale?: string;
     _mm_recipients?: string[] | string;
     fields?: Record<string, unknown>;
     attachments?: AttachmentInput[];
 }
-type AttachmentInput = {
+export type AttachmentInput = {
     path: string;
     filename?: string;
     contentType?: string;
     field?: string;
 };
 type UploadAssetInput = string | AttachmentInput;
-interface uploadAssetsData {
+export interface UploadAssetsInput {
     domain: string;
     files: UploadAssetInput[];
     templateType?: 'tx' | 'form';
@@ -67,7 +73,7 @@ interface uploadAssetsData {
     locale?: string;
     path?: string;
 }
-declare class templateClient {
+declare class TemplateClient {
     private baseURL;
     private apiKey;
     constructor(baseURL: string, apiKey: string);
@@ -85,15 +91,15 @@ declare class templateClient {
     private createAttachmentPayload;
     private appendFields;
     private postFormData;
-    storeTemplate(td: templateData): Promise<unknown>;
-    sendTemplate(std: sendTemplateData): Promise<unknown>;
-    storeTxTemplate(td: templateData): Promise<unknown>;
-    sendTxMessage(std: sendTemplateData): Promise<unknown>;
-    storeFormTemplate(data: formTemplateData): Promise<unknown>;
-    storeFormRecipient(data: formRecipientData): Promise<unknown>;
-    sendFormMessage(data: sendFormData): Promise<unknown>;
-    uploadAssets(data: uploadAssetsData): Promise<unknown>;
-    getSwaggerSpec(): Promise<unknown>;
+    storeTemplate(td: StoreTxTemplateInput): Promise<ApiResponse>;
+    sendTemplate(std: SendTxMessageInput): Promise<ApiResponse>;
+    storeTxTemplate(td: StoreTxTemplateInput): Promise<ApiResponse>;
+    sendTxMessage(std: SendTxMessageInput): Promise<ApiResponse>;
+    storeFormTemplate(data: StoreFormTemplateInput): Promise<ApiResponse>;
+    storeFormRecipient(data: StoreFormRecipientInput): Promise<ApiResponse>;
+    sendFormMessage(data: SendFormMessageInput): Promise<ApiResponse>;
+    uploadAssets(data: UploadAssetsInput): Promise<ApiResponse>;
+    getSwaggerSpec(): Promise<ApiResponse>;
     fetchPublicAsset(domain: string, assetPath: string, viaApiBase?: boolean): Promise<ArrayBuffer>;
 }
-export default templateClient;
+export default TemplateClient;

@@ -11,7 +11,7 @@ it('resolves version from argv[1]-relative package.json', () => {
 	const distDir = path.join(root, 'dist');
 	fs.mkdirSync(distDir, { recursive: true });
 	const pkg = {
-		name: '@technomoron/mail-magic-client',
+		name: '@technomoron/mail-magic-cli',
 		version: '9.9.9'
 	};
 	fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify(pkg, null, 2));

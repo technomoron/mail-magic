@@ -1,6 +1,6 @@
 # @technomoron/mail-magic-client
 
-Client library and CLI for the mail-magic server.
+Typed client library for the mail-magic server.
 
 ## Install
 
@@ -95,73 +95,10 @@ await client.sendFormMessage({
 
 ## CLI
 
-The package ships `mm-cli`.
-
-### .mmcli-env
-
-Create `.mmcli-env` in your working directory to set defaults:
-
-```ini
-MMCLI_API=http://127.0.0.1:3776
-MMCLI_TOKEN=example-token
-MMCLI_DOMAIN=example.test
-```
-
-`MMCLI_TOKEN` is treated as the server token string. As a convenience, `MMCLI_USERNAME` + `MMCLI_PASSWORD` can be used
-to build a combined token string (for legacy setups).
-
-### Template Commands
-
-Compile a template locally:
-
-```bash
-mm-cli compile --input ./templates --output ./templates-dist
-```
-
-Push a single transactional template (compile + upload):
-
-```bash
-mm-cli push --template tx-template/en/welcome --domain example.test --input ./templates
-```
-
-Dry-run a single template upload:
-
-```bash
-mm-cli push --template tx-template/en/welcome --domain example.test --input ./templates --dry-run
-```
-
-Push an entire config-style directory:
-
-```bash
-mm-cli push-dir --input ./data --domain example.test
-mm-cli push-dir --input ./data --domain example.test --dry-run
-mm-cli push-dir --input ./data --domain example.test --skip-assets
-```
-
-### Asset Uploads
-
-Upload stand-alone domain assets:
-
-```bash
-mm-cli assets --file ./logo.png --domain example.test
-```
-
-Dry-run an asset upload:
-
-```bash
-mm-cli assets --file ./logo.png --domain example.test --dry-run
-```
-
-Upload assets scoped to a template:
-
-```bash
-mm-cli assets --file ./hero.png --domain example.test --template-type tx --template welcome --locale en --path images
-```
+The CLI is now a separate package: `@technomoron/mail-magic-cli`.
 
 ## Notes
 
-- `push-dir` expects a `init-data.json` and domain folders that match the server config layout.
-- Asset uploads use the server endpoint `POST /api/v1/assets`.
 - OpenAPI spec (when enabled): `await client.getSwaggerSpec()`
 - Public asset fetch helpers:
     - `await client.fetchPublicAsset('example.test', 'images/logo.png')` -> `/asset/{domain}/{path}`

@@ -8,7 +8,14 @@ type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 type RequestBody = JsonValue | object;
 
-interface templateData {
+export type ApiResponse<T = unknown> = {
+	Status?: string;
+	data?: T;
+	message?: string;
+	[key: string]: unknown;
+};
+
+export interface StoreTxTemplateInput {
 	template: string;
 	domain: string;
 	sender?: string;
@@ -18,7 +25,7 @@ interface templateData {
 	part?: boolean;
 }
 
-interface formTemplateData {
+export interface StoreFormTemplateInput {
 	idname: string;
 	domain: string;
 	template: string;
@@ -33,7 +40,7 @@ interface formTemplateData {
 	captcha_required?: boolean;
 }
 
-interface formRecipientData {
+export interface StoreFormRecipientInput {
 	domain: string;
 	idname: string;
 	email: string;
@@ -43,7 +50,7 @@ interface formRecipientData {
 	locale?: string;
 }
 
-interface sendTemplateData {
+export interface SendTxMessageInput {
 	name: string;
 	rcpt: string;
 	domain: string;
@@ -54,7 +61,7 @@ interface sendTemplateData {
 	attachments?: AttachmentInput[];
 }
 
-interface sendFormData {
+export interface SendFormMessageInput {
 	_mm_form_key: string;
 	_mm_locale?: string;
 	_mm_recipients?: string[] | string;
@@ -62,7 +69,7 @@ interface sendFormData {
 	attachments?: AttachmentInput[];
 }
 
-type AttachmentInput = {
+export type AttachmentInput = {
 	path: string;
 	filename?: string;
 	contentType?: string;
@@ -71,7 +78,7 @@ type AttachmentInput = {
 
 type UploadAssetInput = string | AttachmentInput;
 
-interface uploadAssetsData {
+export interface UploadAssetsInput {
 	domain: string;
 	files: UploadAssetInput[];
 	templateType?: 'tx' | 'form';
@@ -80,7 +87,7 @@ interface uploadAssetsData {
 	path?: string;
 }
 
-class templateClient {
+class TemplateClient {
 	private baseURL: string;
 	private apiKey: string;
 
@@ -136,21 +143,21 @@ class templateClient {
 	}
 
 	validateEmails(list: string): { valid: string[]; invalid: string[] } {
-		const valid = [] as string[],
-			invalid = [] as string[];
+		const valid: string[] = [];
+		const invalid: string[] = [];
 
 		const emails = list
 			.split(',')
 			.map((email) => email.trim())
 			.filter((email) => email !== '');
-		emails.forEach((email) => {
+		for (const email of emails) {
 			const parsed = emailAddresses.parseOneAddress(email);
 			if (parsed && (parsed as ParsedMailbox).address) {
 				valid.push((parsed as ParsedMailbox).address);
 			} else {
 				invalid.push(email);
 			}
-		});
+		}
 		return { valid, invalid };
 	}
 
@@ -231,12 +238,12 @@ class templateClient {
 		throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
 	}
 
-	async storeTemplate(td: templateData): Promise<unknown> {
+	async storeTemplate(td: StoreTxTemplateInput): Promise<ApiResponse> {
 		// Backward-compatible alias for transactional template storage.
 		return this.storeTxTemplate(td);
 	}
 
-	async sendTemplate(std: sendTemplateData): Promise<unknown> {
+	async sendTemplate(std: SendTxMessageInput): Promise<ApiResponse> {
 		if (!std.name || !std.rcpt) {
 			throw new Error('Invalid request body; name/rcpt required');
 		}
@@ -244,7 +251,7 @@ class templateClient {
 		return this.sendTxMessage(std);
 	}
 
-	async storeTxTemplate(td: templateData): Promise<unknown> {
+	async storeTxTemplate(td: StoreTxTemplateInput): Promise<ApiResponse> {
 		if (!td.template) {
 			throw new Error('No template data provided');
 		}
@@ -255,7 +262,7 @@ class templateClient {
 		return this.post('/api/v1/tx/template', td);
 	}
 
-	async sendTxMessage(std: sendTemplateData): Promise<unknown> {
+	async sendTxMessage(std: SendTxMessageInput): Promise<ApiResponse> {
 		if (!std.name || !std.rcpt) {
 			throw new Error('Invalid request body; name/rcpt required');
 		}
@@ -292,7 +299,7 @@ class templateClient {
 		return this.post('/api/v1/tx/message', body);
 	}
 
-	async storeFormTemplate(data: formTemplateData): Promise<unknown> {
+	async storeFormTemplate(data: StoreFormTemplateInput): Promise<ApiResponse> {
 		if (!data.template) {
 			throw new Error('No template data provided');
 		}
@@ -310,7 +317,7 @@ class templateClient {
 		return this.post('/api/v1/form/template', data);
 	}
 
-	async storeFormRecipient(data: formRecipientData): Promise<unknown> {
+	async storeFormRecipient(data: StoreFormRecipientInput): Promise<ApiResponse> {
 		if (!data.domain) {
 			throw new Error('Missing domain');
 		}
@@ -328,7 +335,7 @@ class templateClient {
 		return this.post('/api/v1/form/recipient', data);
 	}
 
-	async sendFormMessage(data: sendFormData): Promise<unknown> {
+	async sendFormMessage(data: SendFormMessageInput): Promise<ApiResponse> {
 		if (!data._mm_form_key) {
 			throw new Error('Invalid request body; _mm_form_key required');
 		}
@@ -362,7 +369,7 @@ class templateClient {
 		return this.post('/api/v1/form/message', baseFields);
 	}
 
-	async uploadAssets(data: uploadAssetsData): Promise<unknown> {
+	async uploadAssets(data: UploadAssetsInput): Promise<ApiResponse> {
 		if (!data.domain) {
 			throw new Error('domain is required');
 		}
@@ -395,7 +402,7 @@ class templateClient {
 		return this.postFormData('/api/v1/assets', formData);
 	}
 
-	async getSwaggerSpec(): Promise<unknown> {
+	async getSwaggerSpec(): Promise<ApiResponse> {
 		return this.get('/api/swagger');
 	}
 
@@ -429,4 +436,4 @@ class templateClient {
 	}
 }
 
-export default templateClient;
+export default TemplateClient;

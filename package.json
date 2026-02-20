@@ -5,14 +5,17 @@
 		"packages/*"
 	],
 	"scripts": {
+		"sync:shared": "node ./scripts/sync-shared-code.cjs",
 		"build": "node ./bin/pmwrap -ws --if-present run build",
 		"client": "node ./bin/pmwrap -w packages/mail-magic-client run build",
+		"cli": "node ./bin/pmwrap -w packages/mm-cli run build",
 		"server": "node ./bin/pmwrap -w packages/mail-magic run build",
 		"admin": "node ./bin/pmwrap -w packages/mail-magic-admin run build",
 		"test:client": "node ./bin/pmwrap -w packages/mail-magic-client test",
+		"test:cli": "node ./bin/pmwrap -w packages/mm-cli test",
 		"test:server": "node ./bin/pmwrap -w packages/mail-magic test",
 		"test:function": "vitest run",
-		"test": "node ./bin/pmwrap run test:server && node ./bin/pmwrap run test:client && node ./bin/pmwrap run test:function",
+		"test": "node ./bin/pmwrap run test:server && node ./bin/pmwrap run test:client && node ./bin/pmwrap run test:cli && node ./bin/pmwrap run test:function",
 		"lint": "eslint --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./ && stylelint --allow-empty-input \"**/*.{css,scss}\"",
 		"format": "npm run lintfix && npm run pretty",
 		"release": "bash .do-release.sh",
