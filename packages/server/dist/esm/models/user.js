@@ -13,8 +13,6 @@ export const api_user_schema = z
     locale: z.string().default('').describe('Default locale for the user.')
 })
     .describe('User account record and API credentials.');
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class api_user extends Model {
 }
 export function apiTokenToHmac(token, pepper) {

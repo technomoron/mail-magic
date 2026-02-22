@@ -1,0 +1,7 @@
+{% extends 'base.njk' %}
+{% block content %}
+  <h1>Faktura {{ invoice_no }}</h1>
+  <p>Hei {{ name }}, her er fakturaen din.</p>
+  <p><strong>Sum:</strong> {{ currency or 'NOK' }} {{ total }}</p>
+  <p>Forfall: {{ due_date }}</p>
+{% endblock %}

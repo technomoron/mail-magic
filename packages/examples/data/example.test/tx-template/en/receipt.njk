@@ -1,0 +1,7 @@
+{% extends 'base.njk' %}
+{% block content %}
+  <h1>Payment receipt {{ receipt_no }}</h1>
+  <p>Thanks for your payment, {{ name }}.</p>
+  <p>Amount: {{ currency or 'USD' }} {{ amount }}</p>
+  <p>Date: {{ paid_at }}</p>
+{% endblock %}

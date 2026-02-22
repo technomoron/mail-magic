@@ -6,6 +6,7 @@ This repository contains:
 - `packages/client` - typed client library (`@technomoron/mail-magic-client`)
 - `packages/cli` - CLI (`@technomoron/mail-magic-cli`)
 - `packages/mail-magic-admin` - admin UI placeholder (`@technomoron/mail-magic-admin`)
+- `packages/examples` - runnable example suite and template set
 
 Package documentation:
 
@@ -29,8 +30,8 @@ pnpm cleanbuild
 Start a local mail-magic server using a tiny config directory and SQLite DB:
 
 ```bash
-npx tsx examples/minimal-server/server.ts
+pnpm --filter @technomoron/mail-magic-examples run start
 ```
 
-See `examples/minimal-server/README.md` for scripts that store templates, send messages, and demonstrate public form
-recipient allowlists.
+See `packages/examples/README.md` for scripts and template examples including form, locale, welcome, confirm,
+password-change, receipt, and invoice templates.

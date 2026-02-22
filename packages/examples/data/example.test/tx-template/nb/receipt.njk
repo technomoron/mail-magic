@@ -1,0 +1,6 @@
+{% extends 'base.njk' %}
+{% block content %}
+  <h1>Kvittering {{ receipt_no }}</h1>
+  <p>Takk for betalingen, {{ name }}.</p>
+  <p>Belop: {{ currency or 'NOK' }} {{ amount }}</p>
+{% endblock %}

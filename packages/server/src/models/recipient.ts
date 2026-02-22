@@ -17,13 +17,14 @@ export type api_recipient_input = z.input<typeof api_recipient_schema>;
 export type api_recipient_type = z.output<typeof api_recipient_schema>;
 export type api_recipient_creation_type = Omit<api_recipient_input, 'recipient_id'> & { recipient_id?: number };
 
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export class api_recipient extends Model<api_recipient_type, api_recipient_creation_type> {}
-
-// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
-export interface api_recipient extends api_recipient_type {}
+export class api_recipient extends Model<api_recipient_type, api_recipient_creation_type> {
+	declare recipient_id: number;
+	declare domain_id: number;
+	declare form_key: string;
+	declare idname: string;
+	declare email: string;
+	declare name: string;
+}
 
 export async function init_api_recipient(api_db: Sequelize): Promise<typeof api_recipient> {
 	api_recipient.init(

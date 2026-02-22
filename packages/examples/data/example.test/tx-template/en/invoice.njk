@@ -1,0 +1,8 @@
+{% extends 'base.njk' %}
+{% block content %}
+  <h1>Invoice {{ invoice_no }}</h1>
+  <p>Hello {{ name }}, here is your invoice summary.</p>
+  {% include 'partials/line-items.njk' %}
+  <p><strong>Total:</strong> {{ currency or 'USD' }} {{ total }}</p>
+  <p>Due: {{ due_date }}</p>
+{% endblock %}

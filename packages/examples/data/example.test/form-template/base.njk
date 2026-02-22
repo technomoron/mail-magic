@@ -1,0 +1,4 @@
+{% include 'partials/header.njk' %}
+<h1>{{ title or 'Form message' }}</h1>
+{% block content %}{% endblock %}
+<p style="font-size: 12px; color: #666;">Generated at {{ _meta_.ts or '' }}</p>

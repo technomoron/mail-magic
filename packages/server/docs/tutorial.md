@@ -19,7 +19,7 @@ export CONFIG_ROOT=$(realpath ../myorg-config)
 
 Update your `.env` (or runtime environment) to point at the new workspace:
 
-```
+```dotenv
 API_TOKEN_PEPPER=<generate-a-long-random-string>
 CONFIG_PATH=${CONFIG_ROOT}
 DB_AUTO_RELOAD=1  # optional: hot-reload init-data and templates
@@ -41,7 +41,7 @@ mkdir -p \
 
 The resulting tree should look like this (logo placement shown for clarity — add the file in step 4):
 
-```
+```text
 myorg-config/
 ├── init-data.json
 └── myorg.com/

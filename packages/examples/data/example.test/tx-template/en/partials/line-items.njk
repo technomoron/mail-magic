@@ -1,0 +1,14 @@
+<table role="presentation" width="100%" cellpadding="6" cellspacing="0" style="border-collapse: collapse; margin-top: 12px;">
+  <tr style="background: #f5f7fb;">
+    <th align="left">Item</th>
+    <th align="right">Qty</th>
+    <th align="right">Price</th>
+  </tr>
+  {% for item in items or [] %}
+  <tr>
+    <td>{{ item.name }}</td>
+    <td align="right">{{ item.qty }}</td>
+    <td align="right">{{ currency or 'USD' }} {{ item.price }}</td>
+  </tr>
+  {% endfor %}
+</table>

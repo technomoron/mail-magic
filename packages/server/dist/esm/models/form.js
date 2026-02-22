@@ -68,8 +68,6 @@ export const api_form_schema = z
         .describe('Derived list of template-referenced assets (inline cids and external links) resolved during preprocessing/import.')
 })
     .describe('Form configuration and template used by the public form submission endpoint.');
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class api_form extends Model {
 }
 export async function init_api_form(api_db) {

@@ -11,8 +11,6 @@ export const api_recipient_schema = z
     name: z.string().default('').describe('Optional recipient display name.')
 })
     .describe('Recipient routing record for form submissions.');
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class api_recipient extends Model {
 }
 export async function init_api_recipient(api_db) {

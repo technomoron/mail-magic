@@ -20,13 +20,16 @@ export type api_user_input = z.input<typeof api_user_schema>;
 export type api_user_type = z.output<typeof api_user_schema>;
 export type api_user_creation_type = Omit<api_user_input, 'user_id'> & { user_id?: number };
 
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export class api_user extends Model<api_user_type, api_user_creation_type> {}
-
-// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
-export interface api_user extends api_user_type {}
+export class api_user extends Model<api_user_type, api_user_creation_type> {
+	declare user_id: number;
+	declare idname: string;
+	declare token: string | undefined;
+	declare token_hmac: string | undefined;
+	declare name: string;
+	declare email: string;
+	declare domain: number | null | undefined;
+	declare locale: string;
+}
 
 export function apiTokenToHmac(token: string, pepper: string): string {
 	return createHmac('sha256', pepper).update(token).digest('hex');

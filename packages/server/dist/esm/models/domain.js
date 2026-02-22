@@ -15,8 +15,6 @@ export const api_domain_schema = z
     is_default: z.boolean().default(false).describe('If true, this is the default domain for the user.')
 })
     .describe('Domain configuration record.');
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class api_domain extends Model {
 }
 export async function init_api_domain(api_db) {

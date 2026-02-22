@@ -37,13 +37,20 @@ export type api_txmail_input = z.input<typeof api_txmail_schema>;
 export type api_txmail_type = z.output<typeof api_txmail_schema>;
 export type api_txmail_creation_type = Omit<api_txmail_input, 'template_id'> & { template_id?: number };
 
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export class api_txmail extends Model<api_txmail_type, api_txmail_creation_type> {}
-
-// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
-export interface api_txmail extends api_txmail_type {}
+export class api_txmail extends Model<api_txmail_type, api_txmail_creation_type> {
+	declare template_id: number;
+	declare user_id: number;
+	declare domain_id: number;
+	declare name: string;
+	declare locale: string;
+	declare template: string;
+	declare filename: string;
+	declare sender: string;
+	declare subject: string;
+	declare slug: string;
+	declare part: boolean;
+	declare files: StoredFile[];
+}
 
 export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail> {
 	const { user, domain } = await user_and_domain(record.domain_id);

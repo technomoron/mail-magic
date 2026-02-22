@@ -88,13 +88,26 @@ export type api_form_input = z.input<typeof api_form_schema>;
 export type api_form_type = z.output<typeof api_form_schema>;
 export type api_form_creation_type = Omit<api_form_input, 'form_id'> & { form_id?: number };
 
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export class api_form extends Model<api_form_type, api_form_creation_type> {}
-
-// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
-export interface api_form extends api_form_type {}
+export class api_form extends Model<api_form_type, api_form_creation_type> {
+	declare form_id: number;
+	declare form_key: string;
+	declare user_id: number;
+	declare domain_id: number;
+	declare locale: string;
+	declare idname: string;
+	declare sender: string;
+	declare recipient: string;
+	declare subject: string;
+	declare template: string;
+	declare filename: string;
+	declare slug: string;
+	declare secret: string;
+	declare replyto_email: string;
+	declare replyto_from_fields: boolean;
+	declare allowed_fields: string[];
+	declare captcha_required: boolean;
+	declare files: StoredFile[];
+}
 
 export async function init_api_form(api_db: Sequelize): Promise<typeof api_form> {
 	api_form.init(

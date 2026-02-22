@@ -14,7 +14,7 @@ Templates and assets are loaded from the external config tree rooted at `CONFIG_
 
 For each sending domain you typically have:
 
-```
+```text
 ${CONFIG_PATH}/
 └── example.com/
     ├── assets/
@@ -55,7 +55,7 @@ Locales do not affect:
 
 If you have multiple locale versions of the same template/form, place them under a locale subdirectory:
 
-```
+```text
 ${CONFIG_PATH}/example.com/tx-template/en/welcome.njk
 ${CONFIG_PATH}/example.com/tx-template/fr/welcome.njk
 
@@ -212,7 +212,7 @@ Example:
 
 During preprocessing/import this becomes a URL like:
 
-```
+```text
 ${ASSET_PUBLIC_BASE-or-API_URL}${ASSET_ROUTE}/${domain}/files/banner.png
 ```
 

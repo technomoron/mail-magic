@@ -22,13 +22,14 @@ export type api_domain_input = z.input<typeof api_domain_schema>;
 export type api_domain_type = z.output<typeof api_domain_schema>;
 export type api_domain_creation_type = Omit<api_domain_input, 'domain_id'> & { domain_id?: number };
 
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
-export class api_domain extends Model<api_domain_type, api_domain_creation_type> {}
-
-// Merge Zod-inferred attributes onto the Sequelize model instance type (avoids per-field `declare`).
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-unsafe-declaration-merging
-export interface api_domain extends api_domain_type {}
+export class api_domain extends Model<api_domain_type, api_domain_creation_type> {
+	declare domain_id: number;
+	declare user_id: number;
+	declare name: string;
+	declare sender: string;
+	declare locale: string;
+	declare is_default: boolean;
+}
 
 export async function init_api_domain(api_db: Sequelize): Promise<typeof api_domain> {
 	api_domain.init(

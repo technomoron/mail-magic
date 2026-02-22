@@ -26,8 +26,6 @@ export const api_txmail_schema = z
         .describe('Derived list of template-referenced assets resolved during preprocessing/import.')
 })
     .describe('Transactional email template configuration.');
-// Sequelize typing pattern: merge the Zod-inferred attribute type onto the model instance type.
-// eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class api_txmail extends Model {
 }
 export async function upsert_txmail(record) {
