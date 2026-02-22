@@ -1,0 +1,50 @@
+import { Sequelize, Model } from 'sequelize';
+import { z } from 'zod';
+import { StoredFile } from '../types.js';
+export declare const api_form_schema: z.ZodObject<{
+    form_id: z.ZodNumber;
+    form_key: z.ZodDefault<z.ZodString>;
+    user_id: z.ZodNumber;
+    domain_id: z.ZodNumber;
+    locale: z.ZodDefault<z.ZodString>;
+    idname: z.ZodString;
+    sender: z.ZodString;
+    recipient: z.ZodString;
+    subject: z.ZodString;
+    template: z.ZodDefault<z.ZodString>;
+    filename: z.ZodDefault<z.ZodString>;
+    slug: z.ZodDefault<z.ZodString>;
+    secret: z.ZodDefault<z.ZodString>;
+    replyto_email: z.ZodDefault<z.ZodString>;
+    replyto_from_fields: z.ZodDefault<z.ZodBoolean>;
+    allowed_fields: z.ZodDefault<z.ZodArray<z.ZodString>>;
+    captcha_required: z.ZodDefault<z.ZodBoolean>;
+    files: z.ZodDefault<z.ZodArray<z.ZodType<StoredFile, unknown, z.core.$ZodTypeInternals<StoredFile, unknown>>>>;
+}, z.core.$strip>;
+export type api_form_input = z.input<typeof api_form_schema>;
+export type api_form_type = z.output<typeof api_form_schema>;
+export type api_form_creation_type = Omit<api_form_input, 'form_id'> & {
+    form_id?: number;
+};
+export declare class api_form extends Model<api_form_type, api_form_creation_type> {
+    form_id: number;
+    form_key: string;
+    user_id: number;
+    domain_id: number;
+    locale: string;
+    idname: string;
+    sender: string;
+    recipient: string;
+    subject: string;
+    template: string;
+    filename: string;
+    slug: string;
+    secret: string;
+    replyto_email: string;
+    replyto_from_fields: boolean;
+    allowed_fields: string[];
+    captcha_required: boolean;
+    files: StoredFile[];
+}
+export declare function init_api_form(api_db: Sequelize): Promise<typeof api_form>;
+export declare function upsert_form(record: api_form_type): Promise<api_form>;

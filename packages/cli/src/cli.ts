@@ -14,25 +14,17 @@ type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string
 type JsonObject = Record<string, JsonValue>;
 
 const program = new Command();
-const envDefaults = loadCliEnv();
-const defaultToken = resolveToken(envDefaults);
 
-const apiDefault = envDefaults.api || 'http://localhost:3000';
-
-program.option('-a, --api <api>', 'Base API endpoint', apiDefault);
-if (defaultToken) {
-	program.option('-t, --token <token>', 'Authentication token in the format "username:token"', defaultToken);
-} else {
-	program.option('-t, --token <token>', 'Authentication token in the format "username:token"');
-}
 program
+	.option('-a, --api <api>', 'Base API endpoint', 'http://localhost:3000')
+	.option('-t, --token <token>', 'Authentication token in the format "username:token"')
 	.option('-f, --file <file>', 'Path to the file containing the template data (Nunjucks with MJML)')
 	.option('-s, --sender <sender>', 'Sender email address')
 	.option('-r, --rcpt <rcpt>', 'Recipient email addresses (comma-separated)')
 	.option('-n, --name <name>', 'Template name')
 	.option('-b, --subject <subject>', 'Email subject')
 	.option('-l, --locale <locale>', 'Locale')
-	.option('-d, --domain <domain>', 'Domain', envDefaults.domain)
+	.option('-d, --domain <domain>', 'Domain')
 	.option('-p, --part <true|false>', 'Part')
 	.option('-v, --vars <vars>', 'Template parameters (JSON string)');
 
@@ -334,5 +326,12 @@ program
 			process.exit(1);
 		}
 	});
+
+// Apply .mmcli-env defaults just before parse so the file is not read at module-import time.
+const cliEnv = loadCliEnv();
+const cliToken = resolveToken(cliEnv);
+if (cliEnv.api) program.setOptionValueWithSource('api', cliEnv.api, 'env');
+if (cliToken) program.setOptionValueWithSource('token', cliToken, 'env');
+if (cliEnv.domain) program.setOptionValueWithSource('domain', cliEnv.domain, 'env');
 
 program.parse(process.argv);

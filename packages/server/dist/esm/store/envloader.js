@@ -27,7 +27,7 @@ export const envOptions = defineEnvOptions({
     DB_SYNC_ALTER: {
         description: 'Alter existing tables on startup to match models (requires write access to the DB)',
         type: 'boolean',
-        default: true
+        default: false
     },
     API_URL: {
         description: 'Sets the public URL for the API (i.e. https://ml.example.com:3790)',
@@ -88,7 +88,7 @@ export const envOptions = defineEnvOptions({
     },
     DB_TYPE: {
         description: 'Database type for the API database',
-        options: ['sqlite'],
+        options: ['sqlite', 'mysql', 'postgres'],
         default: 'sqlite'
     },
     DB_LOG: {
@@ -121,8 +121,13 @@ export const envOptions = defineEnvOptions({
         type: 'boolean'
     },
     SMTP_TLS_REJECT: {
-        description: 'Reject bad cert/TLS connection to SMTP host',
-        default: false,
+        description: 'Validate the SMTP server TLS certificate. Set false to allow self-signed certificates.',
+        default: true,
+        type: 'boolean'
+    },
+    SMTP_REQUIRE_TLS: {
+        description: 'Require STARTTLS upgrade on SMTP connection. Set false for servers that do not support STARTTLS (e.g. MailHog).',
+        default: true,
         type: 'boolean'
     },
     SMTP_USER: {

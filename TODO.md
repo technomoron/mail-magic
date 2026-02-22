@@ -1,4 +1,42 @@
-# TODO: REVIEW.md Follow-up (2026-02-17)
+# TODO: REVIEW.md Follow-up (2026-02-22)
+
+## REVIEW (2026-02-22, 18 items)
+
+### Open
+
+### Completed
+
+- [x] **#1 SMTP TLS cert validation off by default** — Changed `SMTP_TLS_REJECT` default to `true`.
+- [x] **#2 `nunjucks.configure()` sets global state in `postSendForm`** — Replaced with scoped `nunjucks.Environment`.
+- [x] **#3 `requireTLS: true` hardcoded** — Added `SMTP_REQUIRE_TLS` env var (default `true`); configurable now.
+- [x] **#4 Form submissions missing plain-text email part** — Added `convert(html)` via `html-to-text`.
+- [x] **#5 `resolveFormKeyForTemplate` swallows DB errors** — Removed silent catch block.
+- [x] **#6 `parseIdnameList` called twice** — Replaced second call by deriving idnames from resolved recipients.
+- [x] **#7 `allowed_fields` getter casts non-strings as `string[]`** — Added element-type filter.
+- [x] **#11 `DB_SYNC_ALTER` defaults to `true`** — Changed default to `false`.
+- [x] **#12 `DB_TYPE` options restricts to `['sqlite']`** — Added `mysql` and `postgres` to options list.
+- [x] **#13 Rate limiter 'unknown' key collision** — Skip rate limiting when client IP cannot be resolved.
+- [x] **#14 Captcha provider misconfiguration falls back silently** — Throw explicit error for unknown providers.
+- [x] **#17 `SMTP_TLS_REJECT` description inverted** — Fixed description text.
+- [x] **#8 CJS shim hardcoded `STARTUP_ERROR_MESSAGE`, no type definitions** — Added `declaration: true` to
+      tsconfig.esm.json; shim script now extracts the constant from compiled ESM via regex with hardcoded fallback;
+      generates `dist/cjs/index.d.ts` re-exporting ESM types; added `types` condition to package exports.
+- [x] **#9 `noImplicitAny: false` in server tsconfig** — Removed the override from `tsconfig/tsconfig.esm.json`; root
+      tsconfig `strict: true` now applies.
+- [x] **#10 ESLint `--ext` flags silently ignored under v9 flat config** — Removed flags from all `lint`/`lintfix`
+      scripts in root, server, and client `package.json` files.
+- [x] **#15 Two divergent form slug/filename build code paths** — Extracted `buildFormSlugAndFilename` helper into
+      `util/paths.ts`; both `util/forms.ts` (`buildFormTemplatePaths`) and `models/form.ts` (`upsert_form`) now delegate
+      to the shared implementation.
+- [x] **#16 `domain` required in every authenticated request body** — Made `domain` optional in
+      `assert_domain_and_user`; falls back to the user's default domain (`api_user.domain`) when omitted; updated
+      `post_send` in `mailer.ts` to use `apireq.domain!.name` in the 404 message.
+- [x] **#18 CLI `loadCliEnv` runs at module load time** — Moved `loadCliEnv()` and `resolveToken()` calls to just before
+      `program.parse()`; env-file defaults applied via `setOptionValueWithSource` so CLI flags override correctly.
+
+---
+
+## TODO: REVIEW.md Follow-up (2026-02-17)
 
 ## REVIEW
 

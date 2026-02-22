@@ -63,10 +63,10 @@ export class MailerAPI extends ApiModule {
     }
     // Send a template using posted arguments.
     async post_send(apireq) {
-        const { name, rcpt, domain = '', locale = '', vars = {}, replyTo, reply_to, headers } = apireq.req.body;
+        const { name, rcpt, locale = '', vars = {}, replyTo, reply_to, headers } = apireq.req.body;
         await assert_domain_and_user(apireq);
-        if (!name || !rcpt || !domain) {
-            throw new ApiError({ code: 400, message: 'name/rcpt/domain required' });
+        if (!name || !rcpt) {
+            throw new ApiError({ code: 400, message: 'name/rcpt required' });
         }
         let parsedVars = vars ?? {};
         if (typeof vars === 'string') {
@@ -98,7 +98,7 @@ export class MailerAPI extends ApiModule {
         if (!template) {
             throw new ApiError({
                 code: 404,
-                message: `Template "${name}" not found for any locale in domain "${domain}"`
+                message: `Template "${name}" not found for any locale in domain "${apireq.domain.name}"`
             });
         }
         const sender = template.sender || apireq.domain.sender || apireq.user.email;

@@ -18,3 +18,5 @@ uploads/
 !tests/fixtures/uploads/
 !tests/fixtures/uploads/**
 REVIEW.md
+.claude/
+memory/

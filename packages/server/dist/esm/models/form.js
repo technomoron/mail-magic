@@ -2,7 +2,7 @@ import path from 'path';
 import { nanoid } from 'nanoid';
 import { Model, DataTypes, UniqueConstraintError } from 'sequelize';
 import { z } from 'zod';
-import { assertSafeRelativePath } from '../util/paths.js';
+import { assertSafeRelativePath, buildFormSlugAndFilename } from '../util/paths.js';
 import { user_and_domain, normalizeSlug } from '../util.js';
 const stored_file_schema = z
     .object({
@@ -173,7 +173,9 @@ export async function init_api_form(api_db) {
                 }
                 try {
                     const parsed = JSON.parse(raw);
-                    return Array.isArray(parsed) ? parsed : [];
+                    return Array.isArray(parsed)
+                        ? parsed.filter((item) => typeof item === 'string')
+                        : [];
                 }
                 catch {
                     return [];
@@ -231,23 +233,24 @@ export async function init_api_form(api_db) {
 export async function upsert_form(record) {
     const { user, domain } = await user_and_domain(record.domain_id);
     const dname = normalizeSlug(domain.name);
-    const name = normalizeSlug(record.idname);
-    const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
+    const { slug, filename: generatedFilename } = buildFormSlugAndFilename({
+        domainName: domain.name,
+        domainLocale: domain.locale,
+        userLocale: user.locale,
+        idname: record.idname,
+        locale: record.locale
+    });
     if (!record.slug) {
-        record.slug = `${dname}${locale ? '-' + locale : ''}-${name}`;
+        record.slug = slug;
     }
     if (!record.filename) {
-        const parts = [dname, 'form-template'];
-        if (locale)
-            parts.push(locale);
-        parts.push(name);
-        record.filename = path.join(...parts);
+        record.filename = generatedFilename;
     }
     else {
         record.filename = path.join(dname, 'form-template', record.filename);
-    }
-    if (!record.filename.endsWith('.njk')) {
-        record.filename += '.njk';
+        if (!record.filename.endsWith('.njk')) {
+            record.filename += '.njk';
+        }
     }
     record.filename = assertSafeRelativePath(record.filename, 'Form filename');
     let instance = null;

@@ -13,7 +13,7 @@ function create_mail_transport(vars) {
         tls: {
             rejectUnauthorized: vars.SMTP_TLS_REJECT
         },
-        requireTLS: true,
+        requireTLS: vars.SMTP_REQUIRE_TLS,
         logger: vars.DEBUG,
         debug: vars.DEBUG
     };

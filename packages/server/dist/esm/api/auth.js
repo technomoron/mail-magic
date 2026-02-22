@@ -4,11 +4,8 @@ import { api_user } from '../models/user.js';
 import { getBodyValue } from '../util/utils.js';
 export async function assert_domain_and_user(apireq) {
     const body = apireq.req.body ?? {};
-    const domain = getBodyValue(body, 'domain');
+    const domainRaw = getBodyValue(body, 'domain');
     const locale = getBodyValue(body, 'locale');
-    if (!domain) {
-        throw new ApiError({ code: 401, message: 'Missing domain' });
-    }
     const rawUid = apireq.getRealUid();
     const uid = rawUid === null ? null : Number(rawUid);
     if (!uid || Number.isNaN(uid)) {
@@ -18,12 +15,24 @@ export async function assert_domain_and_user(apireq) {
     if (!user) {
         throw new ApiError({ code: 401, message: 'Invalid/Unknown API Key/Token' });
     }
-    const dbdomain = await api_domain.findOne({ where: { name: domain } });
-    if (!dbdomain) {
-        throw new ApiError({ code: 401, message: `Unable to look up the domain ${domain}` });
+    let dbdomain;
+    if (domainRaw) {
+        dbdomain = await api_domain.findOne({ where: { name: domainRaw } });
+        if (!dbdomain) {
+            throw new ApiError({ code: 401, message: `Unable to look up the domain ${domainRaw}` });
+        }
+    }
+    else if (user.domain != null) {
+        dbdomain = await api_domain.findByPk(user.domain);
+        if (!dbdomain) {
+            throw new ApiError({ code: 401, message: 'Unable to resolve default domain for this user' });
+        }
+    }
+    else {
+        throw new ApiError({ code: 401, message: 'Missing domain' });
     }
     if (dbdomain.user_id !== user.user_id) {
-        throw new ApiError({ code: 403, message: `Domain ${domain} is not owned by this user` });
+        throw new ApiError({ code: 403, message: `Domain ${dbdomain.name} is not owned by this user` });
     }
     apireq.domain = dbdomain;
     apireq.user = user;

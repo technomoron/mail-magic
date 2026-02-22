@@ -2,7 +2,7 @@
 	"openapi": "3.1.0",
 	"info": {
 		"title": "Mail Magic API",
-		"version": "1.0.33",
+		"version": "1.0.40",
 		"description": "OpenAPI definition for the Mail Magic server. Authenticated endpoints require an API key provided as `Authorization: Bearer apikey-<token>`."
 	},
 	"servers": [
@@ -897,7 +897,7 @@
 				"properties": {
 					"domain": {
 						"type": "string",
-						"description": "Domain name owned by the API key user."
+						"description": "Optional. Domain name. If omitted, the API key's default domain is used."
 					},
 					"name": {
 						"type": "string",
@@ -920,13 +920,14 @@
 						"default": ""
 					}
 				},
-				"required": ["domain", "name", "template"]
+				"required": ["name", "template"]
 			},
 			"TxSendRequest": {
 				"type": "object",
 				"properties": {
 					"domain": {
-						"type": "string"
+						"type": "string",
+						"description": "Optional. Domain name. If omitted, the API key's default domain is used."
 					},
 					"name": {
 						"type": "string",
@@ -969,14 +970,15 @@
 						"description": "Custom email headers."
 					}
 				},
-				"required": ["domain", "name", "rcpt"]
+				"required": ["name", "rcpt"]
 			},
 			"TxSendMultipartRequest": {
 				"type": "object",
 				"description": "Multipart version of TxSendRequest. Attach files in any multipart field; `files` is a conventional field name.",
 				"properties": {
 					"domain": {
-						"type": "string"
+						"type": "string",
+						"description": "Optional. Domain name. If omitted, the API key's default domain is used."
 					},
 					"name": {
 						"type": "string"
@@ -1012,7 +1014,7 @@
 						}
 					}
 				},
-				"required": ["domain", "name", "rcpt"]
+				"required": ["name", "rcpt"]
 			},
 			"TxSendResponseData": {
 				"type": "object",
@@ -1031,7 +1033,8 @@
 				"type": "object",
 				"properties": {
 					"domain": {
-						"type": "string"
+						"type": "string",
+						"description": "Optional. Domain name. If omitted, the API key's default domain is used."
 					},
 					"idname": {
 						"type": "string",
@@ -1053,7 +1056,7 @@
 						"type": "string"
 					}
 				},
-				"required": ["domain", "idname", "email"]
+				"required": ["idname", "email"]
 			},
 			"FormRecipientUpsertResponseData": {
 				"type": "object",
@@ -1075,7 +1078,8 @@
 				"type": "object",
 				"properties": {
 					"domain": {
-						"type": "string"
+						"type": "string",
+						"description": "Optional. Domain name. If omitted, the API key's default domain is used."
 					},
 					"idname": {
 						"type": "string",

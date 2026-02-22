@@ -1,11 +1,12 @@
 import { ApiModule, ApiError } from '@technomoron/api-server-base';
+import { convert } from 'html-to-text';
 import { nanoid } from 'nanoid';
 import nunjucks from 'nunjucks';
 import { UniqueConstraintError } from 'sequelize';
 import { api_domain } from '../models/domain.js';
 import { api_form } from '../models/form.js';
 import { api_recipient } from '../models/recipient.js';
-import { buildFormTemplateRecord, buildFormTemplatePaths, buildRecipientTo, buildReplyToValue, buildSubmissionContext, enforceAttachmentPolicy, enforceCaptchaPolicy, filterSubmissionFields, getPrimaryRecipientInfo, normalizeRecipientEmail, normalizeRecipientIdname, normalizeRecipientName, parseIdnameList, parseFormTemplatePayload, parseRecipientPayload, parsePublicSubmissionOrThrow, resolveFormKeyForTemplate, resolveFormKeyForRecipient, resolveRecipients, validateFormTemplatePayload } from '../util/forms.js';
+import { buildFormTemplateRecord, buildFormTemplatePaths, buildRecipientTo, buildReplyToValue, buildSubmissionContext, enforceAttachmentPolicy, enforceCaptchaPolicy, filterSubmissionFields, getPrimaryRecipientInfo, normalizeRecipientEmail, normalizeRecipientIdname, normalizeRecipientName, parseFormTemplatePayload, parseRecipientPayload, parsePublicSubmissionOrThrow, resolveFormKeyForTemplate, resolveFormKeyForRecipient, resolveRecipients, validateFormTemplatePayload } from '../util/forms.js';
 import { FixedWindowRateLimiter, enforceFormRateLimit } from '../util/ratelimit.js';
 import { buildAttachments, cleanupUploadedFiles } from '../util/uploads.js';
 import { getBodyValue } from '../util/utils.js';
@@ -139,7 +140,7 @@ export class FormAPI extends ApiModule {
             const clientIp = apireq.getClientIp() ?? '';
             await enforceCaptchaPolicy({ vars: env, form, captchaToken, clientIp });
             const resolvedRecipients = await resolveRecipients(form, recipientsRaw);
-            const recipients = parseIdnameList(recipientsRaw, 'recipients');
+            const recipients = resolvedRecipients.map((r) => r.idname ?? '').filter(Boolean);
             const { rcptEmail, rcptName, rcptIdname, rcptIdnames } = getPrimaryRecipientInfo(form, resolvedRecipients);
             const domainRecord = await api_domain.findOne({ where: { domain_id: form.domain_id } });
             await this.server.storage.relocateUploads(domainRecord?.name ?? null, rawFiles);
@@ -171,13 +172,15 @@ export class FormAPI extends ApiModule {
                 files: rawFiles,
                 meta
             });
-            nunjucks.configure({ autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
-            const html = nunjucks.renderString(form.template, context);
+            const njkEnv = new nunjucks.Environment(null, { autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
+            const html = njkEnv.renderString(form.template, context);
+            const text = convert(html);
             const mailOptions = {
                 from: form.sender,
                 to,
                 subject: form.subject,
                 html,
+                text,
                 attachments: allAttachments,
                 ...(replyToValue ? { replyTo: replyToValue } : {})
             };

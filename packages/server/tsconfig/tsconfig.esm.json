@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"module": "ES2022",
 		"outDir": "../dist/esm",
-		"noImplicitAny": false
+		"declaration": true
 	},
 	"include": ["../src", "../types/**/*.d.ts"]
 }

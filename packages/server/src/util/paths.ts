@@ -2,6 +2,8 @@ import path from 'path';
 
 import { ApiError } from '@technomoron/api-server-base';
 
+import { normalizeSlug } from './utils.js';
+
 export const SEGMENT_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
 export function normalizeSubdir(value: string): string {
@@ -30,6 +32,29 @@ export function assertSafeRelativePath(filename: string, label: string): string 
 		throw new Error(`${label} path cannot include '..' segments`);
 	}
 	return normalized;
+}
+
+export function buildFormSlugAndFilename(params: {
+	domainName: string;
+	domainLocale: string;
+	userLocale: string;
+	idname: string;
+	locale: string;
+}): { localeSlug: string; slug: string; filename: string } {
+	const domainSlug = normalizeSlug(params.domainName);
+	const formSlug = normalizeSlug(params.idname);
+	const localeSlug = normalizeSlug(params.locale || params.domainLocale || params.userLocale || '');
+	const slug = `${domainSlug}${localeSlug ? '-' + localeSlug : ''}-${formSlug}`;
+	const filenameParts = [domainSlug, 'form-template'];
+	if (localeSlug) {
+		filenameParts.push(localeSlug);
+	}
+	filenameParts.push(formSlug);
+	let filename = path.join(...filenameParts);
+	if (!filename.endsWith('.njk')) {
+		filename += '.njk';
+	}
+	return { localeSlug, slug, filename };
 }
 
 export function buildAssetUrl(baseUrl: string, route: string, domainName: string, assetPath: string): string {

@@ -6,6 +6,8 @@ Unreleased (2026-02-22)
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
 - test(logging): quiet package test output by default (silent Vitest with compact dot reporter).
+- fix(scripts): remove `--ext` flags from `lint`/`lintfix` scripts — silently ignored by ESLint v9 flat config.
+- (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
 Version 1.0.32 (2026-02-22)

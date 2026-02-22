@@ -1,4 +1,5 @@
 import { ApiRoute, ApiRequest, ApiModule, ApiError } from '@technomoron/api-server-base';
+import { convert } from 'html-to-text';
 import { nanoid } from 'nanoid';
 import nunjucks from 'nunjucks';
 import { UniqueConstraintError } from 'sequelize';
@@ -20,7 +21,6 @@ import {
 	normalizeRecipientEmail,
 	normalizeRecipientIdname,
 	normalizeRecipientName,
-	parseIdnameList,
 	parseFormTemplatePayload,
 	parseRecipientPayload,
 	parsePublicSubmissionOrThrow,
@@ -188,7 +188,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 			const clientIp = apireq.getClientIp() ?? '';
 			await enforceCaptchaPolicy({ vars: env, form, captchaToken, clientIp });
 			const resolvedRecipients = await resolveRecipients(form, recipientsRaw);
-			const recipients = parseIdnameList(recipientsRaw, 'recipients');
+			const recipients = resolvedRecipients.map((r) => r.idname ?? '').filter(Boolean);
 			const { rcptEmail, rcptName, rcptIdname, rcptIdnames } = getPrimaryRecipientInfo(form, resolvedRecipients);
 			const domainRecord = await api_domain.findOne({ where: { domain_id: form.domain_id } });
 			await this.server.storage.relocateUploads(domainRecord?.name ?? null, rawFiles);
@@ -222,14 +222,16 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				meta
 			});
 
-			nunjucks.configure({ autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
-			const html = nunjucks.renderString(form.template, context);
+			const njkEnv = new nunjucks.Environment(null, { autoescape: this.server.storage.vars.AUTOESCAPE_HTML });
+			const html = njkEnv.renderString(form.template, context);
+			const text = convert(html);
 
 			const mailOptions = {
 				from: form.sender,
 				to,
 				subject: form.subject,
 				html,
+				text,
 				attachments: allAttachments,
 				...(replyToValue ? { replyTo: replyToValue } : {})
 			};

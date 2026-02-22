@@ -1,5 +1,3 @@
-import path from 'path';
-
 import { ApiError, ApiRequest } from '@technomoron/api-server-base';
 
 import { api_form } from '../models/form.js';
@@ -9,6 +7,7 @@ import { CaptchaProvider, verifyCaptcha } from './captcha.js';
 import { parseMailbox } from './email.js';
 import { extractReplyToFromSubmission } from './form-replyto.js';
 import { parseFormSubmissionInput, ParsedFormSubmission } from './form-submission.js';
+import { buildFormSlugAndFilename } from './paths.js';
 import { normalizeBoolean, normalizeSlug } from './utils.js';
 
 import type { api_domain } from '../models/domain.js';
@@ -370,20 +369,13 @@ export function buildFormTemplatePaths(params: {
 	idname: string;
 	locale: string;
 }): { localeSlug: string; slug: string; filename: string } {
-	const domainSlug = normalizeSlug(params.domain.name);
-	const formSlug = normalizeSlug(params.idname);
-	const localeSlug = normalizeSlug(params.locale || params.domain.locale || params.user.locale || '');
-	const slug = `${domainSlug}${localeSlug ? '-' + localeSlug : ''}-${formSlug}`;
-	const filenameParts = [domainSlug, 'form-template'];
-	if (localeSlug) {
-		filenameParts.push(localeSlug);
-	}
-	filenameParts.push(formSlug);
-	let filename = path.join(...filenameParts);
-	if (!filename.endsWith('.njk')) {
-		filename += '.njk';
-	}
-	return { localeSlug, slug, filename };
+	return buildFormSlugAndFilename({
+		domainName: params.domain.name,
+		domainLocale: params.domain.locale,
+		userLocale: params.user.locale,
+		idname: params.idname,
+		locale: params.locale
+	});
 }
 
 export async function resolveFormKeyForTemplate(params: {
@@ -392,19 +384,15 @@ export async function resolveFormKeyForTemplate(params: {
 	locale: string;
 	idname: string;
 }): Promise<string> {
-	try {
-		const existing = await api_form.findOne({
-			where: {
-				user_id: params.user_id,
-				domain_id: params.domain_id,
-				locale: params.locale,
-				idname: params.idname
-			}
-		});
-		return existing?.form_key || '';
-	} catch {
-		return '';
-	}
+	const existing = await api_form.findOne({
+		where: {
+			user_id: params.user_id,
+			domain_id: params.domain_id,
+			locale: params.locale,
+			idname: params.idname
+		}
+	});
+	return existing?.form_key || '';
 }
 
 export function buildFormTemplateRecord(params: {

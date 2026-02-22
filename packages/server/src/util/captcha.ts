@@ -11,7 +11,10 @@ export async function verifyCaptcha(params: {
 		hcaptcha: 'https://hcaptcha.com/siteverify',
 		recaptcha: 'https://www.google.com/recaptcha/api/siteverify'
 	};
-	const endpoint = endpoints[params.provider] ?? endpoints.turnstile;
+	const endpoint = endpoints[params.provider];
+	if (!endpoint) {
+		throw new Error(`Unknown CAPTCHA provider: "${params.provider}"`);
+	}
 
 	const body = new URLSearchParams();
 	body.set('secret', params.secret);

@@ -7,7 +7,24 @@ Unreleased (2026-02-22)
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
 - test(logging): suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
 - test(logging): quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
-- (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
+- fix(forms): replace global `nunjucks.configure()` call in `postSendForm` with a scoped `nunjucks.Environment` instance, matching the pattern already used in `post_send`.
+- fix(forms): add plain-text email part to form submissions via `html-to-text` (was HTML-only, harming deliverability).
+- fix(forms): derive `recipients` template variable from already-resolved DB records instead of re-parsing the raw input with a second `parseIdnameList` call.
+- fix(forms): remove silent `catch` in `resolveFormKeyForTemplate` so DB errors propagate instead of being silently treated as "no existing form".
+- fix(forms): extract `buildFormSlugAndFilename` into `util/paths.ts` to eliminate duplicated slug/filename generation between the API upload path and the DB upsert path.
+- fix(models): filter `allowed_fields` JSON getter to string elements only; previously returned non-string values (numbers, nulls) typed as `string[]`.
+- fix(smtp): make `requireTLS` configurable via `SMTP_REQUIRE_TLS` env var (default `true`, preserving existing behaviour); allows disabling STARTTLS for servers such as MailHog.
+- fix(smtp): change `SMTP_TLS_REJECT` default from `false` to `true` so TLS certificates are validated in production by default.
+- fix(smtp): correct `SMTP_TLS_REJECT` description (previously described the inverse of what the option does).
+- fix(config): change `DB_SYNC_ALTER` default from `true` to `false` to prevent automatic DDL on production startups.
+- fix(config): add `mysql` and `postgres` to the `DB_TYPE` allowed-values list to match what the connection code already supports.
+- fix(ratelimit): skip rate limiting when the client IP cannot be resolved, rather than bucketing all unresolvable IPs under a shared `unknown` key.
+- fix(captcha): throw an explicit error for unknown CAPTCHA providers instead of silently falling back to Turnstile.
+- fix(auth): make `domain` optional in `assert_domain_and_user`; when absent from the request body, fall back to the authenticated user's default domain (`api_user.domain`).
+- fix(build): remove `noImplicitAny: false` override from `tsconfig/tsconfig.esm.json`; the root tsconfig already enables `strict`, which includes `noImplicitAny`.
+- fix(build): add `declaration: true` to `tsconfig/tsconfig.esm.json` to emit `.d.ts` files; generate `dist/cjs/index.d.ts` re-exporting ESM types; add `types` condition to package exports; extract `STARTUP_ERROR_MESSAGE` from compiled ESM output instead of hardcoding it in the CJS shim script.
+- fix(scripts): remove `--ext` flags from all `lint`/`lintfix` npm scripts — ESLint v9 flat config silently ignores these flags; file coverage is already provided by the glob patterns in `eslint.config.mjs`.
+- (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 
 Version 1.0.40 (2026-02-22)
 
