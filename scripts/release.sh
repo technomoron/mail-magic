@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 PACKAGE_DIRS=(
 	"$ROOT/packages/server"
@@ -23,7 +23,7 @@ for pkg_dir in "${PACKAGE_DIRS[@]}"; do
 	fi
 
 	echo "Running release for $(basename "$pkg_dir")"
-	if (cd "$pkg_dir" && npm run release); then
+	if pnpm --dir "$pkg_dir" run release; then
 		released_count=$((released_count + 1))
 	else
 		echo "Release failed for $pkg_dir" >&2

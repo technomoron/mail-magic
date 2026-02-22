@@ -9,7 +9,7 @@
 	},
 	"scripts": {
 		"prepare": "npm run build",
-		"scrub": "rm -rf node_modules pnpm-lock.yaml package-lock.json yarn.lock dist/",
+		"scrub": "rimraf node_modules pnpm-lock.yaml package-lock.json yarn.lock dist/",
 		"sync:shared": "node ../../scripts/sync-shared-code.cjs",
 		"build:ts": "tsc --project tsconfig/tsconfig.json",
 		"build": "run-s sync:shared build:ts",
@@ -21,8 +21,9 @@
 		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,ts,vue,json,css,scss,md}\"",
 		"format": "run-s lintfix pretty",
 		"cleanbuild": "run-s clean:dist format build",
-		"clean:dist": "rm -rf ./dist/",
-		"release": "bash ../../scripts/release-package.sh ."
+		"clean:dist": "rimraf ./dist/",
+		"release": "bash ../../scripts/release-package.sh .",
+		"release:check": "bash ../../scripts/release-package-check.sh ."
 	},
 	"license": "MIT",
 	"dependencies": {
