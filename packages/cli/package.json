@@ -8,7 +8,7 @@
 		"mail-magic-cli": "dist/cli.js"
 	},
 	"scripts": {
-		"prepare": "npm run build",
+		"prepare": "run-s build",
 		"scrub": "rimraf node_modules pnpm-lock.yaml package-lock.json yarn.lock dist/",
 		"sync:shared": "node ../../scripts/sync-shared-code.cjs >/dev/null",
 		"build:ts": "tsc --project tsconfig/tsconfig.json",

@@ -6,7 +6,7 @@
 	"types": "dist/cjs/mail-magic-client.d.ts",
 	"module": "dist/esm/mail-magic-client.js",
 	"scripts": {
-		"prepare": "npm run build",
+		"prepare": "run-s build",
 		"scrub": "rimraf node_modules pnpm-lock.yaml package-lock.json yarn.lock lib/ dist/",
 		"build:cjs": "tsc --project tsconfig/tsconfig.cjs.json",
 		"build:esm": "tsc --project tsconfig/tsconfig.esm.json",
