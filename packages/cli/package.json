@@ -9,15 +9,20 @@
 	},
 	"scripts": {
 		"prepare": "npm run build",
-		"scrub": "rm -rf node_modules pnpm-lock.yaml dist/",
-		"build": "node ../../scripts/sync-shared-code.cjs && tsc --project tsconfig/tsconfig.json",
-		"test": "node ../../scripts/sync-shared-code.cjs && vitest run --no-cache",
+		"scrub": "rm -rf node_modules pnpm-lock.yaml package-lock.json yarn.lock dist/",
+		"sync:shared": "node ../../scripts/sync-shared-code.cjs",
+		"build:ts": "tsc --project tsconfig/tsconfig.json",
+		"build": "run-s sync:shared build:ts",
+		"test:unit": "vitest run --no-cache",
+		"test": "run-s sync:shared test:unit",
 		"test:watch": "vitest",
 		"lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src ./tests",
 		"lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src ./tests",
 		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,ts,vue,json,css,scss,md}\"",
-		"format": "npm run lintfix && npm run pretty",
-		"cleanbuild": "rm -rf ./dist/ && npm run format && npm run build"
+		"format": "run-s lintfix pretty",
+		"cleanbuild": "run-s clean:dist format build",
+		"clean:dist": "rm -rf ./dist/",
+		"release": "bash ../../scripts/release-package.sh ."
 	},
 	"license": "MIT",
 	"dependencies": {

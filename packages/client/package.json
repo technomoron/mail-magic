@@ -7,17 +7,19 @@
 	"module": "dist/esm/mail-magic-client.js",
 	"scripts": {
 		"prepare": "npm run build",
-		"scrub": "rm -rf node_modules pnpm-lock.yaml lib/ dist/",
+		"scrub": "rm -rf node_modules pnpm-lock.yaml package-lock.json yarn.lock lib/ dist/",
 		"build:cjs": "tsc --project tsconfig/tsconfig.cjs.json",
 		"build:esm": "tsc --project tsconfig/tsconfig.esm.json",
-		"build": "npm run build:cjs && npm run build:esm",
+		"build": "run-s build:cjs build:esm",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src",
 		"lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src",
-		"format": "npm run lintfix && npm run pretty",
+		"format": "run-s lintfix pretty",
 		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,ts,vue,json,css,scss,md}\"",
-		"cleanbuild": "rm -rf ./dist/ && npm run format && npm run build"
+		"cleanbuild": "run-s clean:dist format build",
+		"clean:dist": "rm -rf ./dist/",
+		"release": "bash ../../scripts/release-package.sh ."
 	},
 	"repository": {
 		"type": "git",

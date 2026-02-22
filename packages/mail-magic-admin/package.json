@@ -12,8 +12,10 @@
 		"lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src",
 		"lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./src",
 		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,ts,vue,json,css,scss,md}\"",
-		"format": "npm run lintfix && npm run pretty",
-		"cleanbuild": "rm -rf ./dist/ && npm run format && npm run build"
+		"format": "run-s lintfix pretty",
+		"cleanbuild": "run-s clean:dist format build",
+		"clean:dist": "rm -rf ./dist/",
+		"release": "bash ../../scripts/release-package.sh ."
 	},
 	"files": [
 		"dist/**",

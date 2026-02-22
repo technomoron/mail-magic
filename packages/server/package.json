@@ -28,20 +28,24 @@
 		"start": "node dist/esm/index.js",
 		"dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --watch 'config/**/*.*' --watch '.env' --exec 'tsx' src/index.ts",
 		"run": "NODE_ENV=production npm run start",
+		"sync:shared": "node ../../scripts/sync-shared-code.cjs",
 		"build:esm": "tsc --project tsconfig/tsconfig.esm.json",
 		"build:cjs": "node scripts/add-shebang.cjs --cjs-only",
-		"build": "node ../../scripts/sync-shared-code.cjs && npm run build:esm && npm run build:cjs",
+		"build": "run-s sync:shared build:esm build:cjs",
 		"postbuild": "node scripts/add-shebang.cjs",
 		"prepack": "npm run build",
-		"test": "node ../../scripts/sync-shared-code.cjs && vitest run",
+		"test:unit": "vitest run",
+		"test": "run-s sync:shared test:unit",
 		"test:watch": "vitest",
-		"scrub": "rm -rf ./node_modules/ ./dist/ pnpm-lock.yaml",
+		"scrub": "rm -rf ./node_modules/ ./dist/ pnpm-lock.yaml package-lock.json yarn.lock",
 		"lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./",
 		"lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern --ext .js,.cjs,.mjs,.ts,.mts,.tsx,.vue,.json ./",
 		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,jsx,cjs,mjs,ts,tsx,mts,vue,json,md}\"",
-		"format": "npm run lintfix && npm run pretty",
-		"cleanbuild": "rm -rf ./dist/ && npm run format && npm run build",
-		"lintconfig": "node ../../lintconfig.cjs"
+		"format": "run-s lintfix pretty",
+		"cleanbuild": "run-s clean:dist format build",
+		"lintconfig": "node ../../lintconfig.cjs",
+		"clean:dist": "rm -rf ./dist/",
+		"release": "bash ../../scripts/release-package.sh ."
 	},
 	"keywords": [],
 	"author": "Bjørn Erik Jacobsen",
@@ -81,6 +85,5 @@
 		"typescript": "^5.9.3",
 		"vitest": "^4.0.16"
 	},
-	"homepage": "https://github.com/technomoron/mail-magic#readme",
-	"packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa"
+	"homepage": "https://github.com/technomoron/mail-magic#readme"
 }

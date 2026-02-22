@@ -1,3 +1,11 @@
+CHANGES
+=======
+
+Unreleased (2026-02-22)
+
+- chore(changes): normalize this package changelog to required CHANGES format.
+- (Changes generated/assisted by Codex (profile: GPT-5/default).)
+
 Version 1.0.39 (2026-02-19)
 
 - Code clarity pass: restore `DB_LOG` env-driven logging config (was commented

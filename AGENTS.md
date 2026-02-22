@@ -12,9 +12,11 @@ interacting with this repository.
 
 If code is generated or substantially modified by an automated agent:
 
-- All commits must be recorded in `CHANGES`.
+- All commits must be recorded in the affected package `CHANGES` file
+  (for example: `packages/server/CHANGES`, `packages/client/CHANGES`).
 - The use of an automated agent must be clearly disclosed.
-- Disclosure must appear in the corresponding `CHANGES` entry (not in the commit message).
+- Disclosure must appear in the corresponding package `CHANGES` entry
+  (not in the commit message).
 - Disclosure should contain LLM info (name/mode) if possible.
 - Profile-style model/mode identifiers are acceptable (for example:
   `5.3-codex/medium`) as long as automated involvement is explicit.
@@ -25,13 +27,16 @@ involvement.
 
 When modifying this repository (if explicitly authorized):
 
-- `CHANGES` must be updated for every commit.
+- Workspace-level `CHANGES` files are not allowed.
+- Release notes must be maintained only in per-package `CHANGES` files.
+- The relevant package `CHANGES` file must be updated for every commit that
+  changes that package.
 - New change entries added after a released version must always be placed at
-  the top of `CHANGES` under `Unreleased (<YYYY-MM-DD>)`.
+  the top of the package `CHANGES` under `Unreleased (<YYYY-MM-DD>)`.
 - If an `Unreleased` section already exists, append new bullets to that
   existing top section instead of creating a second one.
 - When bumping package version/revision/patch for a release, convert the
-  current top `Unreleased (<YYYY-MM-DD>)` section into
+  current top package `Unreleased (<YYYY-MM-DD>)` section into
   `Version <bumped-version> (<YYYY-MM-DD>)` before tagging/publishing.
 - Keep release sections in descending order below `Unreleased`.
 - Use concise bullet points describing user-visible behavior changes, fixes,
@@ -41,6 +46,7 @@ When modifying this repository (if explicitly authorized):
 
 Required `CHANGES` format:
 
+- Applies to each package `CHANGES` file.
 - First line: `CHANGES`
 - Second line: `=======`
 - Top section header: `Unreleased (<YYYY-MM-DD>)`
