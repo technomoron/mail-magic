@@ -1,51 +1,37 @@
-# Workspace Notes
+CHANGES
+=======
 
-Mail Magic is a monorepo. Release notes are tracked per package:
+Unreleased (2026-02-22)
 
-- `packages/server/CHANGES`
-- `packages/client/CHANGES`
+- chore(repo): add `AGENTS.md` with commit disclosure, `CHANGES`, and dependency management rules for automated agents.
+- chore(repo): stop ignoring `AGENTS.md` in `.gitignore` so the policy file is tracked.
+- (Changes generated/assisted by Codex (profile: GPT-5/default).)
 
-This file captures workspace-level changes (tooling, repo layout, etc) and is not used for npm releases.
+Version workspace-2026-02-19 (2026-02-19)
 
-## 2026-02-19
+- chore(workspace): extract CLI code from `@technomoron/mail-magic-client` into dedicated `packages/cli` package with tests, build, and README.
+- chore(workspace): add `sync:shared`, `cli`, and `test:cli` scripts and include CLI tests in root `test`.
+- refactor(workspace): simplify shared template preprocess logic by removing duplicate conditionals and replacing `forEach` with `for...of`.
 
-- Extracted CLI code from `@technomoron/mail-magic-client` into a dedicated
-  `packages/cli` workspace package with its own tests, build, and README.
-- Workspace scripts now include `sync:shared`, `cli`, and `test:cli`; root
-  `test` now runs CLI tests.
-- Code clarity pass across the workspace: merge duplicate conditionals and
-  replace `forEach` with `for...of` in `packages/common/template-preprocess.ts`;
-  sync shared copies via `scripts/sync-shared-code.cjs`.
+Version workspace-2026-02-10 (2026-02-10)
 
-## 2026-02-08
+- test(workspace): harden inline asset (CID) handling with expanded coverage for inline assets, linked assets, and uploaded attachments.
 
-- Reorganized docs: moved `packages/server/IDEAS.md` to `docs/IDEAS.md`, and moved package config examples/tutorial
-  under `packages/server/docs/`.
-- Rewrote `packages/server/README.md` to be a complete plain-language operator overview and to point readers to the
-  Swagger/OpenAPI spec for the authoritative API contract.
-- Added `docs/OVERVIEW.md` with a plain-language introduction to Mail Magic concepts and features.
+Version workspace-2026-02-08 (2026-02-08)
 
-## 2026-02-10
+- docs(workspace): move `packages/server/IDEAS.md` to `docs/IDEAS.md` and relocate package config examples/tutorial content under `packages/server/docs/`.
+- docs(server): rewrite `packages/server/README.md` as a complete operator overview and link to Swagger/OpenAPI as authoritative API contract.
+- docs(workspace): add `docs/OVERVIEW.md` with a plain-language introduction to Mail Magic concepts and features.
 
-- Hardened inline asset (CID) handling and expanded test coverage to explicitly validate:
-  inline assets, linked assets, and uploaded attachments across transactional and public form flows.
+Version workspace-2026-02-07 (2026-02-07)
 
-## 2026-02-07
+- docs(env): document optional environment knobs in `.env-dist` including `API_BASE_PATH`, `ASSET_PUBLIC_BASE`, `ADMIN_ENABLED`, and `ADMIN_APP_PATH`.
+- fix(server): pass `maxAge` to Express `sendFile()` for asset caching headers.
+- fix(server): mount public assets under both `/asset/...` and `/api/asset/...` when `API_BASE_PATH` is configured.
+- chore(deps): upgrade `@technomoron/api-server-base` to `2.0.0-beta.18` and adjust `/api/...` custom route mounting for new API 404 behavior.
 
-- Documented new optional environment knobs in `.env-dist`, including
-  `API_BASE_PATH`, `ASSET_PUBLIC_BASE`, `ADMIN_ENABLED`, and `ADMIN_APP_PATH`.
-- Fixed asset caching headers by passing `maxAge` to Express `sendFile()`, and
-  mounted the public asset handler under both `/asset/...` and `/api/asset/...`
-  (when `API_BASE_PATH` is in use) to preserve existing expectations.
-- Upgraded `@technomoron/api-server-base` to `2.0.0-beta.18` and adjusted
-  `/api/...` custom route mounting to stay reachable with the new API 404
-  handling.
+Version workspace-2026-02-02 (2026-02-02)
 
-## 2026-02-02
-
-- Added a pnpm-aware workspace wrapper with npm fallback so root and package
-  builds run under either package manager.
-- Centralized pnpm build-script allowlist at the workspace root and documented
-  pnpm-first development with npm for CI/publishing.
-- Added a workspace-wide pnpm definition and type stubs to keep optional admin
-  integration building without a hard dependency.
+- chore(workspace): add pnpm-aware workspace wrapper with npm fallback so root and package builds work under either package manager.
+- docs(workspace): document pnpm-first development with npm for CI/publishing and centralize pnpm build-script allowlist at workspace root.
+- chore(workspace): add workspace-wide pnpm definition and type stubs for optional admin integration builds.

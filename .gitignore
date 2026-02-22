@@ -13,7 +13,6 @@ pnpm-lock.yaml
 maildata.db
 config/
 uploads/
-AGENTS.md
 !tests/fixtures/config/
 !tests/fixtures/config/**
 !tests/fixtures/uploads/
