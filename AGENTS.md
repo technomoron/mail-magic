@@ -8,6 +8,9 @@ actors) interacting with this repository.
 ## Commit and Change Logging Rules
 
 - **Automated commits or pull requests:** Not allowed unless explicitly requested.
+- **Commit identity:** Commits must use the maintainer's configured git identity (human name/email).
+- **Contributor attribution:** Do not use `Claude`, `Codex`, `ChatGPT`, or other AI identities in git author/committer
+  fields, co-author trailers, or commit metadata.
 
 If code is generated or substantially modified by an automated agent:
 
