@@ -120,7 +120,7 @@ fi
 
 BASE_REF="$LAST_TAG"
 if [ -z "$BASE_REF" ]; then
-	BASE_REF="$(git -C "$REPO_ROOT" rev-list --max-parents=0 HEAD)"
+	BASE_REF="$(git -C "$REPO_ROOT" rev-list --max-parents=0 HEAD | head -n1)"
 fi
 
 PKG_REL="$(node -e "const path=require('path'); console.log(path.relative(process.argv[1], process.argv[2]));" "$REPO_ROOT" "$PKG_DIR")"
