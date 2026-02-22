@@ -1,6 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import { expect, it, vi } from 'vitest';
 
@@ -338,4 +339,22 @@ it('supports tx/form compile filters', async () => {
 	expect(fs.existsSync(path.join(out, domain, 'form-template', 'en', 'contact.njk'))).toBe(false);
 
 	fs.rmSync(root, { recursive: true, force: true });
+});
+
+it('compiles the examples data directory', async () => {
+	const out = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-compile-examples-'));
+	const examplesInput = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../examples/data');
+
+	const summary = await compileConfigTree({
+		input: examplesInput,
+		output: out,
+		domain: 'example.test'
+	});
+
+	expect(summary.templates).toBe(10);
+	expect(summary.forms).toBe(8);
+	expect(fs.existsSync(path.join(out, 'example.test', 'tx-template', 'en', 'welcome.njk'))).toBe(true);
+	expect(fs.existsSync(path.join(out, 'example.test', 'form-template', 'nb', 'contact.njk'))).toBe(true);
+
+	fs.rmSync(out, { recursive: true, force: true });
 });

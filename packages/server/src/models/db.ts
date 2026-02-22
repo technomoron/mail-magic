@@ -111,7 +111,7 @@ export async function init_api_db(db: Sequelize, store: mailStore) {
 }
 
 export async function connect_api_db(store: mailStore): Promise<Sequelize> {
-	console.log('DB INIT');
+	store.print_debug('DB INIT');
 
 	const env = store.vars;
 	const dbparams: Options = {

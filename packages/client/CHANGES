@@ -5,6 +5,7 @@ Unreleased (2026-02-22)
 
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
+- test(logging): quiet package test output by default (silent Vitest with compact dot reporter).
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
 Version 1.0.32 (2026-02-22)

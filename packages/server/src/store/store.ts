@@ -199,7 +199,7 @@ export class mailStore {
 		}
 		const p = this.vars.CONFIG_PATH;
 		this.configpath = path.isAbsolute(p) ? p : path.resolve(process.cwd(), p);
-		console.log(`Config path is ${this.configpath}`);
+		this.print_debug(`Config path is ${this.configpath}`);
 
 		if (this.vars.UPLOAD_PATH && this.vars.UPLOAD_PATH.includes('{domain}')) {
 			this.uploadTemplate = this.vars.UPLOAD_PATH;

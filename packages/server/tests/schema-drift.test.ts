@@ -26,7 +26,7 @@ describe('schema/model consistency', () => {
 	let db: Sequelize;
 
 	beforeAll(async () => {
-		db = new Sequelize('sqlite::memory:', { logging: false });
+		db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false });
 		await init_api_user(db);
 		await init_api_domain(db);
 		await init_api_form(db);

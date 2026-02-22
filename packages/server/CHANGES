@@ -5,6 +5,8 @@ Unreleased (2026-02-22)
 
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
+- test(logging): suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
+- test(logging): quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
 Version 1.0.40 (2026-02-22)

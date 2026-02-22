@@ -154,6 +154,7 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 		CONFIG_PATH: configPath,
 		DB_NAME: path.join(tempDir, 'mailmagic-test.db'),
 		DB_TYPE: 'sqlite',
+		DB_LOG: false,
 		DB_FORCE_SYNC: true,
 		DB_SYNC_ALTER: true,
 		DB_AUTO_RELOAD: false,
