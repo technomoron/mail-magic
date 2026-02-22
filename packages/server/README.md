@@ -60,6 +60,7 @@ API_URL=http://127.0.0.1:3776
 SMTP_HOST=127.0.0.1
 SMTP_PORT=1025
 SMTP_SECURE=false
+SMTP_REQUIRE_TLS=false
 SMTP_TLS_REJECT=false
 ```
 
@@ -144,6 +145,10 @@ Commonly used variables:
     - `FORM_RATE_LIMIT_WINDOW_SEC`, `FORM_RATE_LIMIT_MAX`
     - `FORM_MAX_ATTACHMENTS`, `FORM_KEEP_UPLOADS`
     - `FORM_CAPTCHA_PROVIDER`, `FORM_CAPTCHA_SECRET`, `FORM_CAPTCHA_REQUIRED`
+- SMTP:
+    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`
+    - `SMTP_REQUIRE_TLS` (default `true`; set to `false` for local dev servers like MailHog that don't support STARTTLS)
+    - `SMTP_TLS_REJECT` (default `true`; set to `false` to accept self-signed certificates)
 - Swagger/OpenAPI:
     - `SWAGGER_ENABLED`, `SWAGGER_PATH`
 

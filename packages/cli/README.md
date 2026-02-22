@@ -23,6 +23,14 @@ MMCLI_DOMAIN=example.test
 `MMCLI_TOKEN` is treated as the server token string. As a convenience, `MMCLI_USERNAME` + `MMCLI_PASSWORD` can be used
 to build a combined token string (for legacy setups).
 
+### Version
+
+Print the installed CLI version:
+
+```bash
+mm-cli version
+```
+
 ### Template Commands
 
 Compile a config tree locally:
@@ -30,6 +38,9 @@ Compile a config tree locally:
 ```bash
 mm-cli compile --input ./data --output ./compiled
 ```
+
+`--css <path>` optionally points to a Foundation for Emails CSS file; when provided, MJML templates are inlined with
+that stylesheet before upload.
 
 Compile only transactional or form templates:
 
@@ -44,6 +55,8 @@ Push a single transactional template (compile + upload):
 mm-cli push --template tx-template/en/welcome --domain example.test --input ./templates
 ```
 
+The `push` command also accepts `--css` to inline a Foundation for Emails stylesheet.
+
 Dry-run a single template upload:
 
 ```bash
@@ -56,7 +69,11 @@ Push an entire config-style directory:
 mm-cli push-dir --input ./data --domain example.test
 mm-cli push-dir --input ./data --domain example.test --dry-run
 mm-cli push-dir --input ./data --domain example.test --skip-assets
+mm-cli push-dir --input ./data --domain example.test --skip-tx
+mm-cli push-dir --input ./data --domain example.test --skip-forms
 ```
+
+`push-dir` also accepts `--css` to inline a Foundation for Emails stylesheet during the upload pass.
 
 ### Asset Uploads
 

@@ -1135,7 +1135,7 @@
 						"type": "boolean"
 					}
 				},
-				"required": ["domain", "idname", "template", "sender", "recipient"]
+				"required": ["idname", "template", "sender", "recipient"]
 			},
 			"FormTemplateUpsertResponseData": {
 				"type": "object",
@@ -1266,7 +1266,7 @@
 			},
 			"FormMessageResponseData": {
 				"type": "object",
-				"description": "On success, data is usually an empty object. Some internal failures may return an object with an `error` string.",
+				"description": "On success, data is an empty object.",
 				"additionalProperties": true
 			},
 			"AssetsUploadMultipartRequest": {
