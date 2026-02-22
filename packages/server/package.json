@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic",
-	"version": "1.0.40",
+	"version": "1.0.41",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",
 	"type": "module",
@@ -17,6 +17,7 @@
 	"files": [
 		"dist",
 		"docs",
+		"examples",
 		"README.md",
 		"CHANGES"
 	],

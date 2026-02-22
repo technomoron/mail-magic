@@ -1,10 +1,12 @@
 CHANGES
 =======
 
-Unreleased (2026-02-22)
+Version 1.0.41 (2026-02-22)
 
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
+- chore(examples): move example data, scripts, and `.env-dist` from standalone `packages/examples/` workspace into `packages/server/examples/`; add `examples` to the npm `files` list so they are shipped with the package.
+- chore(repo): rename admin package directory from `mail-magic-admin` to `admin` (npm package name unchanged).
 - test(logging): suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
 - test(logging): quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
 - fix(forms): replace global `nunjucks.configure()` call in `postSendForm` with a scoped `nunjucks.Environment` instance, matching the pattern already used in `post_send`.
@@ -24,6 +26,8 @@ Unreleased (2026-02-22)
 - fix(build): remove `noImplicitAny: false` override from `tsconfig/tsconfig.esm.json`; the root tsconfig already enables `strict`, which includes `noImplicitAny`.
 - fix(build): add `declaration: true` to `tsconfig/tsconfig.esm.json` to emit `.d.ts` files; generate `dist/cjs/index.d.ts` re-exporting ESM types; add `types` condition to package exports; extract `STARTUP_ERROR_MESSAGE` from compiled ESM output instead of hardcoding it in the CJS shim script.
 - fix(scripts): remove `--ext` flags from all `lint`/`lintfix` npm scripts — ESLint v9 flat config silently ignores these flags; file coverage is already provided by the glob patterns in `eslint.config.mjs`.
+- docs(swagger): remove `domain` from the `required` array in all authenticated request schemas (`TxTemplateUpsertRequest`, `TxSendRequest`, `TxSendMultipartRequest`, `FormRecipientUpsertRequest`, `FormTemplateUpsertRequest`); mark property descriptions as optional; bump spec version to 1.0.41.
+- docs(readme): add `SMTP_REQUIRE_TLS` to quick-start `.env` example and configuration reference.
 - (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 
 Version 1.0.40 (2026-02-22)

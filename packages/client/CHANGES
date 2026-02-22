@@ -1,12 +1,13 @@
 CHANGES
 =======
 
-Unreleased (2026-02-22)
+Version 1.0.33 (2026-02-22)
 
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
 - test(logging): quiet package test output by default (silent Vitest with compact dot reporter).
 - fix(scripts): remove `--ext` flags from `lint`/`lintfix` scripts — silently ignored by ESLint v9 flat config.
+- docs(readme): document the `viaApiBase` parameter of `fetchPublicAsset`, explaining when to use the `/asset/` vs `/api/asset/` route prefix.
 - (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 

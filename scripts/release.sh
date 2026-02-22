@@ -7,7 +7,7 @@ PACKAGE_DIRS=(
 	"$ROOT/packages/server"
 	"$ROOT/packages/client"
 	"$ROOT/packages/cli"
-	"$ROOT/packages/mail-magic-admin"
+	"$ROOT/packages/admin"
 )
 
 released_count=0

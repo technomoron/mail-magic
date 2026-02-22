@@ -1,13 +1,14 @@
 CHANGES
 =======
 
-Unreleased (2026-02-22)
+Version 1.0.1 (2026-02-22)
 
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.
 - chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
 - test(logging): quiet package test output by default (silent Vitest + silent shared-sync step).
-- test(examples): add a compile smoke test that compiles `packages/examples/data` via `compileConfigTree`.
+- test(examples): add a compile smoke test that compiles `packages/server/examples/data` via `compileConfigTree`.
 - fix(cli): defer `loadCliEnv()` from module load time to just before `program.parse()`, preventing file-system side effects when the module is imported at startup; apply env-file defaults via `setOptionValueWithSource` so CLI flags still override them correctly.
+- docs(readme): document the `version` command, the `--css` parameter for `compile`/`push`/`push-dir`, and the `--skip-tx`/`--skip-forms` flags for `push-dir`.
 - (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 

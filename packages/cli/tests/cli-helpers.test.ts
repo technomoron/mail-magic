@@ -343,7 +343,7 @@ it('supports tx/form compile filters', async () => {
 
 it('compiles the examples data directory', async () => {
 	const out = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-compile-examples-'));
-	const examplesInput = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../examples/data');
+	const examplesInput = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../server/examples/data');
 
 	const summary = await compileConfigTree({
 		input: examplesInput,

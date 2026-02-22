@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic-cli",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "CLI for mail-magic",
 	"main": "dist/cli.js",
 	"bin": {
