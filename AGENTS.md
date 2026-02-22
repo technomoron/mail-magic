@@ -18,9 +18,9 @@ If code is generated or substantially modified by an automated agent:
   `packages/client/CHANGES`).
 - The use of an automated agent must be clearly disclosed.
 - Disclosure must appear in the corresponding package `CHANGES` entry (not in the commit message).
-- Disclosure should contain LLM info (name/mode) if possible.
-- Profile-style model/mode identifiers are acceptable (for example: `5.3-codex/medium`) as long as automated involvement
-  is explicit.
+- Disclosure must contain detailed LLM profile info (provider/product + model + agent + mode/effort level).
+- Use explicit profile-style identifiers (for example: `chatgpt-5.3-codex/medium` or `gpt-5/codex-high`); generic labels
+  like `Codex`, `ChatGPT`, `GPT-5`, or `default` are not sufficient on their own.
 - No claim of human authorship may be implied for AI-generated content.
 
 Maintainers may reject contributions that do not disclose automated involvement.
@@ -47,7 +47,7 @@ Required `CHANGES` format:
 - Second line: `=======`
 - Top section header: `Unreleased (<YYYY-MM-DD>)`
 - Entry format: `- <type(scope)>: <short description>`
-- AI disclosure format: `- (Changes generated/assisted by <agent> (profile: <model/mode>).)`
+- AI disclosure format: `- (Changes generated/assisted by <agent> (profile: <provider-product-model-agent/mode>).)`
 
 ---
 

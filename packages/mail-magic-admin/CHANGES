@@ -1,0 +1,13 @@
+CHANGES
+=======
+
+Unreleased (2026-02-22)
+
+- chore(release): add package-level `release:check` script and wire `release` to shared publish script.
+- chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
+- (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
+
+Version 0.0.3 (2026-02-22)
+
+- chore(changes): add package CHANGES file in required format.
+- (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
