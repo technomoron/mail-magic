@@ -97,7 +97,7 @@ export async function init_api_db(db, store) {
     store.print_debug('API Database Initialized...');
 }
 export async function connect_api_db(store) {
-    console.log('DB INIT');
+    store.print_debug('DB INIT');
     const env = store.vars;
     const dbparams = {
         logging: env.DB_LOG ? console.log : false,

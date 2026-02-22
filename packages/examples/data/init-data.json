@@ -21,25 +21,193 @@
 		}
 	],
 	"template": [
-		{ "template_id": 1, "user_id": 1, "domain_id": 1, "name": "welcome", "locale": "en", "sender": "Example <noreply@example.test>", "subject": "Welcome" },
-		{ "template_id": 2, "user_id": 1, "domain_id": 1, "name": "confirm", "locale": "en", "sender": "Example <noreply@example.test>", "subject": "Confirm your account" },
-		{ "template_id": 3, "user_id": 1, "domain_id": 1, "name": "change-password", "locale": "en", "sender": "Example <noreply@example.test>", "subject": "Change password" },
-		{ "template_id": 4, "user_id": 1, "domain_id": 1, "name": "receipt", "locale": "en", "sender": "Example <noreply@example.test>", "subject": "Your receipt" },
-		{ "template_id": 5, "user_id": 1, "domain_id": 1, "name": "invoice", "locale": "en", "sender": "Example <noreply@example.test>", "subject": "Your invoice" },
-		{ "template_id": 6, "user_id": 1, "domain_id": 1, "name": "welcome", "locale": "nb", "sender": "Example <noreply@example.test>", "subject": "Velkommen" },
-		{ "template_id": 7, "user_id": 1, "domain_id": 1, "name": "confirm", "locale": "nb", "sender": "Example <noreply@example.test>", "subject": "Bekreft konto" },
-		{ "template_id": 8, "user_id": 1, "domain_id": 1, "name": "change-password", "locale": "nb", "sender": "Example <noreply@example.test>", "subject": "Endre passord" },
-		{ "template_id": 9, "user_id": 1, "domain_id": 1, "name": "receipt", "locale": "nb", "sender": "Example <noreply@example.test>", "subject": "Kvittering" },
-		{ "template_id": 10, "user_id": 1, "domain_id": 1, "name": "invoice", "locale": "nb", "sender": "Example <noreply@example.test>", "subject": "Faktura" }
+		{
+			"template_id": 1,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "welcome",
+			"locale": "en",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Welcome"
+		},
+		{
+			"template_id": 2,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "confirm",
+			"locale": "en",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Confirm your account"
+		},
+		{
+			"template_id": 3,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "change-password",
+			"locale": "en",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Change password"
+		},
+		{
+			"template_id": 4,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "receipt",
+			"locale": "en",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Your receipt"
+		},
+		{
+			"template_id": 5,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "invoice",
+			"locale": "en",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Your invoice"
+		},
+		{
+			"template_id": 6,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "welcome",
+			"locale": "nb",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Velkommen"
+		},
+		{
+			"template_id": 7,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "confirm",
+			"locale": "nb",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Bekreft konto"
+		},
+		{
+			"template_id": 8,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "change-password",
+			"locale": "nb",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Endre passord"
+		},
+		{
+			"template_id": 9,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "receipt",
+			"locale": "nb",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Kvittering"
+		},
+		{
+			"template_id": 10,
+			"user_id": 1,
+			"domain_id": 1,
+			"name": "invoice",
+			"locale": "nb",
+			"sender": "Example <noreply@example.test>",
+			"subject": "Faktura"
+		}
 	],
 	"form": [
-		{ "form_id": 1, "form_key": "example-contact-en", "user_id": 1, "domain_id": 1, "idname": "contact", "locale": "en", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Contact form", "secret": "form-secret" },
-		{ "form_id": 2, "form_key": "example-welcome-signup-en", "user_id": 1, "domain_id": 1, "idname": "welcome-signup", "locale": "en", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Welcome signup", "secret": "form-secret" },
-		{ "form_id": 3, "form_key": "example-confirm-account-en", "user_id": 1, "domain_id": 1, "idname": "confirm-account", "locale": "en", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Confirm account form", "secret": "form-secret" },
-		{ "form_id": 4, "form_key": "example-change-password-en", "user_id": 1, "domain_id": 1, "idname": "change-password", "locale": "en", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Change password form", "secret": "form-secret" },
-		{ "form_id": 5, "form_key": "example-contact-nb", "user_id": 1, "domain_id": 1, "idname": "contact", "locale": "nb", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Kontakt" , "secret": "form-secret" },
-		{ "form_id": 6, "form_key": "example-welcome-signup-nb", "user_id": 1, "domain_id": 1, "idname": "welcome-signup", "locale": "nb", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Registrering", "secret": "form-secret" },
-		{ "form_id": 7, "form_key": "example-confirm-account-nb", "user_id": 1, "domain_id": 1, "idname": "confirm-account", "locale": "nb", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Bekreft konto form", "secret": "form-secret" },
-		{ "form_id": 8, "form_key": "example-change-password-nb", "user_id": 1, "domain_id": 1, "idname": "change-password", "locale": "nb", "sender": "Example Forms <forms@example.test>", "recipient": "owner@example.test", "subject": "Endre passord form", "secret": "form-secret" }
+		{
+			"form_id": 1,
+			"form_key": "example-contact-en",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "contact",
+			"locale": "en",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Contact form",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 2,
+			"form_key": "example-welcome-signup-en",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "welcome-signup",
+			"locale": "en",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Welcome signup",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 3,
+			"form_key": "example-confirm-account-en",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "confirm-account",
+			"locale": "en",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Confirm account form",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 4,
+			"form_key": "example-change-password-en",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "change-password",
+			"locale": "en",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Change password form",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 5,
+			"form_key": "example-contact-nb",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "contact",
+			"locale": "nb",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Kontakt",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 6,
+			"form_key": "example-welcome-signup-nb",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "welcome-signup",
+			"locale": "nb",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Registrering",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 7,
+			"form_key": "example-confirm-account-nb",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "confirm-account",
+			"locale": "nb",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Bekreft konto form",
+			"secret": "form-secret"
+		},
+		{
+			"form_id": 8,
+			"form_key": "example-change-password-nb",
+			"user_id": 1,
+			"domain_id": 1,
+			"idname": "change-password",
+			"locale": "nb",
+			"sender": "Example Forms <forms@example.test>",
+			"recipient": "owner@example.test",
+			"subject": "Endre passord form",
+			"secret": "form-secret"
+		}
 	]
 }
