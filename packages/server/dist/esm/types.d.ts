@@ -26,7 +26,11 @@ export interface RequestMeta {
     ip_chain: string[];
 }
 export interface UploadedFile {
-    originalname: string;
-    path: string;
     fieldname: string;
+    originalname: string;
+    encoding?: string;
+    mimetype?: string;
+    size?: number;
+    buffer?: Buffer;
+    filepath?: string;
 }

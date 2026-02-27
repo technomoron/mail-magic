@@ -9,17 +9,49 @@ import { mailApiServer } from '../server.js';
 import { SEGMENT_PATTERN, normalizeSubdir } from '../util/paths.js';
 import { moveUploadedFiles } from '../util/uploads.js';
 import { getBodyValue } from '../util/utils.js';
-import { decodeComponent, sendFileAsync } from '../util.js';
+import { decodeComponent } from '../util.js';
 
 import { assert_domain_and_user } from './auth.js';
 
 import type { mailApiRequest, UploadedFile } from '../types.js';
-import type { NextFunction, Request, Response } from 'express';
+import type { ApiRequest, ExtendedReq } from '@technomoron/api-server-base';
+
+type ApiRes = ApiRequest['res'];
+
+// Internal: type-assertion shape to access Fastify reply header/type methods through
+// the ApiRes compat wrapper, which does not expose header-setting natively.
+type FastifyReplyAccessor = { reply?: { type(t: string): void; header(k: string, v: string): void } };
 
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
+
+const MIME_TYPES: Record<string, string> = {
+	'.png': 'image/png',
+	'.jpg': 'image/jpeg',
+	'.jpeg': 'image/jpeg',
+	'.gif': 'image/gif',
+	'.webp': 'image/webp',
+	'.svg': 'image/svg+xml',
+	'.ico': 'image/x-icon',
+	'.css': 'text/css',
+	'.js': 'application/javascript',
+	'.mjs': 'application/javascript',
+	'.json': 'application/json',
+	'.txt': 'text/plain',
+	'.html': 'text/html',
+	'.htm': 'text/html',
+	'.pdf': 'application/pdf',
+	'.woff': 'font/woff',
+	'.woff2': 'font/woff2',
+	'.ttf': 'font/ttf',
+	'.eot': 'application/vnd.ms-fontobject'
+};
+
+function getMimeType(ext: string): string {
+	return MIME_TYPES[ext.toLowerCase()] ?? 'application/octet-stream';
+}
 export class AssetAPI extends ApiModule<mailApiServer> {
 	private async resolveTemplateDir(apireq: mailApiRequest): Promise<string> {
-		const body = apireq.req.body ?? {};
+		const body = (apireq.req.body ?? {}) as Record<string, unknown>;
 		const templateTypeRaw = getBodyValue(body, 'templateType', 'template_type', 'type');
 		const templateName = getBodyValue(body, 'template', 'name', 'idname', 'formid');
 		const locale = getBodyValue(body, 'locale');
@@ -78,12 +110,12 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 	private async postAssets(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
 		await assert_domain_and_user(apireq);
 
-		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
+		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as unknown as UploadedFile[]) : [];
 		if (!rawFiles.length) {
 			throw new ApiError({ code: 400, message: 'No files uploaded' });
 		}
 
-		const body = apireq.req.body ?? {};
+		const body = (apireq.req.body ?? {}) as Record<string, unknown>;
 		const subdir = normalizeSubdir(getBodyValue(body, 'path', 'dir'));
 		const templateType = getBodyValue(body, 'templateType', 'template_type', 'type');
 
@@ -118,23 +150,23 @@ export class AssetAPI extends ApiModule<mailApiServer> {
 }
 
 export function createAssetHandler(server: mailApiServer) {
-	return async (req: Request, res: Response, next?: NextFunction) => {
+	return async (req: ExtendedReq, res: ApiRes, next?: (error?: unknown) => void): Promise<void> => {
 		if (req.method && req.method !== 'GET' && req.method !== 'HEAD') {
 			if (next) {
 				next();
 				return;
 			}
-			res.status(405).end();
+			res.status(405).send(null);
 			return;
 		}
 
-		const domain = decodeComponent(req?.params?.domain);
+		const domain = decodeComponent(req?.params?.['domain'] as string | undefined);
 		if (!domain || !DOMAIN_PATTERN.test(domain)) {
-			res.status(404).end();
+			res.status(404).send(null);
 			return;
 		}
 
-		const rawPathParam = (req?.params as unknown as { path?: unknown })?.path ?? req?.params?.[0];
+		const rawPathParam = req.params?.['path'] ?? req.params?.['*'];
 		const rawSegments = Array.isArray(rawPathParam)
 			? rawPathParam
 			: typeof rawPathParam === 'string'
@@ -144,13 +176,13 @@ export function createAssetHandler(server: mailApiServer) {
 			decodeComponent(typeof segment === 'string' ? segment : '')
 		);
 		if (!segments.length || segments.some((segment: string) => !SEGMENT_PATTERN.test(segment))) {
-			res.status(404).end();
+			res.status(404).send(null);
 			return;
 		}
 
 		const assetsRoot = path.join(server.storage.configpath, domain, 'assets');
 		if (!fs.existsSync(assetsRoot)) {
-			res.status(404).end();
+			res.status(404).send(null);
 			return;
 		}
 		const resolvedRoot = fs.realpathSync(assetsRoot);
@@ -160,11 +192,11 @@ export function createAssetHandler(server: mailApiServer) {
 		try {
 			const stats = await fs.promises.stat(candidate);
 			if (!stats.isFile()) {
-				res.status(404).end();
+				res.status(404).send(null);
 				return;
 			}
 		} catch {
-			res.status(404).end();
+			res.status(404).send(null);
 			return;
 		}
 
@@ -172,26 +204,32 @@ export function createAssetHandler(server: mailApiServer) {
 		try {
 			realCandidate = await fs.promises.realpath(candidate);
 		} catch {
-			res.status(404).end();
+			res.status(404).send(null);
 			return;
 		}
 		if (!realCandidate.startsWith(normalizedRoot)) {
-			res.status(404).end();
+			res.status(404).send(null);
 			return;
 		}
 
-		res.type(path.extname(realCandidate));
+		const ext = path.extname(realCandidate);
+		// Access the underlying Fastify reply to set content-type and cache-control headers.
+		// ApiResponse does not expose arbitrary header-setting methods.
+		const fastifyReply = (res as unknown as FastifyReplyAccessor).reply;
+		if (fastifyReply) {
+			fastifyReply.type(getMimeType(ext));
+			fastifyReply.header('cache-control', 'public, max-age=300');
+		}
 
 		try {
-			// Express' `sendFile()` sets Cache-Control based on `maxAge` (in ms). Setting the header
-			// before calling `sendFile()` can be overwritten by Express defaults.
-			await sendFileAsync(res, realCandidate, { maxAge: 300_000 });
+			const content = await fs.promises.readFile(realCandidate);
+			res.send(content);
 		} catch (err) {
 			server.storage.print_debug(
 				`Failed to serve asset ${domain}/${segments.join('/')}: ${err instanceof Error ? err.message : String(err)}`
 			);
 			if (!res.headersSent) {
-				res.status(500).end();
+				res.status(500).send(null);
 			}
 		}
 	};

@@ -102,24 +102,28 @@ export class mailStore {
         }
         await fs.promises.mkdir(targetDir, { recursive: true });
         await Promise.all(files.map(async (file) => {
-            if (!file?.path) {
+            const name = (file.originalname ?? file.filepath) ? path.basename(file.filepath ?? file.originalname ?? '') : '';
+            if (!name) {
                 return;
             }
-            const basename = path.basename(file.path);
-            const destination = path.join(targetDir, basename);
-            if (destination === file.path) {
-                return;
+            const destination = path.join(targetDir, name);
+            if (file.buffer) {
+                await fs.promises.writeFile(destination, file.buffer);
+                file.filepath = destination;
+                file.buffer = undefined;
             }
-            try {
-                await fs.promises.rename(file.path, destination);
-            }
-            catch {
-                await fs.promises.copyFile(file.path, destination);
-                await fs.promises.unlink(file.path);
-            }
-            file.path = destination;
-            if (file.destination !== undefined) {
-                file.destination = targetDir;
+            else if (file.filepath) {
+                if (destination === file.filepath) {
+                    return;
+                }
+                try {
+                    await fs.promises.rename(file.filepath, destination);
+                }
+                catch {
+                    await fs.promises.copyFile(file.filepath, destination);
+                    await fs.promises.unlink(file.filepath);
+                }
+                file.filepath = destination;
             }
         }));
     }

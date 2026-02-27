@@ -2,7 +2,6 @@ import { api_domain } from '../models/domain.js';
 import { api_user } from '../models/user.js';
 
 import type { RequestMeta } from '../types.js';
-import type { Response } from 'express';
 
 /**
  * Normalize a string into a safe identifier for slugs, filenames, etc.
@@ -150,28 +149,4 @@ export function normalizeBoolean(value: unknown): boolean {
 		.trim()
 		.toLowerCase();
 	return ['true', '1', 'yes', 'on'].includes(normalized);
-}
-
-export function sendFileAsync(
-	res: Pick<Response, 'sendFile'>,
-	file: string,
-	options?: Parameters<Response['sendFile']>[1]
-): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const cb: NonNullable<Parameters<Response['sendFile']>[2]> = (err?: unknown) => {
-			if (err) {
-				reject(err instanceof Error ? err : new Error(String(err)));
-			} else {
-				resolve();
-			}
-		};
-
-		if (options !== undefined) {
-			// Express will set Cache-Control based on `maxAge` etc; callers can still override.
-			res.sendFile(file, options, cb);
-			return;
-		}
-
-		res.sendFile(file, cb);
-	});
 }

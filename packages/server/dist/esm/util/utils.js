@@ -131,21 +131,3 @@ export function normalizeBoolean(value) {
         .toLowerCase();
     return ['true', '1', 'yes', 'on'].includes(normalized);
 }
-export function sendFileAsync(res, file, options) {
-    return new Promise((resolve, reject) => {
-        const cb = (err) => {
-            if (err) {
-                reject(err instanceof Error ? err : new Error(String(err)));
-            }
-            else {
-                resolve();
-            }
-        };
-        if (options !== undefined) {
-            // Express will set Cache-Control based on `maxAge` etc; callers can still override.
-            res.sendFile(file, options, cb);
-            return;
-        }
-        res.sendFile(file, cb);
-    });
-}

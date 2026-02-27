@@ -1,7 +1,6 @@
 import { api_domain } from '../models/domain.js';
 import { api_user } from '../models/user.js';
 import type { RequestMeta } from '../types.js';
-import type { Response } from 'express';
 /**
  * Normalize a string into a safe identifier for slugs, filenames, etc.
  *
@@ -24,4 +23,3 @@ export declare function buildRequestMeta(rawReq: unknown): RequestMeta;
 export declare function decodeComponent(value: string | string[] | undefined): string;
 export declare function getBodyValue(body: Record<string, unknown>, ...keys: string[]): string;
 export declare function normalizeBoolean(value: unknown): boolean;
-export declare function sendFileAsync(res: Pick<Response, 'sendFile'>, file: string, options?: Parameters<Response['sendFile']>[1]): Promise<void>;

@@ -7,7 +7,7 @@ import { getBodyValue } from '../util/utils.js';
 import type { mailApiRequest } from '../types.js';
 
 export async function assert_domain_and_user(apireq: mailApiRequest): Promise<void> {
-	const body = apireq.req.body ?? {};
+	const body = (apireq.req.body ?? {}) as Record<string, unknown>;
 	const domainRaw = getBodyValue(body, 'domain');
 	const locale = getBodyValue(body, 'locale');
 

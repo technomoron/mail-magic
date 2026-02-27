@@ -41,7 +41,12 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 	private async post_template(apireq: mailApiRequest): Promise<[number, { Status: string }]> {
 		await assert_domain_and_user(apireq);
 
-		const { template, sender = '', name, subject = '', locale = '' } = apireq.req.body;
+		const body = apireq.req.body as Record<string, unknown>;
+		const template = String(body.template ?? '');
+		const sender = String(body.sender ?? '');
+		const name = String(body.name ?? '');
+		const subject = String(body.subject ?? '');
+		const locale = String(body.locale ?? '');
 
 		if (!template) {
 			throw new ApiError({ code: 400, message: 'Missing template data' });
@@ -77,7 +82,14 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 	// Send a template using posted arguments.
 
 	private async post_send(apireq: mailApiRequest): Promise<[number, Record<string, unknown>]> {
-		const { name, rcpt, locale = '', vars = {}, replyTo, reply_to, headers } = apireq.req.body;
+		const body = apireq.req.body as Record<string, unknown>;
+		const name = String(body.name ?? '');
+		const rcpt = String(body.rcpt ?? '');
+		const locale = String(body.locale ?? '');
+		const vars = body.vars ?? {};
+		const replyTo = body.replyTo as string | undefined;
+		const reply_to = body.reply_to as string | undefined;
+		const headers = body.headers;
 
 		await assert_domain_and_user(apireq);
 
@@ -124,7 +136,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			throw new ApiError({ code: 500, message: `Unable to locate sender for ${template.name}` });
 		}
 
-		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
+		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as unknown as UploadedFile[]) : [];
 		await this.server.storage.relocateUploads(apireq.domain?.name ?? null, rawFiles);
 		const templateAssets = Array.isArray(template.files) ? template.files : [];
 		const attachments = [
@@ -135,7 +147,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			})),
 			...rawFiles.map((file) => ({
 				filename: file.originalname,
-				path: file.path
+				...(file.buffer ? { content: file.buffer } : { path: file.filepath })
 			}))
 		];
 
@@ -187,7 +199,7 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 				const sendargs = {
 					from: sender,
 					to: recipient,
-					subject: template.subject || apireq.req.body.subject || '',
+					subject: template.subject || (body.subject as string | undefined) || '',
 					html,
 					text,
 					attachments,
@@ -211,13 +223,30 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 				method: 'post',
 				path: '/v1/tx/message',
 				handler: this.post_send.bind(this),
+				// No schema: this route accepts multipart/form-data; Fastify validates request.body
+				// before the multipart parsing hook populates it, so schema required-fields would
+				// reject valid multipart requests. Validation is handled in the route handler.
 				auth: { type: 'yes', req: 'any' }
 			},
 			{
 				method: 'post',
 				path: '/v1/tx/template',
 				handler: this.post_template.bind(this),
-				auth: { type: 'yes', req: 'any' }
+				auth: { type: 'yes', req: 'any' },
+				schema: {
+					body: {
+						type: 'object',
+						required: ['name', 'template'],
+						properties: {
+							name: { type: 'string' },
+							template: { type: 'string' },
+							sender: { type: 'string' },
+							subject: { type: 'string' },
+							locale: { type: 'string' }
+						},
+						additionalProperties: true
+					}
+				}
 			}
 		];
 	}

@@ -100,7 +100,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 	): Promise<[number, { Status: string; created: boolean; form_key: string }]> {
 		await assert_domain_and_user(apireq);
 
-		const payload = parseFormTemplatePayload(apireq.req.body ?? {});
+		const payload = parseFormTemplatePayload((apireq.req.body ?? {}) as Record<string, unknown>);
 		validateFormTemplatePayload(payload);
 
 		const user = apireq.user!;
@@ -162,7 +162,7 @@ export class FormAPI extends ApiModule<mailApiServer> {
 
 	private async postSendForm(apireq: ApiRequest): Promise<[number, Record<string, unknown>]> {
 		const env = this.server.storage.vars;
-		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as UploadedFile[]) : [];
+		const rawFiles = Array.isArray(apireq.req.files) ? (apireq.req.files as unknown as UploadedFile[]) : [];
 		const keepUploads = env.FORM_KEEP_UPLOADS;
 		try {
 			const parsedInput = parsePublicSubmissionOrThrow(apireq);
@@ -259,13 +259,45 @@ export class FormAPI extends ApiModule<mailApiServer> {
 				method: 'post',
 				path: '/v1/form/recipient',
 				handler: (req) => this.postFormRecipient(req as mailApiRequest),
-				auth: { type: 'yes', req: 'any' }
+				auth: { type: 'yes', req: 'any' },
+				schema: {
+					body: {
+						type: 'object',
+						required: ['email', 'idname'],
+						properties: {
+							email: { type: 'string' },
+							idname: { type: 'string' },
+							name: { type: 'string' },
+							form_key: { type: 'string' },
+							formid: { type: 'string' },
+							locale: { type: 'string' },
+							domain: { type: 'string' }
+						},
+						additionalProperties: true
+					}
+				}
 			},
 			{
 				method: 'post',
 				path: '/v1/form/template',
 				handler: (req) => this.postFormTemplate(req as mailApiRequest),
-				auth: { type: 'yes', req: 'any' }
+				auth: { type: 'yes', req: 'any' },
+				schema: {
+					body: {
+						type: 'object',
+						required: ['idname', 'template', 'sender', 'recipient'],
+						properties: {
+							idname: { type: 'string' },
+							template: { type: 'string' },
+							sender: { type: 'string' },
+							recipient: { type: 'string' },
+							subject: { type: 'string' },
+							locale: { type: 'string' },
+							domain: { type: 'string' }
+						},
+						additionalProperties: true
+					}
+				}
 			},
 			{
 				method: 'post',

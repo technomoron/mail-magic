@@ -1,6 +1,26 @@
 CHANGES
 =======
 
+Unreleased (2026-02-27)
+
+- chore(release): prepare release metadata for server package.
+- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+
+Version 1.0.42 (2026-02-27)
+
+- chore(deps): upgrade `@technomoron/api-server-base` from `2.0.0-beta.20` to `2.0.0-beta.24` (Express → Fastify migration).
+- feat(auth): enable API key authentication (`apiKeyEnabled: true`, `apiKeyPrefix: 'apikey-'`) in server config to restore API key auth broken by the beta.24 default change.
+- feat(ratelimit): replace local `FixedWindowRateLimiter` implementation with the one exported by `@technomoron/api-server-base`; re-export for consumers.
+- feat(validation): add Fastify JSON Schema validation (`schema`) to `/v1/tx/template`, `/v1/form/template`, and `/v1/form/recipient` routes; omit schema from multipart-capable routes where body is populated after Fastify's validation phase.
+- fix(assets): use a MIME type map to set correct `Content-Type` headers (e.g. `image/png`) instead of passing raw file extensions to `fastifyReply.type()`, which Fastify 5 does not convert automatically.
+- fix(assets): read asset files into a `Buffer` for `res.send()` since Fastify 5 stream piping through `fastify.routing()` does not flush to supertest-style clients.
+- fix(ratelimit): restore `Retry-After` response header on 429 rate-limit rejections by setting it on the underlying Fastify reply before throwing `ApiError`.
+- fix(uploads): update `UploadedFile` type to match `ApiUploadedFile` from beta.24 (`filepath?`/`buffer?` instead of `path`); update `store.ts`, `uploads.ts`, `mailer.ts`, `forms.ts` to handle both in-memory buffers and on-disk files.
+- fix(swagger): replace Express-typed handler signature with `ExtendedReq`/`ApiRequest['res']` from `@technomoron/api-server-base`.
+- fix(routes): change wildcard route from `/:domain/*path` to `/:domain/*` (find-my-way/Fastify does not support named wildcards).
+- docs(swagger): bump packaged OpenAPI spec version to 1.0.42.
+- (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
+
 Version 1.0.41 (2026-02-22)
 
 - chore(release): add package-level `release:check` script and wire `release` to shared publish script.

@@ -8,12 +8,12 @@ import { SEGMENT_PATTERN } from './paths.js';
 import type { UploadedFile } from '../types.js';
 
 export function buildAttachments(rawFiles: UploadedFile[]): {
-	attachments: Array<{ filename: string; path: string }>;
+	attachments: Array<{ filename: string; path?: string; content?: Buffer }>;
 	attachmentMap: Record<string, string>;
 } {
 	const attachments = rawFiles.map((file) => ({
 		filename: file.originalname,
-		path: file.path
+		...(file.buffer ? { content: file.buffer } : { path: file.filepath })
 	}));
 	const attachmentMap: Record<string, string> = {};
 	for (const file of rawFiles) {
@@ -25,11 +25,11 @@ export function buildAttachments(rawFiles: UploadedFile[]): {
 export async function cleanupUploadedFiles(files: UploadedFile[]): Promise<void> {
 	await Promise.all(
 		files.map(async (file) => {
-			if (!file?.path) {
+			if (!file?.filepath) {
 				return;
 			}
 			try {
-				await fs.promises.unlink(file.path);
+				await fs.promises.unlink(file.filepath);
 			} catch {
 				// best effort cleanup
 			}
@@ -45,14 +45,18 @@ export async function moveUploadedFiles(files: UploadedFile[], targetDir: string
 			throw new ApiError({ code: 400, message: `Invalid filename "${file.originalname}"` });
 		}
 		const destination = path.join(targetDir, filename);
-		if (destination === file.path) {
-			continue;
-		}
-		try {
-			await fs.promises.rename(file.path, destination);
-		} catch {
-			await fs.promises.copyFile(file.path, destination);
-			await fs.promises.unlink(file.path);
+		if (file.buffer) {
+			await fs.promises.writeFile(destination, file.buffer);
+		} else if (file.filepath) {
+			if (destination === file.filepath) {
+				continue;
+			}
+			try {
+				await fs.promises.rename(file.filepath, destination);
+			} catch {
+				await fs.promises.copyFile(file.filepath, destination);
+				await fs.promises.unlink(file.filepath);
+			}
 		}
 	}
 }

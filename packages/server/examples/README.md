@@ -1,7 +1,7 @@
 # Mail Magic Examples
 
-The canonical example setup for Mail Magic. Shipped inside the `@technomoron/mail-magic` package so it is
-accessible without a private repo clone:
+The canonical example setup for Mail Magic. Shipped inside the `@technomoron/mail-magic` package so it is accessible
+without a private repo clone:
 
 ```bash
 ls node_modules/@technomoron/mail-magic/examples/

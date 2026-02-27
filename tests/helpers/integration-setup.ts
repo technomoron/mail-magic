@@ -184,6 +184,13 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 
 	const bootstrap = await createMailMagicServer({ apiBasePath: '' }, envOverrides);
 	const listener: Server = bootstrap.server.app.listen(port, '127.0.0.1');
+	// app.listen() in the Fastify-based server schedules the actual bind asynchronously
+	// via readyPromise; wait for the 'listening' event before accepting test connections.
+	await new Promise<void>((resolve, reject) => {
+		if (listener.listening) { resolve(); return; }
+		listener.once('listening', resolve);
+		listener.once('error', reject);
+	});
 
 	const api = request(bootstrap.server.app);
 	const baseUrl = `http://127.0.0.1:${port}`;

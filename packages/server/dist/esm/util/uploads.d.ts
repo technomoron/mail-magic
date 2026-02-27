@@ -2,7 +2,8 @@ import type { UploadedFile } from '../types.js';
 export declare function buildAttachments(rawFiles: UploadedFile[]): {
     attachments: Array<{
         filename: string;
-        path: string;
+        path?: string;
+        content?: Buffer;
     }>;
     attachmentMap: Record<string, string>;
 };

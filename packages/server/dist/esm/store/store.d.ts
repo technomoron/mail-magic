@@ -4,9 +4,10 @@ import { Sequelize } from 'sequelize';
 import { envOptions } from './envloader.js';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 type UploadedFile = {
-    path: string;
-    filename?: string;
-    destination?: string;
+    fieldname?: string;
+    originalname?: string;
+    filepath?: string;
+    buffer?: Buffer;
 };
 export type MailStoreVars = envConfig<typeof envOptions>;
 type AutoReloadHandle = {

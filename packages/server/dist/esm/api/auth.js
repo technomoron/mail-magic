@@ -3,7 +3,7 @@ import { api_domain } from '../models/domain.js';
 import { api_user } from '../models/user.js';
 import { getBodyValue } from '../util/utils.js';
 export async function assert_domain_and_user(apireq) {
-    const body = apireq.req.body ?? {};
+    const body = (apireq.req.body ?? {});
     const domainRaw = getBodyValue(body, 'domain');
     const locale = getBodyValue(body, 'locale');
     const rawUid = apireq.getRealUid();

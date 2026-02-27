@@ -25,6 +25,8 @@ function buildServerConfig(store, overrides) {
         apiBasePath: normalizeRoute(env.API_BASE_PATH, '/api'),
         swaggerEnabled: env.SWAGGER_ENABLED,
         swaggerPath: env.SWAGGER_PATH,
+        apiKeyEnabled: true,
+        apiKeyPrefix: 'apikey-',
         ...overrides
     };
 }
@@ -71,10 +73,9 @@ export async function createMailMagicServer(overrides = {}, envOverrides = {}) {
         assetMounts.add(`${apiBasePrefix}${assetPrefix}`);
     }
     for (const prefix of assetMounts) {
-        // Express 5 (path-to-regexp v8) requires wildcard params to be named.
-        // Use ApiServer.useExpress() so mounts under `apiBasePath` are installed on the API router
-        // (and remain reachable before the API 404 handler).
-        server.useExpress(`${prefix}/:domain/*path`, assetHandler);
+        // Use ApiServer.useExpress() so mounts under `apiBasePath` are installed before the API
+        // 404 handler. Fastify (find-my-way) requires the wildcard to be an unnamed `*`.
+        server.useExpress(`${prefix}/:domain/*`, assetHandler);
     }
     if (store.vars.ADMIN_ENABLED) {
         await enableAdminFeatures(server, store, adminUiPath);

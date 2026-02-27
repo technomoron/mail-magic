@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { normalizeRoute } from './util/route.js';
 
 import type { mailApiServer } from './server.js';
-import type { NextFunction, Request, Response } from 'express';
+import type { ApiRequest, ExtendedReq } from '@technomoron/api-server-base';
+
+type ApiRes = ApiRequest['res'];
 
 type SwaggerInstallOptions = {
 	apiBasePath: string;
@@ -97,7 +99,7 @@ export function installMailMagicSwagger(server: mailApiServer, opts: SwaggerInst
 	const mount = normalizeRoute(resolved, `${base}/swagger`);
 
 	// Mount under the API router so it runs before the API 404 handler.
-	server.useExpress(mount, (req: Request, res: Response, next: NextFunction) => {
+	server.useExpress(mount, (req: ExtendedReq, res: ApiRes, next: (error?: unknown) => void) => {
 		if (req.method && req.method !== 'GET' && req.method !== 'HEAD') {
 			next();
 			return;

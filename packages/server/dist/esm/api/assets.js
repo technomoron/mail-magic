@@ -6,12 +6,36 @@ import { api_txmail } from '../models/txmail.js';
 import { SEGMENT_PATTERN, normalizeSubdir } from '../util/paths.js';
 import { moveUploadedFiles } from '../util/uploads.js';
 import { getBodyValue } from '../util/utils.js';
-import { decodeComponent, sendFileAsync } from '../util.js';
+import { decodeComponent } from '../util.js';
 import { assert_domain_and_user } from './auth.js';
 const DOMAIN_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
+const MIME_TYPES = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.css': 'text/css',
+    '.js': 'application/javascript',
+    '.mjs': 'application/javascript',
+    '.json': 'application/json',
+    '.txt': 'text/plain',
+    '.html': 'text/html',
+    '.htm': 'text/html',
+    '.pdf': 'application/pdf',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject'
+};
+function getMimeType(ext) {
+    return MIME_TYPES[ext.toLowerCase()] ?? 'application/octet-stream';
+}
 export class AssetAPI extends ApiModule {
     async resolveTemplateDir(apireq) {
-        const body = apireq.req.body ?? {};
+        const body = (apireq.req.body ?? {});
         const templateTypeRaw = getBodyValue(body, 'templateType', 'template_type', 'type');
         const templateName = getBodyValue(body, 'template', 'name', 'idname', 'formid');
         const locale = getBodyValue(body, 'locale');
@@ -65,7 +89,7 @@ export class AssetAPI extends ApiModule {
         if (!rawFiles.length) {
             throw new ApiError({ code: 400, message: 'No files uploaded' });
         }
-        const body = apireq.req.body ?? {};
+        const body = (apireq.req.body ?? {});
         const subdir = normalizeSubdir(getBodyValue(body, 'path', 'dir'));
         const templateType = getBodyValue(body, 'templateType', 'template_type', 'type');
         let targetRoot;
@@ -101,15 +125,15 @@ export function createAssetHandler(server) {
                 next();
                 return;
             }
-            res.status(405).end();
+            res.status(405).send(null);
             return;
         }
-        const domain = decodeComponent(req?.params?.domain);
+        const domain = decodeComponent(req?.params?.['domain']);
         if (!domain || !DOMAIN_PATTERN.test(domain)) {
-            res.status(404).end();
+            res.status(404).send(null);
             return;
         }
-        const rawPathParam = req?.params?.path ?? req?.params?.[0];
+        const rawPathParam = req.params?.['path'] ?? req.params?.['*'];
         const rawSegments = Array.isArray(rawPathParam)
             ? rawPathParam
             : typeof rawPathParam === 'string'
@@ -117,12 +141,12 @@ export function createAssetHandler(server) {
                 : [];
         const segments = rawSegments.map((segment) => decodeComponent(typeof segment === 'string' ? segment : ''));
         if (!segments.length || segments.some((segment) => !SEGMENT_PATTERN.test(segment))) {
-            res.status(404).end();
+            res.status(404).send(null);
             return;
         }
         const assetsRoot = path.join(server.storage.configpath, domain, 'assets');
         if (!fs.existsSync(assetsRoot)) {
-            res.status(404).end();
+            res.status(404).send(null);
             return;
         }
         const resolvedRoot = fs.realpathSync(assetsRoot);
@@ -131,12 +155,12 @@ export function createAssetHandler(server) {
         try {
             const stats = await fs.promises.stat(candidate);
             if (!stats.isFile()) {
-                res.status(404).end();
+                res.status(404).send(null);
                 return;
             }
         }
         catch {
-            res.status(404).end();
+            res.status(404).send(null);
             return;
         }
         let realCandidate;
@@ -144,23 +168,29 @@ export function createAssetHandler(server) {
             realCandidate = await fs.promises.realpath(candidate);
         }
         catch {
-            res.status(404).end();
+            res.status(404).send(null);
             return;
         }
         if (!realCandidate.startsWith(normalizedRoot)) {
-            res.status(404).end();
+            res.status(404).send(null);
             return;
         }
-        res.type(path.extname(realCandidate));
+        const ext = path.extname(realCandidate);
+        // Access the underlying Fastify reply to set content-type and cache-control headers.
+        // ApiResponse does not expose arbitrary header-setting methods.
+        const fastifyReply = res.reply;
+        if (fastifyReply) {
+            fastifyReply.type(getMimeType(ext));
+            fastifyReply.header('cache-control', 'public, max-age=300');
+        }
         try {
-            // Express' `sendFile()` sets Cache-Control based on `maxAge` (in ms). Setting the header
-            // before calling `sendFile()` can be overwritten by Express defaults.
-            await sendFileAsync(res, realCandidate, { maxAge: 300_000 });
+            const content = await fs.promises.readFile(realCandidate);
+            res.send(content);
         }
         catch (err) {
             server.storage.print_debug(`Failed to serve asset ${domain}/${segments.join('/')}: ${err instanceof Error ? err.message : String(err)}`);
             if (!res.headersSent) {
-                res.status(500).end();
+                res.status(500).send(null);
             }
         }
     };

@@ -31,7 +31,12 @@ export class MailerAPI extends ApiModule {
     // Store a template in the database
     async post_template(apireq) {
         await assert_domain_and_user(apireq);
-        const { template, sender = '', name, subject = '', locale = '' } = apireq.req.body;
+        const body = apireq.req.body;
+        const template = String(body.template ?? '');
+        const sender = String(body.sender ?? '');
+        const name = String(body.name ?? '');
+        const subject = String(body.subject ?? '');
+        const locale = String(body.locale ?? '');
         if (!template) {
             throw new ApiError({ code: 400, message: 'Missing template data' });
         }
@@ -63,7 +68,14 @@ export class MailerAPI extends ApiModule {
     }
     // Send a template using posted arguments.
     async post_send(apireq) {
-        const { name, rcpt, locale = '', vars = {}, replyTo, reply_to, headers } = apireq.req.body;
+        const body = apireq.req.body;
+        const name = String(body.name ?? '');
+        const rcpt = String(body.rcpt ?? '');
+        const locale = String(body.locale ?? '');
+        const vars = body.vars ?? {};
+        const replyTo = body.replyTo;
+        const reply_to = body.reply_to;
+        const headers = body.headers;
         await assert_domain_and_user(apireq);
         if (!name || !rcpt) {
             throw new ApiError({ code: 400, message: 'name/rcpt required' });
@@ -116,7 +128,7 @@ export class MailerAPI extends ApiModule {
             })),
             ...rawFiles.map((file) => ({
                 filename: file.originalname,
-                path: file.path
+                ...(file.buffer ? { content: file.buffer } : { path: file.filepath })
             }))
         ];
         const attachmentMap = {};
@@ -162,7 +174,7 @@ export class MailerAPI extends ApiModule {
                 const sendargs = {
                     from: sender,
                     to: recipient,
-                    subject: template.subject || apireq.req.body.subject || '',
+                    subject: template.subject || body.subject || '',
                     html,
                     text,
                     attachments,
@@ -186,13 +198,30 @@ export class MailerAPI extends ApiModule {
                 method: 'post',
                 path: '/v1/tx/message',
                 handler: this.post_send.bind(this),
+                // No schema: this route accepts multipart/form-data; Fastify validates request.body
+                // before the multipart parsing hook populates it, so schema required-fields would
+                // reject valid multipart requests. Validation is handled in the route handler.
                 auth: { type: 'yes', req: 'any' }
             },
             {
                 method: 'post',
                 path: '/v1/tx/template',
                 handler: this.post_template.bind(this),
-                auth: { type: 'yes', req: 'any' }
+                auth: { type: 'yes', req: 'any' },
+                schema: {
+                    body: {
+                        type: 'object',
+                        required: ['name', 'template'],
+                        properties: {
+                            name: { type: 'string' },
+                            template: { type: 'string' },
+                            sender: { type: 'string' },
+                            subject: { type: 'string' },
+                            locale: { type: 'string' }
+                        },
+                        additionalProperties: true
+                    }
+                }
             }
         ];
     }
