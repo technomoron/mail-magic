@@ -231,11 +231,8 @@ program
 	.option('--skip-assets', 'Skip asset uploads')
 	.option('--skip-tx', 'Skip transactional templates')
 	.option('--skip-forms', 'Skip form templates')
-	.option('--write-back-lock', 'Use write-back lock/state file (default)')
-	.option('--no-write-back-lock', 'Disable write-back lock/state file')
 	.option('--patch-source-ids', 'Patch resolved IDs/keys (form_key) back into init-data.json')
 	.option('--backup', 'Create a backup before patching init-data.json')
-	.option('--lock-wait-ms <ms>', 'How long to wait for an active write-back lock before failing', '120000')
 	.option('-d, --domain <domain>', 'Domain to upload (overrides global)')
 	.action(async (cmdOptions) => {
 		try {
@@ -245,15 +242,13 @@ program
 				input: cmdOptions.input,
 				domain: cmdOptions.domain || program.opts().domain,
 				css: cmdOptions.css,
-					includeAssets: !cmdOptions.skipAssets,
-					includeTx: !cmdOptions.skipTx,
-					includeForms: !cmdOptions.skipForms,
-					dryRun: !!cmdOptions.dryRun,
-					writeBackLock: cmdOptions.writeBackLock,
-					patchSourceIds: !!cmdOptions.patchSourceIds,
-					backup: !!cmdOptions.backup,
-					lockWaitMs: Number(cmdOptions.lockWaitMs)
-				});
+				includeAssets: !cmdOptions.skipAssets,
+				includeTx: !cmdOptions.skipTx,
+				includeForms: !cmdOptions.skipForms,
+				dryRun: !!cmdOptions.dryRun,
+				patchSourceIds: !!cmdOptions.patchSourceIds,
+				backup: !!cmdOptions.backup
+			});
 			if (cmdOptions.dryRun) {
 				console.log('Dry run - planned uploads:');
 				for (const action of summary.actions) {
