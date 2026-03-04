@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-Unreleased (2026-03-04)
+Version 1.0.2 (2026-03-04)
 
 - fix(preprocess): correctly preserve child block overrides across multi-level `{% extends %}` chains during template merge.
 - test(preprocess): add regression coverage for three-level template inheritance to prevent override loss.
