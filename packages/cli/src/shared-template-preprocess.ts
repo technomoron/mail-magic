@@ -118,42 +118,50 @@ class PreprocessExtension {
 		return new nodes.CallExtension(this, 'run', args);
 	}
 
+	private mergeExtendsChain(src: string): string {
+		let current = src;
+		const extendsExp = /\{%\s*extends\s+['"]([^'"]+)['"]\s*%\}/;
+		const blockexp = /\{%\s*block\s+([a-zA-Z0-9_]+)\s*%\}([\s\S]*?)\{%\s*endblock\s*%\}/g;
+		const seenLayouts = new Set<string>();
+
+		while (true) {
+			const extmatch = current.match(extendsExp);
+			if (!extmatch) {
+				break;
+			}
+
+			const layoutName = extmatch[1];
+			if (seenLayouts.has(layoutName)) {
+				throw new Error(`Circular extends detected for ${layoutName}`);
+			}
+			seenLayouts.add(layoutName);
+
+			const layoutTemplate = this.cfg.env!.getTemplate(layoutName);
+			const layoutSrc = layoutTemplate.tmplStr;
+
+			const blocks: Record<string, string> = {};
+			let match: RegExpExecArray | null;
+			blockexp.lastIndex = 0;
+			while ((match = blockexp.exec(current)) !== null) {
+				const bname = match[1];
+				const bcontent = match[2];
+				blocks[bname] = bcontent.trim();
+			}
+
+			let merged = layoutSrc;
+			for (const [bname, bcontent] of Object.entries(blocks)) {
+				const lbexpt = new RegExp(`\\{%\\s*block\\s+${bname}\\s*%\\}[\\s\\S]*?\\{%\\s*endblock\\s*%\\}`, 'g');
+				merged = merged.replace(lbexpt, bcontent);
+			}
+			current = merged;
+		}
+
+		return current.replace(/\{%\s*block\s+([a-zA-Z0-9_]+)\s*%\}\s*\{%\s*endblock\s*%\}/g, '');
+	}
+
 	run(_context: unknown, tplname: string): string {
 		const template = this.cfg.env!.getTemplate(tplname);
-		const src = template.tmplStr;
-
-		const extmatch = src.match(/\{%\s*extends\s+['"]([^'"]+)['"]\s*%\}/);
-		if (!extmatch) return src;
-
-		const layoutName = extmatch[1];
-		const layoutTemplate = this.cfg.env!.getTemplate(layoutName);
-		const layoutSrc = layoutTemplate.tmplStr;
-
-		const blocks: Record<string, string> = {};
-		const blockexp = /\{%\s*block\s+([a-zA-Z0-9_]+)\s*%\}([\s\S]*?)\{%\s*endblock\s*%\}/g;
-
-		let match: RegExpExecArray | null;
-		while ((match = blockexp.exec(src)) !== null) {
-			const bname = match[1];
-			const bcontent = match[2];
-			blocks[bname] = bcontent.trim();
-		}
-
-		let merged = layoutSrc;
-		for (const [bname, bcontent] of Object.entries(blocks)) {
-			const lbexpt = new RegExp(`\\{%\\s*block\\s+${bname}\\s*%\\}[\\s\\S]*?\\{%\\s*endblock\\s*%\\}`, 'g');
-			merged = merged.replace(lbexpt, bcontent);
-		}
-
-		merged = merged.replace(/\{%\s*extends\s+['"][^'"]+['"]\s*%\}/, '');
-
-		if (merged.match(/\{%\s*extends\s+['"]([^'"]+)['"]\s*%\}/)) {
-			return this.run(_context, layoutName);
-		}
-
-		merged = merged.replace(/\{%\s*block\s+([a-zA-Z0-9_]+)\s*%\}\s*\{%\s*endblock\s*%\}/g, '');
-
-		return merged;
+		return this.mergeExtendsChain(template.tmplStr);
 	}
 }
 

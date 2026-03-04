@@ -17,6 +17,14 @@
 - **Sequential recipient resolution queries** — Decision: agree. Batch / parallelize recipient DB lookups in
   `postSendForm` while preserving scoped-over-domain precedence semantics.
 
+- **Resumable form uploads for large files** — Decision: agree. Add optional tus endpoint (`/api/v1/upload`) for
+  chunked/resumable uploads, then keep `POST /api/v1/form/message` as the single business hook by accepting completed
+  upload references (while preserving direct `_mm_file*` multipart as fallback for non-resumable clients).
+  Add two delivery controls:
+  1. support generating direct download links for uploaded files (especially large files), and
+  2. add config to cap total/individual attachment size forwarded via email; when exceeded, omit attachment(s) and
+     include secure direct download link(s) in the message/context.
+
 ---
 
 ## Pending Phases
