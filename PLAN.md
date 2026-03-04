@@ -4,26 +4,29 @@
 
 ### Security / Design
 
-- **SSTI via Nunjucks vars** — Decision: partially-disagree. Keep `AUTOESCAPE_HTML=true` as default; document
-  trust boundary for template authors and `|safe` usage. Treat authenticated template authors as potentially
-  untrusted (foreign developers / customers); field sanitization alone is insufficient, template trust controls
-  are the key concern.
+- **SSTI via Nunjucks vars** — Decision: partially-disagree. Keep `AUTOESCAPE_HTML=true` as default; document trust
+  boundary for template authors and `|safe` usage. Treat authenticated template authors as potentially untrusted
+  (foreign developers / customers); field sanitization alone is insufficient, template trust controls are the key
+  concern.
 
 ### Design / Architecture
 
-- **In-memory rate limiter (single-instance only)** — Decision: agree (informational). Document single-instance
-  limitation in ops docs; optionally add a Redis-backed limiter path for multi-instance deployments.
-
-- **Sequential recipient resolution queries** — Decision: agree. Batch / parallelize recipient DB lookups in
-  `postSendForm` while preserving scoped-over-domain precedence semantics.
+- **Rate limiter storage model (single-instance only today)** — Decision: agree (informational). The limiter
+  implementation now comes from `@technomoron/api-server-base`; keep mail-magic as a consumer. Document current
+  single-instance behavior in ops docs and, if needed, add distributed/Redis-backed limiter support upstream.
 
 - **Resumable form uploads for large files** — Decision: agree. Add optional tus endpoint (`/api/v1/upload`) for
   chunked/resumable uploads, then keep `POST /api/v1/form/message` as the single business hook by accepting completed
-  upload references (while preserving direct `_mm_file*` multipart as fallback for non-resumable clients).
-  Add two delivery controls:
-  1. support generating direct download links for uploaded files (especially large files), and
-  2. add config to cap total/individual attachment size forwarded via email; when exceeded, omit attachment(s) and
-     include secure direct download link(s) in the message/context.
+  upload references (while preserving direct `_mm_file*` multipart as fallback for non-resumable clients). Add two
+  delivery controls:
+    1. support generating direct download links for uploaded files (especially large files), and
+    2. add config to cap total/individual attachment size forwarded via email; when exceeded, omit attachment(s) and
+       include secure direct download link(s) in the message/context.
+
+### Completed Recently
+
+- **Recipient resolution query batching** — Completed in `ff4a6a0` (`perf(server): batch form recipient resolution`);
+  preserves requested order and scoped-over-domain precedence.
 
 ---
 
