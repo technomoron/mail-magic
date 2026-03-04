@@ -67,12 +67,12 @@ async function _load_template(store, filename, pathname, user, domain, locale, t
 }
 export async function loadFormTemplate(store, form) {
     const { user, domain } = await user_and_domain(form.domain_id);
-    const locale = form.locale || domain.locale || user.locale || null;
+    const locale = form.locale || domain.locale || null;
     return _load_template(store, form.filename, '', user, domain, locale, 'form-template');
 }
 export async function loadTxTemplate(store, template) {
     const { user, domain } = await user_and_domain(template.domain_id);
-    const locale = template.locale || domain.locale || user.locale || null;
+    const locale = template.locale || domain.locale || null;
     return _load_template(store, template.filename, '', user, domain, locale, 'tx-template');
 }
 export async function importData(store) {

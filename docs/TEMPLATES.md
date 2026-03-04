@@ -94,13 +94,18 @@ When you send a transactional message (`/v1/tx/message`), you can pass `locale`.
 Lookup order is:
 
 1. Match `name + domain + locale` (the request locale)
-2. Match `name + domain + deflocale` (server default locale when set; typically empty otherwise)
-3. Match `name + domain` (any locale)
+2. Match `name + domain + deflocale` (domain default locale)
+3. Match `name + domain + empty locale` (fallback to the locale-less record)
+
+The default locale (`deflocale`) is resolved from the domain's `locale` field. When no `locale` is provided in the
+request, the resolved locale already incorporates the domain default.
 
 Practical implications:
 
-- If you only have one locale version, you can omit `locale`.
-- If you have multiple locale versions, always pass `locale` to avoid “any locale” fallback selecting the wrong one.
+- If you only have one locale version, store it with an empty locale and it acts as the universal fallback.
+- If you have multiple locale versions, always pass `locale` to avoid the default/empty-locale fallback selecting the
+  wrong one.
+- Setting `locale` on the domain record establishes a default for all API calls that omit `locale`.
 
 Example:
 
@@ -288,7 +293,7 @@ The `/v1/tx/message` endpoint renders the stored template with a context contain
 - `_rcpt_email_`: current recipient email
 - `_attachments_`: map of uploaded field name to original file name (for runtime uploads)
 - `_vars_`: the original `vars` object
-- `_meta_`: request metadata (client IP, user agent, etc)
+- `_meta_`: request metadata (`client_ip`, `received_at`, `ip_chain`)
 
 Example snippet:
 
@@ -303,9 +308,14 @@ Form templates are rendered with:
 
 - `_fields_`: all non-system submitted fields (optionally filtered by `allowed_fields`)
 - `_mm_form_key`, `_mm_locale`, `_mm_recipients`: system fields from the public submission
+- `_rcpt_email_`: primary recipient email address
+- `_rcpt_name_`: primary recipient display name
+- `_rcpt_idname_`: primary recipient idname
+- `_rcpt_idnames_`: array of all resolved recipient idnames
 - `_attachments_`: map of uploaded field name to original file name
 - `_files_`: uploaded file objects
-- `_meta_`: request metadata
+- `_vars_`: always `{}` (reserved for future use)
+- `_meta_`: request metadata (`client_ip`, `received_at`, `ip_chain`)
 
 Example snippet:
 

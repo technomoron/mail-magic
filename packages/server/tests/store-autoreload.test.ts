@@ -1,10 +1,18 @@
 import fs from 'fs';
 
-import { describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { enableInitDataAutoReload } from '../src/store/store.js';
 
 describe('enableInitDataAutoReload', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	test('uses fs.watch when available', () => {
 		const closeSpy = vi.fn();
 		const watchSpy = vi.spyOn(fs, 'watch').mockImplementation(((
@@ -31,6 +39,10 @@ describe('enableInitDataAutoReload', () => {
 		expect(handle).toBeTruthy();
 		expect(watchSpy).toHaveBeenCalledTimes(1);
 		expect(watchFileSpy).not.toHaveBeenCalled();
+
+		// reload is debounced
+		expect(reloadSpy).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(300);
 		expect(reloadSpy).toHaveBeenCalledTimes(1);
 
 		handle?.close();
@@ -68,6 +80,10 @@ describe('enableInitDataAutoReload', () => {
 		expect(handle).toBeTruthy();
 		expect(watchSpy).toHaveBeenCalledTimes(1);
 		expect(watchFileSpy).toHaveBeenCalledTimes(1);
+
+		// reload is debounced
+		expect(reloadSpy).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(300);
 		expect(reloadSpy).toHaveBeenCalledTimes(1);
 		expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('falling back to fs.watchFile'));
 

@@ -10,7 +10,7 @@ export const api_user_schema = z
     name: z.string().min(1).describe('Display name for the user.'),
     email: z.string().email().describe('User email address.'),
     domain: z.number().int().nonnegative().nullable().optional().describe('Default domain ID for the user.'),
-    locale: z.string().default('').describe('Default locale for the user.')
+    locale: z.string().default('').describe('Reserved. Locale resolution uses the domain locale.')
 })
     .describe('User account record and API credentials.');
 export class api_user extends Model {

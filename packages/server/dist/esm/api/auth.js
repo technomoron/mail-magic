@@ -36,5 +36,5 @@ export async function assert_domain_and_user(apireq) {
     }
     apireq.domain = dbdomain;
     apireq.user = user;
-    apireq.locale = locale || 'en';
+    apireq.locale = locale || dbdomain.locale || '';
 }

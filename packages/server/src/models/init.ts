@@ -96,14 +96,14 @@ async function _load_template(
 }
 export async function loadFormTemplate(store: mailStore, form: api_form_type): Promise<LoadedTemplate> {
 	const { user, domain } = await user_and_domain(form.domain_id);
-	const locale = form.locale || domain.locale || user.locale || null;
+	const locale = form.locale || domain.locale || null;
 
 	return _load_template(store, form.filename, '', user, domain, locale, 'form-template');
 }
 
 export async function loadTxTemplate(store: mailStore, template: api_txmail_type): Promise<LoadedTemplate> {
 	const { user, domain } = await user_and_domain(template.domain_id);
-	const locale = template.locale || domain.locale || user.locale || null;
+	const locale = template.locale || domain.locale || null;
 
 	return _load_template(store, template.filename, '', user, domain, locale, 'tx-template');
 }

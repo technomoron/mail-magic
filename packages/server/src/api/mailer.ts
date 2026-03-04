@@ -113,11 +113,19 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 		}
 		let template: api_txmail | null = null;
 		const domain_id = apireq.domain!.domain_id;
+		const deflocale = apireq.domain!.locale || '';
 
 		try {
-			template =
-				(await api_txmail.findOne({ where: { name, domain_id, locale } })) ||
-				(await api_txmail.findOne({ where: { name, domain_id, locale: '' } }));
+			// 1. Exact locale match
+			template = await api_txmail.findOne({ where: { name, domain_id, locale } });
+			// 2. Domain/user default locale (if different from request locale)
+			if (!template && deflocale && deflocale !== locale) {
+				template = await api_txmail.findOne({ where: { name, domain_id, locale: deflocale } });
+			}
+			// 3. Empty-locale fallback (if not already tried above)
+			if (!template && locale !== '') {
+				template = await api_txmail.findOne({ where: { name, domain_id, locale: '' } });
+			}
 		} catch (error: unknown) {
 			throw new ApiError({
 				code: 500,
@@ -167,6 +175,20 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			}
 		}
 
+		const ALLOWED_CUSTOM_HEADERS = new Set([
+			'x-mailer',
+			'x-priority',
+			'x-entity-ref-id',
+			'list-unsubscribe',
+			'list-unsubscribe-post',
+			'list-id',
+			'precedence',
+			'references',
+			'in-reply-to',
+			'message-id',
+			'importance'
+		]);
+
 		let normalizedHeaders: Record<string, string> | undefined;
 		if (headers !== undefined) {
 			if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
@@ -176,6 +198,9 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			for (const [key, value] of Object.entries(headers as Record<string, unknown>)) {
 				if (typeof value !== 'string') {
 					throw new ApiError({ code: 400, message: `headers.${key} must be a string` });
+				}
+				if (!ALLOWED_CUSTOM_HEADERS.has(key.toLowerCase())) {
+					throw new ApiError({ code: 400, message: `Header "${key}" is not allowed` });
 				}
 				normalizedHeaders[key] = value;
 			}
@@ -206,13 +231,19 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 					...(normalizedReplyTo ? { replyTo: normalizedReplyTo } : {}),
 					...(normalizedHeaders ? { headers: normalizedHeaders } : {})
 				};
-				await this.server.storage.transport!.sendMail(sendargs);
+				if (!this.server.storage.transport) {
+					throw new ApiError({ code: 503, message: 'Mail transport is not available' });
+				}
+				await this.server.storage.transport.sendMail(sendargs);
 			}
 			return [200, { Status: 'OK', Message: 'Emails sent successfully' }];
 		} catch (error: unknown) {
+			if (error instanceof ApiError) {
+				throw error;
+			}
 			throw new ApiError({
 				code: 500,
-				message: error instanceof Error ? error.message : String(error)
+				message: 'Failed to render or send email'
 			});
 		}
 	}

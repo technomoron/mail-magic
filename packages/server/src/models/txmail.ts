@@ -53,11 +53,11 @@ export class api_txmail extends Model<api_txmail_type, api_txmail_creation_type>
 }
 
 export async function upsert_txmail(record: api_txmail_type): Promise<api_txmail> {
-	const { user, domain } = await user_and_domain(record.domain_id);
+	const { domain } = await user_and_domain(record.domain_id);
 
 	const dname = normalizeSlug(domain.name);
 	const name = normalizeSlug(record.name);
-	const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
+	const locale = normalizeSlug(record.locale || domain.locale || '');
 
 	if (!record.slug) {
 		record.slug = `${dname}${locale ? '-' + locale : ''}-${name}`;
@@ -187,11 +187,11 @@ export async function init_api_txmail(api_db: Sequelize): Promise<typeof api_txm
 	);
 
 	api_txmail.addHook('beforeValidate', async (template: api_txmail) => {
-		const { user, domain } = await user_and_domain(template.domain_id);
+		const { domain } = await user_and_domain(template.domain_id);
 
 		const dname = normalizeSlug(domain.name);
 		const name = normalizeSlug(template.name);
-		const locale = normalizeSlug(template.locale || domain.locale || user.locale || '');
+		const locale = normalizeSlug(template.locale || domain.locale || '');
 
 		template.slug ||= `${dname}${locale ? '-' + locale : ''}-${name}`;
 

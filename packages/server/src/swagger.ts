@@ -81,8 +81,8 @@ function loadPackagedOpenApiSpec(): unknown | null {
 		const raw = fs.readFileSync(candidate, 'utf8');
 		cachedSpec = JSON.parse(raw) as unknown;
 		return cachedSpec;
-	} catch (err) {
-		cachedSpecError = err instanceof Error ? err.message : String(err);
+	} catch {
+		cachedSpecError = 'Failed to load OpenAPI spec';
 		return null;
 	}
 }

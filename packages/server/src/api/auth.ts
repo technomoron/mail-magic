@@ -42,5 +42,5 @@ export async function assert_domain_and_user(apireq: mailApiRequest): Promise<vo
 	}
 	apireq.domain = dbdomain;
 	apireq.user = user;
-	apireq.locale = locale || 'en';
+	apireq.locale = locale || dbdomain.locale || '';
 }

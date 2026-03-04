@@ -30,14 +30,21 @@ export function enableInitDataAutoReload(ctx, reload) {
     }
     const initDataPath = ctx.config_filename('init-data.json');
     ctx.print_debug('Enabling auto reload of init-data.json');
+    let debounceTimer = null;
     const onChange = () => {
-        ctx.print_debug('Config file changed, reloading...');
-        try {
-            reload();
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
         }
-        catch (err) {
-            ctx.print_debug(`Failed to reload config: ${err}`);
-        }
+        debounceTimer = setTimeout(() => {
+            debounceTimer = null;
+            ctx.print_debug('Config file changed, reloading...');
+            try {
+                reload();
+            }
+            catch (err) {
+                ctx.print_debug(`Failed to reload config: ${err}`);
+            }
+        }, 300);
     };
     try {
         const watcher = fs.watch(initDataPath, { persistent: false }, onChange);

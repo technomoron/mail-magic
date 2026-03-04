@@ -4,7 +4,6 @@ export declare function assertSafeRelativePath(filename: string, label: string):
 export declare function buildFormSlugAndFilename(params: {
     domainName: string;
     domainLocale: string;
-    userLocale: string;
     idname: string;
     locale: string;
 }): {

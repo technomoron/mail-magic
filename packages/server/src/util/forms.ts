@@ -373,7 +373,6 @@ export function buildFormTemplatePaths(params: {
 	return buildFormSlugAndFilename({
 		domainName: params.domain.name,
 		domainLocale: params.domain.locale,
-		userLocale: params.user.locale,
 		idname: params.idname,
 		locale: params.locale
 	});

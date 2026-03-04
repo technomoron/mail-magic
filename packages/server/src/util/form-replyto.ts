@@ -1,17 +1,8 @@
 import emailAddresses from 'email-addresses';
 
-type ReplyToValue = string | { name: string; address: string };
+import { getBodyValue } from './utils.js';
 
-function getFirstStringField(body: Record<string, unknown>, key: string): string {
-	const value = body[key];
-	if (Array.isArray(value) && value.length > 0) {
-		return String(value[0] ?? '');
-	}
-	if (value !== undefined && value !== null) {
-		return String(value);
-	}
-	return '';
-}
+type ReplyToValue = string | { name: string; address: string };
 
 function sanitizeHeaderValue(value: string, maxLen: number): string {
 	const trimmed = String(value ?? '').trim();
@@ -26,7 +17,7 @@ function sanitizeHeaderValue(value: string, maxLen: number): string {
 }
 
 export function extractReplyToFromSubmission(body: Record<string, unknown>): ReplyToValue | undefined {
-	const emailRaw = sanitizeHeaderValue(getFirstStringField(body, 'email'), 320);
+	const emailRaw = sanitizeHeaderValue(getBodyValue(body, 'email'), 320);
 	if (!emailRaw) {
 		return undefined;
 	}
@@ -42,10 +33,10 @@ export function extractReplyToFromSubmission(body: Record<string, unknown>): Rep
 	}
 
 	// Prefer a single "name" field, otherwise compose from first_name/last_name.
-	let name = sanitizeHeaderValue(getFirstStringField(body, 'name'), 200);
+	let name = sanitizeHeaderValue(getBodyValue(body, 'name'), 200);
 	if (!name) {
-		const first = sanitizeHeaderValue(getFirstStringField(body, 'first_name'), 100);
-		const last = sanitizeHeaderValue(getFirstStringField(body, 'last_name'), 100);
+		const first = sanitizeHeaderValue(getBodyValue(body, 'first_name'), 100);
+		const last = sanitizeHeaderValue(getBodyValue(body, 'last_name'), 100);
 		name = sanitizeHeaderValue(`${first}${first && last ? ' ' : ''}${last}`, 200);
 	}
 

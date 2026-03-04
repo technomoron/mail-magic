@@ -54,8 +54,8 @@ function loadPackagedOpenApiSpec() {
         cachedSpec = JSON.parse(raw);
         return cachedSpec;
     }
-    catch (err) {
-        cachedSpecError = err instanceof Error ? err.message : String(err);
+    catch {
+        cachedSpecError = 'Failed to load OpenAPI spec';
         return null;
     }
 }

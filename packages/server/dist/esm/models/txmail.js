@@ -29,10 +29,10 @@ export const api_txmail_schema = z
 export class api_txmail extends Model {
 }
 export async function upsert_txmail(record) {
-    const { user, domain } = await user_and_domain(record.domain_id);
+    const { domain } = await user_and_domain(record.domain_id);
     const dname = normalizeSlug(domain.name);
     const name = normalizeSlug(record.name);
-    const locale = normalizeSlug(record.locale || domain.locale || user.locale || '');
+    const locale = normalizeSlug(record.locale || domain.locale || '');
     if (!record.slug) {
         record.slug = `${dname}${locale ? '-' + locale : ''}-${name}`;
     }
@@ -157,10 +157,10 @@ export async function init_api_txmail(api_db) {
         ]
     });
     api_txmail.addHook('beforeValidate', async (template) => {
-        const { user, domain } = await user_and_domain(template.domain_id);
+        const { domain } = await user_and_domain(template.domain_id);
         const dname = normalizeSlug(domain.name);
         const name = normalizeSlug(template.name);
-        const locale = normalizeSlug(template.locale || domain.locale || user.locale || '');
+        const locale = normalizeSlug(template.locale || domain.locale || '');
         template.slug ||= `${dname}${locale ? '-' + locale : ''}-${name}`;
         if (!template.filename) {
             const parts = [dname, 'tx-template'];

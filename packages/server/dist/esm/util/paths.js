@@ -12,6 +12,9 @@ export function normalizeSubdir(value) {
     }
     const segments = cleaned.split('/').filter(Boolean);
     for (const segment of segments) {
+        if (segment === '..' || segment === '.') {
+            throw new ApiError({ code: 400, message: `Invalid path segment "${segment}"` });
+        }
         if (!SEGMENT_PATTERN.test(segment)) {
             throw new ApiError({ code: 400, message: `Invalid path segment "${segment}"` });
         }
@@ -31,7 +34,7 @@ export function assertSafeRelativePath(filename, label) {
 export function buildFormSlugAndFilename(params) {
     const domainSlug = normalizeSlug(params.domainName);
     const formSlug = normalizeSlug(params.idname);
-    const localeSlug = normalizeSlug(params.locale || params.domainLocale || params.userLocale || '');
+    const localeSlug = normalizeSlug(params.locale || params.domainLocale || '');
     const slug = `${domainSlug}${localeSlug ? '-' + localeSlug : ''}-${formSlug}`;
     const filenameParts = [domainSlug, 'form-template'];
     if (localeSlug) {

@@ -10,7 +10,7 @@ This repository contains:
 Package documentation:
 
 - `packages/server/README.md`
-- `packages/server/TUTORIAL.MD`
+- `packages/server/docs/tutorial.md`
 - `packages/client/README.md`
 - `packages/cli/README.md`
 

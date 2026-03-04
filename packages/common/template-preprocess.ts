@@ -148,7 +148,8 @@ class PreprocessExtension {
 
 			let merged = layoutSrc;
 			for (const [bname, bcontent] of Object.entries(blocks)) {
-				const lbexpt = new RegExp(`\\{%\\s*block\\s+${bname}\\s*%\\}[\\s\\S]*?\\{%\\s*endblock\\s*%\\}`, 'g');
+				const escaped = bname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const lbexpt = new RegExp(`\\{%\\s*block\\s+${escaped}\\s*%\\}[\\s\\S]*?\\{%\\s*endblock\\s*%\\}`, 'g');
 				merged = merged.replace(lbexpt, bcontent);
 			}
 			current = merged;

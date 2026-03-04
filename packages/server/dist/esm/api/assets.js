@@ -47,9 +47,17 @@ export class AssetAPI extends ApiModule {
         }
         const templateType = templateTypeRaw.toLowerCase();
         const domainId = apireq.domain.domain_id;
+        const deflocale = apireq.domain.locale || '';
         if (templateType === 'tx') {
-            const template = (await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale } })) ||
-                (await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale: '' } }));
+            let template = await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale } });
+            if (!template && deflocale && deflocale !== locale) {
+                template = await api_txmail.findOne({
+                    where: { name: templateName, domain_id: domainId, locale: deflocale }
+                });
+            }
+            if (!template && locale !== '') {
+                template = await api_txmail.findOne({ where: { name: templateName, domain_id: domainId, locale: '' } });
+            }
             if (!template) {
                 throw new ApiError({
                     code: 404,
@@ -65,8 +73,15 @@ export class AssetAPI extends ApiModule {
             return path.dirname(candidate);
         }
         if (templateType === 'form') {
-            const form = (await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale } })) ||
-                (await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale: '' } }));
+            let form = await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale } });
+            if (!form && deflocale && deflocale !== locale) {
+                form = await api_form.findOne({
+                    where: { idname: templateName, domain_id: domainId, locale: deflocale }
+                });
+            }
+            if (!form && locale !== '') {
+                form = await api_form.findOne({ where: { idname: templateName, domain_id: domainId, locale: '' } });
+            }
             if (!form) {
                 throw new ApiError({
                     code: 404,

@@ -264,7 +264,7 @@ Create `${CONFIG_ROOT}/init-data.json` so the service can bootstrap the MyOrg us
         <tr>
           <td style="padding:16px 24px;background:#f9fafb;color:#4b5563;font-size:12px;">
             <strong>Sender IP:</strong> {{ _meta_.client_ip | default('unknown') }} ·
-            <strong>Received at:</strong> {{ _meta_.received_at | default(now().iso8601()) }}
+            <strong>Received at:</strong> {{ _meta_.received_at | default('unknown') }}
           </td>
         </tr>
         {% endif %}

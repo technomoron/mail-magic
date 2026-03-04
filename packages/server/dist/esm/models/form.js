@@ -231,12 +231,11 @@ export async function init_api_form(api_db) {
     return api_form;
 }
 export async function upsert_form(record) {
-    const { user, domain } = await user_and_domain(record.domain_id);
+    const { domain } = await user_and_domain(record.domain_id);
     const dname = normalizeSlug(domain.name);
     const { slug, filename: generatedFilename } = buildFormSlugAndFilename({
         domainName: domain.name,
         domainLocale: domain.locale,
-        userLocale: user.locale,
         idname: record.idname,
         locale: record.locale
     });

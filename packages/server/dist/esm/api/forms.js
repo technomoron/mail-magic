@@ -89,6 +89,7 @@ export class FormAPI extends ApiModule {
             payload
         });
         let created = false;
+        let upserted = false;
         for (let attempt = 0; attempt < 10; attempt++) {
             try {
                 const [form, wasCreated] = await api_form.upsert(record, {
@@ -96,6 +97,7 @@ export class FormAPI extends ApiModule {
                     conflictFields: ['user_id', 'domain_id', 'locale', 'idname']
                 });
                 created = wasCreated ?? false;
+                upserted = true;
                 form_key = form.form_key || form_key;
                 this.server.storage.print_debug(`Form template upserted: ${form.idname} (created=${wasCreated})`);
                 break;
@@ -114,6 +116,9 @@ export class FormAPI extends ApiModule {
                     message: this.server.guessExceptionText(error, 'Unknown Sequelize Error on upsert form template')
                 });
             }
+        }
+        if (!upserted) {
+            throw new ApiError({ code: 500, message: 'Unable to generate a unique form_key after multiple attempts' });
         }
         return [200, { Status: 'OK', created, form_key }];
     }
@@ -185,6 +190,9 @@ export class FormAPI extends ApiModule {
                 ...(replyToValue ? { replyTo: replyToValue } : {})
             };
             try {
+                if (!this.server.storage.transport) {
+                    throw new ApiError({ code: 503, message: 'Mail transport is not available' });
+                }
                 const info = await this.server.storage.transport.sendMail(mailOptions);
                 this.server.storage.print_debug('Email sent: ' + info.response);
             }

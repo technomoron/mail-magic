@@ -209,7 +209,7 @@ curl -X POST http://localhost:3776/api/v1/tx/message \
     "domain": "example.test",
     "name": "welcome",
     "locale": "en",
-    "rcpt": ["person@example.test"],
+    "rcpt": "person@example.test",
     "vars": { "first_name": "Ada" }
   }'
 ```
