@@ -359,6 +359,145 @@ it('compiles the examples data directory', async () => {
 	fs.rmSync(out, { recursive: true, force: true });
 });
 
+it('supports natural-key domain mapping without numeric domain_id in template/form records', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-natural-keys-'));
+	const out = path.join(root, 'compiled-out');
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const txRoot = path.join(domainDir, 'tx-template', 'en');
+	const formRoot = path.join(domainDir, 'form-template', 'en');
+	fs.mkdirSync(path.join(domainDir, 'tx-template'), { recursive: true });
+	fs.mkdirSync(txRoot, { recursive: true });
+	fs.mkdirSync(formRoot, { recursive: true });
+
+	fs.writeFileSync(
+		path.join(domainDir, 'tx-template', 'base.njk'),
+		'<html><body>{% block body %}{% endblock %}</body></html>'
+	);
+	fs.writeFileSync(
+		path.join(txRoot, 'welcome.njk'),
+		'{% extends "base.njk" %}{% block body %}<p>Hello</p>{% endblock %}'
+	);
+	fs.writeFileSync(path.join(formRoot, 'contact.njk'), '<p>Form {{ _fields_.name }}</p>');
+
+	const initData = {
+		domain: [{ name: domain, locale: 'en' }],
+		template: [{ domain, name: 'welcome', locale: 'en' }],
+		form: [{ domain, idname: 'contact', locale: 'en', sender: 'forms@test', recipient: 'owner@test' }]
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	const summary = await compileConfigTree({ input: root, output: out, domain });
+	expect(summary.templates).toBe(1);
+	expect(summary.forms).toBe(1);
+
+	fs.rmSync(root, { recursive: true, force: true });
+});
+
+it('patches returned form_key into init-data and writes sync state when requested', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-writeback-'));
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const formRoot = path.join(domainDir, 'form-template', 'en');
+	fs.mkdirSync(formRoot, { recursive: true });
+	fs.writeFileSync(path.join(formRoot, 'contact.njk'), '<p>Form {{ _fields_.name }}</p>');
+
+	const initData = {
+		domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+		template: [],
+		form: [{ domain_id: 1, idname: 'contact', locale: 'en', sender: 'forms@test', recipient: 'owner@test' }]
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	const storeTxTemplate = vi.fn(async () => ({ Status: 'OK' }));
+	const storeFormTemplate = vi.fn(async () => ({ Status: 'OK', data: { form_key: 'generated-form-key' } }));
+	const uploadAssets = vi.fn(async () => ({ Status: 'OK' }));
+
+	await pushTemplateDir(
+		{
+			api: 'http://localhost:3000',
+			token: 'test-token',
+			input: root,
+			domain,
+			includeTx: false,
+			includeForms: true,
+			includeAssets: false,
+			patchSourceIds: true,
+			backup: true
+		},
+		{ storeTxTemplate, storeFormTemplate, uploadAssets }
+	);
+
+	const patched = JSON.parse(fs.readFileSync(path.join(root, 'init-data.json'), 'utf8')) as {
+		form?: Array<{ form_key?: string }>;
+	};
+	expect(patched.form?.[0]?.form_key).toBe('generated-form-key');
+	expect(fs.readdirSync(root).some((name) => name.startsWith('init-data.json.bak.'))).toBe(true);
+
+	const syncState = JSON.parse(fs.readFileSync(path.join(root, '.mail-magic-sync.json'), 'utf8')) as {
+		lock?: unknown;
+		lastSync?: { patchedFormKeys?: number };
+	};
+	expect(syncState.lock).toBeUndefined();
+	expect(syncState.lastSync?.patchedFormKeys).toBe(1);
+
+	fs.rmSync(root, { recursive: true, force: true });
+});
+
+it('waits for active lock and fails on timeout', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-lock-timeout-'));
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const formRoot = path.join(domainDir, 'form-template', 'en');
+	fs.mkdirSync(formRoot, { recursive: true });
+	fs.writeFileSync(path.join(formRoot, 'contact.njk'), '<p>Form</p>');
+	fs.writeFileSync(
+		path.join(root, 'init-data.json'),
+		JSON.stringify(
+			{
+				domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+				template: [],
+				form: [{ domain_id: 1, idname: 'contact', locale: 'en', sender: 'forms@test', recipient: 'owner@test' }]
+			},
+			null,
+			2
+		)
+	);
+	fs.writeFileSync(
+		path.join(root, '.mail-magic-sync.json'),
+		JSON.stringify(
+			{
+				version: 1,
+				lock: { runId: 'existing-run', startedAt: new Date().toISOString(), pid: 1234 }
+			},
+			null,
+			2
+		)
+	);
+
+	const storeTxTemplate = vi.fn(async () => ({ Status: 'OK' }));
+	const storeFormTemplate = vi.fn(async () => ({ Status: 'OK', data: { form_key: 'k' } }));
+	const uploadAssets = vi.fn(async () => ({ Status: 'OK' }));
+
+	await expect(
+		pushTemplateDir(
+			{
+				api: 'http://localhost:3000',
+				token: 'test-token',
+				input: root,
+				domain,
+				includeTx: false,
+				includeForms: true,
+				includeAssets: false,
+				lockWaitMs: 1
+			},
+			{ storeTxTemplate, storeFormTemplate, uploadAssets }
+		)
+	).rejects.toThrow('wait timeout');
+
+	fs.rmSync(root, { recursive: true, force: true });
+});
+
 it('rejects unsafe template filenames from init-data', async () => {
 	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-unsafe-filename-'));
 	const out = path.join(root, 'compiled-out');

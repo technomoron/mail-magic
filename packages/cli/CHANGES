@@ -8,7 +8,12 @@ Unreleased (2026-03-04)
 - fix(cli): reject absolute/traversing template `filename` values from `init-data.json` when resolving tx/form template paths.
 - test(cli): add regression coverage for rejecting unsafe `filename` path traversal during `compileConfigTree`.
 - feat(cli): add opt-in `MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS` env flag for legacy imports that depend on absolute or traversing template `filename` values.
+- feat(cli): support natural-key domain mapping (`domain` name) in config records for compile/push flows; treat numeric `domain_id` as optional hints.
+- feat(cli): add write-back locking/state (`.mail-magic-sync.json`) for `push-dir`, with wait-on-lock behavior and configurable timeout.
+- feat(cli): add `push-dir` write-back controls (`--write-back-lock`/`--no-write-back-lock`, `--patch-source-ids`, `--backup`, `--lock-wait-ms`).
+- feat(cli): add opt-in source patching of resolved `form_key` values back into `init-data.json`.
 - docs(cli): document `MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS` in `.mmcli-env` settings.
+- docs(cli): document `push-dir` write-back/locking flags and natural-key domain mapping support.
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
 Version 1.0.1 (2026-02-22)

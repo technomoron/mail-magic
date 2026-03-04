@@ -79,6 +79,16 @@ mm-cli push-dir --input ./data --domain example.test --skip-forms
 
 `push-dir` also accepts `--css` to inline a Foundation for Emails stylesheet during the upload pass.
 
+Write-back/locking options for `push-dir`:
+
+- `--write-back-lock` / `--no-write-back-lock`: enable/disable lock/state file handling in
+  `.mail-magic-sync.json` (enabled by default)
+- `--lock-wait-ms <ms>`: wait time for an active lock before failing (default `120000`)
+- `--patch-source-ids`: patch resolved IDs/keys (currently `form_key`) back into `init-data.json`
+- `--backup`: create `init-data.json.bak.<timestamp>` before patching source data
+
+Config-tree records can be matched by natural keys (`domain` name) in addition to numeric `domain_id` hints.
+
 ### Asset Uploads
 
 Upload stand-alone domain assets:

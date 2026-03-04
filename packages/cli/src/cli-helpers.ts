@@ -77,13 +77,14 @@ export type PushTemplateDirSummary = {
 };
 
 type InitDomain = {
-	domain_id: number;
+	domain_id?: number;
 	name: string;
 	locale?: string;
 };
 
 type InitTemplate = {
-	domain_id: number;
+	domain_id?: number;
+	domain?: string;
 	name: string;
 	locale?: string;
 	sender?: string;
@@ -92,7 +93,8 @@ type InitTemplate = {
 };
 
 type InitForm = {
-	domain_id: number;
+	domain_id?: number;
+	domain?: string;
 	idname: string;
 	locale?: string;
 	sender: string;
@@ -100,6 +102,7 @@ type InitForm = {
 	subject?: string;
 	secret?: string;
 	filename?: string;
+	form_key?: string;
 };
 
 type InitData = {
@@ -107,6 +110,33 @@ type InitData = {
 	template?: InitTemplate[];
 	form?: InitForm[];
 };
+
+type SyncState = {
+	version: 1;
+	lock?: {
+		runId: string;
+		startedAt: string;
+		pid: number;
+	};
+	lastSync?: {
+		runId: string;
+		finishedAt: string;
+		domainCount: number;
+		templates: number;
+		forms: number;
+		assetBatches: number;
+		patchedFormKeys: number;
+	};
+};
+
+type FormKeyPatch = {
+	domain_name: string;
+	idname: string;
+	locale: string;
+	form_key: string;
+};
+
+const SYNC_STATE_FILE = '.mail-magic-sync.json';
 
 type NormalizedTemplate = {
 	name: string;
@@ -181,6 +211,180 @@ function loadInitData(rootDir: string): InitData {
 		template: data.template ?? [],
 		form: data.form ?? []
 	};
+}
+
+function recordMatchesDomain(
+	record: { domain_id?: number; domain?: string },
+	domainRecord: { domain_id?: number; name: string }
+): boolean {
+	const byName = String(record.domain ?? '').trim();
+	if (byName) {
+		return byName === domainRecord.name;
+	}
+	if (typeof record.domain_id === 'number' && typeof domainRecord.domain_id === 'number') {
+		return record.domain_id === domainRecord.domain_id;
+	}
+	return false;
+}
+
+function normalizeState(state: unknown): SyncState {
+	if (!state || typeof state !== 'object' || Array.isArray(state)) {
+		return { version: 1 };
+	}
+	const input = state as { version?: unknown; lock?: unknown; lastSync?: unknown };
+	const next: SyncState = { version: 1 };
+	if (input.lock && typeof input.lock === 'object' && !Array.isArray(input.lock)) {
+		const lock = input.lock as { runId?: unknown; startedAt?: unknown; pid?: unknown };
+		if (typeof lock.runId === 'string' && typeof lock.startedAt === 'string' && typeof lock.pid === 'number') {
+			next.lock = { runId: lock.runId, startedAt: lock.startedAt, pid: lock.pid };
+		}
+	}
+	if (input.lastSync && typeof input.lastSync === 'object' && !Array.isArray(input.lastSync)) {
+		const last = input.lastSync as {
+			runId?: unknown;
+			finishedAt?: unknown;
+			domainCount?: unknown;
+			templates?: unknown;
+			forms?: unknown;
+			assetBatches?: unknown;
+			patchedFormKeys?: unknown;
+		};
+		if (
+			typeof last.runId === 'string' &&
+			typeof last.finishedAt === 'string' &&
+			typeof last.domainCount === 'number' &&
+			typeof last.templates === 'number' &&
+			typeof last.forms === 'number' &&
+			typeof last.assetBatches === 'number' &&
+			typeof last.patchedFormKeys === 'number'
+		) {
+			next.lastSync = {
+				runId: last.runId,
+				finishedAt: last.finishedAt,
+				domainCount: last.domainCount,
+				templates: last.templates,
+				forms: last.forms,
+				assetBatches: last.assetBatches,
+				patchedFormKeys: last.patchedFormKeys
+			};
+		}
+	}
+	return next;
+}
+
+function readSyncState(inputRoot: string): SyncState {
+	const statePath = path.join(inputRoot, SYNC_STATE_FILE);
+	if (!fs.existsSync(statePath)) {
+		return { version: 1 };
+	}
+	const raw = fs.readFileSync(statePath, 'utf8');
+	try {
+		return normalizeState(JSON.parse(raw));
+	} catch {
+		return { version: 1 };
+	}
+}
+
+function writeSyncState(inputRoot: string, state: SyncState): void {
+	const statePath = path.join(inputRoot, SYNC_STATE_FILE);
+	const tmpPath = `${statePath}.tmp`;
+	const serialized = JSON.stringify({ ...state, version: 1 }, null, 2) + '\n';
+	fs.writeFileSync(tmpPath, serialized);
+	fs.renameSync(tmpPath, statePath);
+}
+
+function delay(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function acquireSyncLock(inputRoot: string, runId: string, waitMs: number): Promise<void> {
+	const started = Date.now();
+	while (true) {
+		const state = readSyncState(inputRoot);
+		if (!state.lock) {
+			state.lock = {
+				runId,
+				startedAt: new Date().toISOString(),
+				pid: process.pid
+			};
+			writeSyncState(inputRoot, state);
+			return;
+		}
+		if (Date.now() - started >= waitMs) {
+			throw new Error(
+				`Sync lock active in ${SYNC_STATE_FILE} (runId=${state.lock.runId}, pid=${state.lock.pid}, startedAt=${state.lock.startedAt}) and wait timeout (${waitMs}ms) was reached. Use --no-write-back-lock to bypass.`
+			);
+		}
+		await delay(250);
+	}
+}
+
+function releaseSyncLockAndWriteSummary(
+	inputRoot: string,
+	runId: string,
+	summary: { domainCount: number; templates: number; forms: number; assetBatches: number; patchedFormKeys: number }
+): void {
+	const state = readSyncState(inputRoot);
+	if (state.lock?.runId === runId) {
+		delete state.lock;
+	}
+	state.lastSync = {
+		runId,
+		finishedAt: new Date().toISOString(),
+		domainCount: summary.domainCount,
+		templates: summary.templates,
+		forms: summary.forms,
+		assetBatches: summary.assetBatches,
+		patchedFormKeys: summary.patchedFormKeys
+	};
+	writeSyncState(inputRoot, state);
+}
+
+function patchInitDataFormKeys(rootDir: string, patches: FormKeyPatch[], backup: boolean): number {
+	if (patches.length === 0) {
+		return 0;
+	}
+	const initPath = path.join(rootDir, 'init-data.json');
+	const raw = fs.readFileSync(initPath, 'utf8');
+	const data = JSON.parse(raw) as InitData;
+	const forms = Array.isArray(data.form) ? data.form : [];
+	const domainIdByName = new Map(
+		(data.domain ?? [])
+			.filter((domain): domain is InitDomain & { domain_id: number } => typeof domain.domain_id === 'number')
+			.map((domain) => [domain.name, domain.domain_id] as const)
+	);
+	let updated = 0;
+	for (const patch of patches) {
+		const targetDomainId = domainIdByName.get(patch.domain_name);
+		const target = forms.find(
+			(form) =>
+				(String(form.domain ?? '').trim()
+					? String(form.domain ?? '').trim() === patch.domain_name
+					: typeof form.domain_id === 'number' && typeof targetDomainId === 'number' && form.domain_id === targetDomainId) &&
+				String(form.idname ?? '') === patch.idname &&
+				String(form.locale ?? '') === patch.locale
+		);
+		if (!target) {
+			continue;
+		}
+		if (String(target.form_key ?? '') === patch.form_key) {
+			continue;
+		}
+		target.form_key = patch.form_key;
+		updated += 1;
+	}
+	if (updated === 0) {
+		return 0;
+	}
+	if (backup) {
+		const stamp = new Date().toISOString().replaceAll(':', '-');
+		fs.copyFileSync(initPath, `${initPath}.bak.${stamp}`);
+	}
+	const next = JSON.stringify(data, null, 2) + '\n';
+	const tempPath = `${initPath}.tmp`;
+	fs.writeFileSync(tempPath, next);
+	fs.renameSync(tempPath, initPath);
+	return updated;
 }
 
 function collectFiles(dir: string): string[] {
@@ -456,6 +660,10 @@ export interface PushTemplateDirOptions {
 	includeForms?: boolean;
 	includeAssets?: boolean;
 	dryRun?: boolean;
+	writeBackLock?: boolean;
+	patchSourceIds?: boolean;
+	backup?: boolean;
+	lockWaitMs?: number;
 }
 
 export interface CompileConfigTreeOptions {
@@ -515,10 +723,8 @@ export async function compileConfigTree(options: CompileConfigTreeOptions): Prom
 
 		const domainLocale = domainRecord.locale || '';
 
-		const txTemplates = (initData.template ?? []).filter(
-			(template) => template.domain_id === domainRecord.domain_id
-		);
-		const formTemplates = (initData.form ?? []).filter((form) => form.domain_id === domainRecord.domain_id);
+		const txTemplates = (initData.template ?? []).filter((template) => recordMatchesDomain(template, domainRecord));
+		const formTemplates = (initData.form ?? []).filter((form) => recordMatchesDomain(form, domainRecord));
 
 		if (includeTx) {
 			const txRoot = path.join(domainDir, 'tx-template');
@@ -626,49 +832,60 @@ export async function pushTemplateDir(
 	const includeForms = options.includeForms ?? true;
 	const includeAssets = options.includeAssets ?? true;
 	const dryRun = options.dryRun ?? false;
+	const writeBackLock = options.writeBackLock ?? true;
+	const patchSourceIds = options.patchSourceIds ?? false;
+	const backup = options.backup ?? false;
+	const lockWaitRaw = Number(options.lockWaitMs ?? 120000);
+	const lockWaitMs = Number.isFinite(lockWaitRaw) && lockWaitRaw >= 0 ? lockWaitRaw : 120000;
+	const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+	const formKeyPatches: FormKeyPatch[] = [];
+	let patchedFormKeys = 0;
 
-	const uploader = client ?? new TemplateClient(options.api, options.token);
-	const actions: UploadAction[] = [];
+	if (writeBackLock) {
+		await acquireSyncLock(inputRoot, runId, lockWaitMs);
+	}
 
-	for (const domainName of domainNames) {
-		const domainRecord = domains.find((domain) => domain.name === domainName);
-		if (!domainRecord) {
-			throw new Error(`Domain "${domainName}" not found in init-data.json`);
-		}
+	try {
+		const uploader = client ?? new TemplateClient(options.api, options.token);
+		const actions: UploadAction[] = [];
 
-		const domainDir = path.join(inputRoot, domainName);
-		if (!fs.existsSync(domainDir)) {
-			throw new Error(`Domain directory not found: ${domainDir}`);
-		}
+		for (const domainName of domainNames) {
+			const domainRecord = domains.find((domain) => domain.name === domainName);
+			if (!domainRecord) {
+				throw new Error(`Domain "${domainName}" not found in init-data.json`);
+			}
 
-		const domainLocale = domainRecord.locale || '';
+			const domainDir = path.join(inputRoot, domainName);
+			if (!fs.existsSync(domainDir)) {
+				throw new Error(`Domain directory not found: ${domainDir}`);
+			}
 
-		const txTemplates = (initData.template ?? []).filter(
-			(template) => template.domain_id === domainRecord.domain_id
-		);
-		const formTemplates = (initData.form ?? []).filter((form) => form.domain_id === domainRecord.domain_id);
+			const domainLocale = domainRecord.locale || '';
 
-		const normalizedTx = txTemplates.map((template) => {
-			const localeValue = template.locale || domainLocale || '';
-			return {
-				name: template.name,
-				nameSlug: normalizeSlug(template.name),
-				locale: localeValue,
-				localeSlug: normalizeSlug(localeValue)
-			};
-		});
-		const normalizedForms = formTemplates.map((form) => {
-			const localeValue = form.locale || domainLocale || '';
-			return {
-				name: form.idname,
-				nameSlug: normalizeSlug(form.idname),
-				locale: localeValue,
-				localeSlug: normalizeSlug(localeValue)
-			};
-		});
+			const txTemplates = (initData.template ?? []).filter((template) => recordMatchesDomain(template, domainRecord));
+			const formTemplates = (initData.form ?? []).filter((form) => recordMatchesDomain(form, domainRecord));
 
-		if (includeTx) {
-			const txRoot = path.join(domainDir, 'tx-template');
+			const normalizedTx = txTemplates.map((template) => {
+				const localeValue = template.locale || domainLocale || '';
+				return {
+					name: template.name,
+					nameSlug: normalizeSlug(template.name),
+					locale: localeValue,
+					localeSlug: normalizeSlug(localeValue)
+				};
+			});
+			const normalizedForms = formTemplates.map((form) => {
+				const localeValue = form.locale || domainLocale || '';
+				return {
+					name: form.idname,
+					nameSlug: normalizeSlug(form.idname),
+					locale: localeValue,
+					localeSlug: normalizeSlug(localeValue)
+				};
+			});
+
+			if (includeTx) {
+				const txRoot = path.join(domainDir, 'tx-template');
 			const cssPath = resolveCssPath(inputRoot, domainDir, txRoot, options.css);
 			for (const template of txTemplates) {
 				const localeValue = template.locale || domainLocale || '';
@@ -707,10 +924,10 @@ export async function pushTemplateDir(
 					});
 				}
 			}
-		}
+			}
 
-		if (includeForms) {
-			const formRoot = path.join(domainDir, 'form-template');
+			if (includeForms) {
+				const formRoot = path.join(domainDir, 'form-template');
 			const cssPath = resolveCssPath(inputRoot, domainDir, formRoot, options.css);
 			for (const form of formTemplates) {
 				const localeValue = form.locale || domainLocale || '';
@@ -738,23 +955,34 @@ export async function pushTemplateDir(
 					template: form.idname,
 					locale: localeValue
 				});
-				if (!dryRun) {
-					await uploader.storeFormTemplate({
-						idname: form.idname,
-						domain: domainName,
-						template: compiled,
-						sender: form.sender,
-						recipient: form.recipient,
-						subject: form.subject,
-						locale: localeValue,
-						secret: form.secret
-					});
+					if (!dryRun) {
+						const response = (await uploader.storeFormTemplate({
+							idname: form.idname,
+							domain: domainName,
+							template: compiled,
+							sender: form.sender,
+							recipient: form.recipient,
+							subject: form.subject,
+							locale: localeValue,
+							secret: form.secret
+						})) as { data?: { form_key?: unknown } };
+						if (patchSourceIds) {
+							const returnedFormKey = String(response?.data?.form_key ?? '').trim();
+							if (returnedFormKey) {
+								formKeyPatches.push({
+									domain_name: domainName,
+									idname: form.idname,
+									locale: localeValue,
+									form_key: returnedFormKey
+								});
+							}
+						}
+					}
 				}
 			}
-		}
 
-		if (includeAssets) {
-			const assetsRoot = path.join(domainDir, 'assets');
+			if (includeAssets) {
+				const assetsRoot = path.join(domainDir, 'assets');
 			if (fs.existsSync(assetsRoot)) {
 				await uploadDomainAssets(uploader, domainName, assetsRoot, {
 					dryRun,
@@ -780,12 +1008,36 @@ export async function pushTemplateDir(
 					actions
 				});
 			}
+			}
 		}
+
+		const templates = actions.filter((action) => action.kind === 'tx-template').length;
+		const forms = actions.filter((action) => action.kind === 'form-template').length;
+		const assetBatches = actions.filter((action) => action.kind.includes('assets')).length;
+
+		if (!dryRun && patchSourceIds) {
+			patchedFormKeys = patchInitDataFormKeys(inputRoot, formKeyPatches, backup);
+		}
+
+		if (writeBackLock) {
+			releaseSyncLockAndWriteSummary(inputRoot, runId, {
+				domainCount: domainNames.length,
+				templates,
+				forms,
+				assetBatches,
+				patchedFormKeys
+			});
+		}
+
+		return { templates, forms, assetBatches, actions };
+	} catch (error) {
+		if (writeBackLock) {
+			const state = readSyncState(inputRoot);
+			if (state.lock?.runId === runId) {
+				delete state.lock;
+				writeSyncState(inputRoot, state);
+			}
+		}
+		throw error;
 	}
-
-	const templates = actions.filter((action) => action.kind === 'tx-template').length;
-	const forms = actions.filter((action) => action.kind === 'form-template').length;
-	const assetBatches = actions.filter((action) => action.kind.includes('assets')).length;
-
-	return { templates, forms, assetBatches, actions };
 }
