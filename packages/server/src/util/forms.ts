@@ -1,4 +1,5 @@
 import { ApiError, ApiRequest } from '@technomoron/api-server-base';
+import { Op } from 'sequelize';
 
 import { api_form } from '../models/form.js';
 import { api_recipient } from '../models/recipient.js';
@@ -431,24 +432,39 @@ export async function resolveRecipients(form: api_form, recipientsRaw: unknown):
 		throw new ApiError({ code: 500, message: 'Form is missing a form_key' });
 	}
 
-	const resolveRecipient = async (idname: string): Promise<api_recipient | null> => {
-		const scoped = await api_recipient.findOne({
-			where: { domain_id: form.domain_id, form_key: scopeFormKey, idname }
-		});
-		if (scoped) {
-			return scoped;
-		}
-		return api_recipient.findOne({ where: { domain_id: form.domain_id, form_key: '', idname } });
-	};
-
 	const recipients = parseIdnameList(recipientsRaw, 'recipients');
 	if (recipients.length > 25) {
 		throw new ApiError({ code: 400, message: 'Too many recipients requested' });
 	}
+	if (recipients.length === 0) {
+		return [];
+	}
+
+	const scopedMatches = await api_recipient.findAll({
+		where: {
+			domain_id: form.domain_id,
+			form_key: scopeFormKey,
+			idname: { [Op.in]: recipients }
+		}
+	});
+	const scopedByIdname = new Map(scopedMatches.map((entry) => [entry.idname, entry] as const));
+	const unresolved = recipients.filter((idname) => !scopedByIdname.has(idname));
+
+	let fallbackByIdname = new Map<string, api_recipient>();
+	if (unresolved.length > 0) {
+		const fallbackMatches = await api_recipient.findAll({
+			where: {
+				domain_id: form.domain_id,
+				form_key: '',
+				idname: { [Op.in]: unresolved }
+			}
+		});
+		fallbackByIdname = new Map(fallbackMatches.map((entry) => [entry.idname, entry] as const));
+	}
 
 	const resolvedRecipients: api_recipient[] = [];
 	for (const idname of recipients) {
-		const record = await resolveRecipient(idname);
+		const record = scopedByIdname.get(idname) ?? fallbackByIdname.get(idname) ?? null;
 		if (!record) {
 			throw new ApiError({ code: 404, message: `Unknown recipient identifier "${idname}"` });
 		}

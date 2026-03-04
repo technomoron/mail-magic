@@ -544,6 +544,55 @@ describe('mail-magic API', () => {
 		expect(to?.address).toBe('formspecific@example.test');
 	});
 
+	test('resolves multiple recipient idnames in requested order with scoped-over-domain precedence', async () => {
+		const templateRes = await api
+			.post('/api/v1/form/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'multi-recipient-order',
+				sender: 'forms@example.test',
+				recipient: 'default@example.test',
+				subject: 'Multi Recipient Order',
+				template: '<p>Hello {{ _fields_.msg }}</p>'
+			});
+
+		expect(templateRes.status).toBe(200);
+		const form_key = templateRes.body.data.form_key as string;
+
+		const domainWide = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				idname: 'desk',
+				email: 'Desk <desk@example.test>'
+			});
+		expect(domainWide.status).toBe(200);
+
+		const formScoped = await api
+			.post('/api/v1/form/recipient')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				domain: ctx!.domainName,
+				form_key,
+				idname: 'editor',
+				email: 'Form Specific <formspecific@example.test>'
+			});
+		expect(formScoped.status).toBe(200);
+
+		const sendRes = await api.post('/api/v1/form/message').send({
+			_mm_form_key: form_key,
+			_mm_recipients: ['desk', 'editor'],
+			msg: 'hello'
+		});
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const to = message.to?.value ?? [];
+		expect(to.map((entry) => entry.address)).toEqual(['desk@example.test', 'formspecific@example.test']);
+	});
+
 	test('rejects unknown recipient idnames on public form submission', async () => {
 		const templateRes = await api
 			.post('/api/v1/form/template')
