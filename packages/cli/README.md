@@ -18,10 +18,14 @@ Create `.mmcli-env` in your working directory to set defaults:
 MMCLI_API=http://127.0.0.1:3776
 MMCLI_TOKEN=example-token
 MMCLI_DOMAIN=example.test
+MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS=false
 ```
 
 `MMCLI_TOKEN` is treated as the server token string. As a convenience, `MMCLI_USERNAME` + `MMCLI_PASSWORD` can be used
 to build a combined token string (for legacy setups).
+
+`MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS` is `false` by default. Set it to `true` only for legacy migrations where
+`init-data.json` contains template `filename` paths that are absolute or include `..` traversal.
 
 ### Version
 

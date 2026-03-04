@@ -333,5 +333,8 @@ const cliToken = resolveToken(cliEnv);
 if (cliEnv.api) program.setOptionValueWithSource('api', cliEnv.api, 'env');
 if (cliToken) program.setOptionValueWithSource('token', cliToken, 'env');
 if (cliEnv.domain) program.setOptionValueWithSource('domain', cliEnv.domain, 'env');
+if (cliEnv.allowUnsafeTemplatePaths && process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS === undefined) {
+	process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS = cliEnv.allowUnsafeTemplatePaths;
+}
 
 program.parse(process.argv);

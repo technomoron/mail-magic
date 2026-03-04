@@ -7,6 +7,7 @@ export type CliDefaults = {
 	username?: string;
 	password?: string;
 	domain?: string;
+	allowUnsafeTemplatePaths?: string;
 };
 
 function stripQuotes(value: string): string {
@@ -46,7 +47,8 @@ export function loadCliEnv(cwd: string = process.cwd()): CliDefaults {
 		token: values.MMCLI_TOKEN,
 		username: values.MMCLI_USERNAME || values.MMCLI_USER,
 		password: values.MMCLI_PASSWORD || values.MMCLI_PASS,
-		domain: values.MMCLI_DOMAIN
+		domain: values.MMCLI_DOMAIN,
+		allowUnsafeTemplatePaths: values.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS
 	};
 }
 

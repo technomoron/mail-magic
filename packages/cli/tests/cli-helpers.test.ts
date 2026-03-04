@@ -358,3 +358,59 @@ it('compiles the examples data directory', async () => {
 
 	fs.rmSync(out, { recursive: true, force: true });
 });
+
+it('rejects unsafe template filenames from init-data', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-unsafe-filename-'));
+	const out = path.join(root, 'compiled-out');
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	fs.mkdirSync(path.join(domainDir, 'tx-template', 'en'), { recursive: true });
+	fs.writeFileSync(path.join(domainDir, 'tx-template', 'en', 'welcome.njk'), '<p>Hello</p>');
+
+	const initData = {
+		domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+		template: [{ domain_id: 1, name: 'welcome', locale: 'en', filename: '../../outside/welcome.njk' }],
+		form: []
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	await expect(compileConfigTree({ input: root, output: out, domain })).rejects.toThrow(
+		"Template filename cannot include '..' segments"
+	);
+
+	fs.rmSync(root, { recursive: true, force: true });
+});
+
+it('allows unsafe template filenames when MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS=true', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-unsafe-enabled-'));
+	const out = path.join(root, 'compiled-out');
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const outsideDir = path.join(domainDir, 'outside');
+	fs.mkdirSync(path.join(domainDir, 'tx-template', 'en'), { recursive: true });
+	fs.mkdirSync(outsideDir, { recursive: true });
+	fs.writeFileSync(path.join(outsideDir, 'welcome.njk'), '<p>Unsafe path template</p>');
+
+	const initData = {
+		domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+		template: [{ domain_id: 1, name: 'welcome', locale: 'en', filename: '../outside/welcome.njk' }],
+		form: []
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	const previous = process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS;
+	process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS = 'true';
+	try {
+		const summary = await compileConfigTree({ input: root, output: out, domain });
+		expect(summary.templates).toBe(1);
+		expect(fs.existsSync(path.join(out, domain, 'tx-template', 'welcome.njk'))).toBe(true);
+	} finally {
+		if (previous === undefined) {
+			delete process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS;
+		} else {
+			process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS = previous;
+		}
+	}
+
+	fs.rmSync(root, { recursive: true, force: true });
+});

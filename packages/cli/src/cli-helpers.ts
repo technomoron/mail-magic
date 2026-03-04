@@ -115,6 +115,33 @@ type NormalizedTemplate = {
 	localeSlug: string;
 };
 
+function envFlagEnabled(value: string | undefined): boolean {
+	if (!value) {
+		return false;
+	}
+	const normalized = value.trim().toLowerCase();
+	return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on';
+}
+
+function allowUnsafeTemplatePaths(): boolean {
+	return envFlagEnabled(process.env.MMCLI_ALLOW_UNSAFE_TEMPLATE_PATHS);
+}
+
+function assertSafeTemplatePath(rawPath: string): string {
+	const normalized = rawPath.replace(/\\/g, '/').trim();
+	if (!normalized) {
+		throw new Error('Template filename cannot be empty');
+	}
+	if (normalized.startsWith('/') || /^[a-zA-Z]:\//.test(normalized)) {
+		throw new Error(`Template filename must be relative: ${rawPath}`);
+	}
+	const parts = normalized.split('/').filter(Boolean);
+	if (parts.some((part) => part === '..')) {
+		throw new Error(`Template filename cannot include '..' segments: ${rawPath}`);
+	}
+	return parts.join('/');
+}
+
 function resolveTemplateName(template: string, inputDir: string): string {
 	const cleaned = template.replace(/\\/g, '/');
 	const inputRoot = path.resolve(inputDir);
@@ -180,7 +207,8 @@ function resolveTemplateFile(
 	nameSlug: string,
 	localeSlug: string,
 	filename?: string
-): { tplname: string; filePath: string } {
+): { tplname: string; filePath: string; compileSrcDir: string } {
+	const allowUnsafe = allowUnsafeTemplatePaths();
 	let tplname = '';
 	if (filename) {
 		const cleaned = filename.replace(/\\/g, '/');
@@ -195,11 +223,28 @@ function resolveTemplateFile(
 		if (tplname.endsWith('.njk')) {
 			tplname = tplname.slice(0, -4);
 		}
+		if (!allowUnsafe) {
+			tplname = assertSafeTemplatePath(tplname);
+		}
 	} else {
 		tplname = localeSlug ? path.join(localeSlug, nameSlug) : nameSlug;
 	}
-	const filePath = path.join(typeRoot, `${tplname}.njk`);
-	return { tplname: tplname.replace(/\\/g, '/'), filePath };
+	const normalizedTplname = tplname.replace(/\\/g, '/');
+	const resolvedTypeRoot = path.resolve(typeRoot);
+	const filePath = path.resolve(typeRoot, `${normalizedTplname}.njk`);
+	const normalizedRoot = resolvedTypeRoot.endsWith(path.sep) ? resolvedTypeRoot : `${resolvedTypeRoot}${path.sep}`;
+	const outsideTypeRoot = filePath !== resolvedTypeRoot && !filePath.startsWith(normalizedRoot);
+	if (!allowUnsafe && outsideTypeRoot) {
+		throw new Error(`Template path escapes template root: ${filename ?? normalizedTplname}`);
+	}
+	if (allowUnsafe && outsideTypeRoot) {
+		return {
+			tplname: path.basename(filePath, '.njk'),
+			filePath,
+			compileSrcDir: path.dirname(filePath)
+		};
+	}
+	return { tplname: normalizedTplname, filePath, compileSrcDir: typeRoot };
 }
 
 function resolveCssPath(rootDir: string, domainDir: string, typeRoot: string, override?: string): string {
@@ -494,7 +539,7 @@ export async function compileConfigTree(options: CompileConfigTreeOptions): Prom
 					throw new Error(`Template file not found: ${resolved.filePath}`);
 				}
 				const compiled = await compileTemplate({
-					src_dir: txRoot,
+					src_dir: resolved.compileSrcDir,
 					css_path: cssPath,
 					tplname: resolved.tplname
 				});
@@ -531,7 +576,7 @@ export async function compileConfigTree(options: CompileConfigTreeOptions): Prom
 					throw new Error(`Form template file not found: ${resolved.filePath}`);
 				}
 				const compiled = await compileTemplate({
-					src_dir: formRoot,
+					src_dir: resolved.compileSrcDir,
 					css_path: cssPath,
 					tplname: resolved.tplname
 				});
@@ -641,7 +686,7 @@ export async function pushTemplateDir(
 					throw new Error(`Template file not found: ${resolved.filePath}`);
 				}
 				const compiled = await compileTemplate({
-					src_dir: txRoot,
+					src_dir: resolved.compileSrcDir,
 					css_path: cssPath,
 					tplname: resolved.tplname
 				});
@@ -683,7 +728,7 @@ export async function pushTemplateDir(
 					throw new Error(`Form template file not found: ${resolved.filePath}`);
 				}
 				const compiled = await compileTemplate({
-					src_dir: formRoot,
+					src_dir: resolved.compileSrcDir,
 					css_path: cssPath,
 					tplname: resolved.tplname
 				});
