@@ -33,14 +33,17 @@ describe('preprocess config isolation', () => {
 				src_dir: templateRoot,
 				tplname: 'main'
 			})
-			).rejects.toThrow('Include not found: missing.njk');
+		).rejects.toThrow('Include not found: missing.njk');
 	});
 
 	it('applies child block overrides across multi-level extends chains', async () => {
 		const templateRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'mail-magic-preprocess-extends-'));
 		cleanupDirs.push(templateRoot);
 
-		fs.writeFileSync(path.join(templateRoot, 'base.njk'), '<html><body>{% block body %}BASE{% endblock %}</body></html>');
+		fs.writeFileSync(
+			path.join(templateRoot, 'base.njk'),
+			'<html><body>{% block body %}BASE{% endblock %}</body></html>'
+		);
 		fs.writeFileSync(
 			path.join(templateRoot, 'layout.njk'),
 			'{% extends "base.njk" %}{% block body %}<section>{% block content %}LAYOUT{% endblock %}</section>{% endblock %}'

@@ -187,7 +187,10 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 	// app.listen() in the Fastify-based server schedules the actual bind asynchronously
 	// via readyPromise; wait for the 'listening' event before accepting test connections.
 	await new Promise<void>((resolve, reject) => {
-		if (listener.listening) { resolve(); return; }
+		if (listener.listening) {
+			resolve();
+			return;
+		}
 		listener.once('listening', resolve);
 		listener.once('error', reject);
 	});
