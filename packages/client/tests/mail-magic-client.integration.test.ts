@@ -8,21 +8,26 @@ import { createIntegrationContext } from '../../../tests/helpers/integration-set
 import type { IntegrationContext } from '../../../tests/helpers/integration-setup.js';
 
 describe('TemplateClient integration', () => {
-	let ctx: IntegrationContext;
+	let ctx: IntegrationContext | null = null;
 
 	beforeAll(async () => {
 		ctx = await createIntegrationContext();
 	});
 
 	afterAll(async () => {
-		await ctx.cleanup();
+		if (ctx) {
+			await ctx.cleanup();
+		}
 	});
 
 	beforeEach(() => {
-		ctx.smtp.reset();
+		ctx?.smtp.reset();
 	});
 
 	test('stores and sends a transactional template through client methods', async () => {
+		if (!ctx) {
+			throw new Error('missing integration context');
+		}
 		await ctx.clients.alpha.storeTemplate({
 			domain: ctx.domainAlpha,
 			name: 'client-template',
@@ -45,6 +50,9 @@ describe('TemplateClient integration', () => {
 	});
 
 	test('stores a form template and submits a form message through client methods', async () => {
+		if (!ctx) {
+			throw new Error('missing integration context');
+		}
 		const created = await ctx.clients.alpha.storeFormTemplate({
 			domain: ctx.domainAlpha,
 			idname: 'client-form',
@@ -70,6 +78,9 @@ describe('TemplateClient integration', () => {
 	});
 
 	test('uploads domain and template assets through client methods', async () => {
+		if (!ctx) {
+			throw new Error('missing integration context');
+		}
 		const domainAsset = path.join(ctx.tempDir, 'asset-domain.txt');
 		const templateAsset = path.join(ctx.tempDir, 'asset-template.txt');
 		fs.writeFileSync(domainAsset, 'domain asset');
@@ -96,6 +107,9 @@ describe('TemplateClient integration', () => {
 	});
 
 	test('rejects domain updates when token does not belong to the target domain', async () => {
+		if (!ctx) {
+			throw new Error('missing integration context');
+		}
 		await expect(
 			ctx.clients.beta.storeTemplate({
 				domain: ctx.domainAlpha,

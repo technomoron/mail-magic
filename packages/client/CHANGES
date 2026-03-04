@@ -4,6 +4,7 @@ CHANGES
 Unreleased (2026-03-04)
 
 - chore(dist): remove generated `dist/mail-magic-client.js` artifact from package tree.
+- test(integration): guard integration test teardown/setup usage so `beforeAll` failures do not trigger secondary `ctx.cleanup()` crashes.
 - (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
 Version 1.0.33 (2026-02-22)
