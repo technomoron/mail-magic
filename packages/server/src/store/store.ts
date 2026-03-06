@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { EnvLoader, envConfig } from '@technomoron/env-loader';
+import { watch as chokidarWatch } from 'chokidar';
 import { createTransport, Transporter } from 'nodemailer';
 import { Sequelize } from 'sequelize';
 
@@ -53,45 +54,80 @@ function create_mail_transport(vars: MailStoreVars): Transporter {
 
 export function enableInitDataAutoReload(
 	ctx: AutoReloadContext,
-	reload: () => void | Promise<void>
+	reload: () => void | Promise<void>,
+	reloadForce?: () => void | Promise<void>
 ): AutoReloadHandle | null {
 	if (!ctx.vars.DB_AUTO_RELOAD) {
 		return null;
 	}
 	const initDataPath = ctx.config_filename('init-data.json');
-	ctx.print_debug('Enabling auto reload of init-data.json');
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	const onChange = () => {
-		if (debounceTimer) {
-			clearTimeout(debounceTimer);
-		}
-		debounceTimer = setTimeout(() => {
-			debounceTimer = null;
-			ctx.print_debug('Config file changed, reloading...');
-			// reload() may be sync or async — try/catch handles a synchronous
-			// throw, while Promise.resolve().catch() handles an async rejection.
-			try {
-				Promise.resolve(reload()).catch((err) => {
-					ctx.print_debug(`Failed to reload config: ${err}`);
-				});
-			} catch (err) {
-				ctx.print_debug(`Failed to reload config: ${err}`);
-			}
-		}, 300);
-	};
+	const configPath = path.dirname(initDataPath);
 
-	try {
-		const watcher = fs.watch(initDataPath, { persistent: false }, onChange);
-		return {
-			close: () => watcher.close()
+	function makeDebounced(fn: () => void | Promise<void>, label: string) {
+		let timer: ReturnType<typeof setTimeout> | null = null;
+		const trigger = () => {
+			if (timer) clearTimeout(timer);
+			timer = setTimeout(() => {
+				timer = null;
+				ctx.print_debug(label);
+				// fn() may be sync or async — try/catch handles a synchronous
+				// throw, while Promise.resolve().catch() handles an async rejection.
+				try {
+					Promise.resolve(fn()).catch((err) => {
+						ctx.print_debug(`Failed to reload: ${err}`);
+					});
+				} catch (err) {
+					ctx.print_debug(`Failed to reload: ${err}`);
+				}
+			}, 300);
 		};
+		const cancel = () => {
+			if (timer) {
+				clearTimeout(timer);
+				timer = null;
+			}
+		};
+		return { trigger, cancel };
+	}
+
+	ctx.print_debug('Enabling auto reload of init-data.json');
+	const dataReload = makeDebounced(reload, 'Config file changed, reloading...');
+
+	// Watch init-data.json with fs.watch (+ fs.watchFile fallback).
+	let closeDataWatcher: () => void;
+	try {
+		const watcher = fs.watch(initDataPath, { persistent: false }, dataReload.trigger);
+		closeDataWatcher = () => watcher.close();
 	} catch (err) {
 		ctx.print_debug(`fs.watch unavailable; falling back to fs.watchFile: ${err}`);
-		fs.watchFile(initDataPath, { interval: 2000 }, onChange);
-		return {
-			close: () => fs.unwatchFile(initDataPath, onChange)
+		fs.watchFile(initDataPath, { interval: 2000 }, dataReload.trigger);
+		closeDataWatcher = () => fs.unwatchFile(initDataPath, dataReload.trigger);
+	}
+
+	// Watch *.njk files under configPath with chokidar (cross-platform recursive).
+	let closeTemplateWatcher: (() => void) | null = null;
+	if (reloadForce) {
+		ctx.print_debug('Enabling auto reload of template files');
+		const templateReload = makeDebounced(reloadForce, 'Template file changed, reloading...');
+		const watcher = chokidarWatch(path.join(configPath, '**', '*.njk'), {
+			persistent: false,
+			ignoreInitial: true
+		});
+		watcher.on('add', templateReload.trigger);
+		watcher.on('change', templateReload.trigger);
+		closeTemplateWatcher = () => {
+			templateReload.cancel();
+			void watcher.close();
 		};
 	}
+
+	return {
+		close: () => {
+			dataReload.cancel();
+			closeDataWatcher();
+			closeTemplateWatcher?.();
+		}
+	};
 }
 
 export class mailStore {
@@ -235,7 +271,11 @@ export class mailStore {
 		this.api_db = await connect_api_db(this);
 
 		this.autoReloadHandle?.close();
-		this.autoReloadHandle = enableInitDataAutoReload(this, () => importData(this));
+		this.autoReloadHandle = enableInitDataAutoReload(
+			this,
+			() => importData(this),
+			() => importData(this, { force: true })
+		);
 
 		return this;
 	}

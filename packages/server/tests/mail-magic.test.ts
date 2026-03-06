@@ -113,6 +113,63 @@ describe('mail-magic API', () => {
 		expect(stored?.template).toContain('Custom');
 	});
 
+	test('clears stale template files metadata when updating a transactional template via the API', async () => {
+		const sourceTemplate = await api_txmail.findOne({ where: { name: 'welcome' } });
+		expect(Array.isArray(sourceTemplate?.files)).toBe(true);
+		expect(sourceTemplate?.files.length ?? 0).toBeGreaterThan(0);
+
+		const templateName = 'api-update-clears-files';
+		const createRes = await api
+			.post('/api/v1/tx/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				name: templateName,
+				domain: ctx!.domainName,
+				sender: 'sender@example.test',
+				subject: 'Before Reset',
+				template: '<p>Before {{ name }}</p>'
+			});
+		expect(createRes.status).toBe(200);
+
+		await ctx!.store.api_db!.query(`UPDATE txmail SET files = ? WHERE name = ?`, {
+			replacements: [JSON.stringify(sourceTemplate?.files ?? []), templateName]
+		});
+
+		const seeded = await api_txmail.findOne({ where: { name: templateName } });
+		expect(Array.isArray(seeded?.files)).toBe(true);
+		expect(seeded?.files.length ?? 0).toBeGreaterThan(0);
+
+		const updateRes = await api
+			.post('/api/v1/tx/template')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.send({
+				name: templateName,
+				domain: ctx!.domainName,
+				sender: 'sender@example.test',
+				subject: 'After Reset',
+				template: '<p>No assets {{ name }}</p>'
+			});
+		expect(updateRes.status).toBe(200);
+
+		const stored = await api_txmail.findOne({ where: { name: templateName } });
+		expect(Array.isArray(stored?.files)).toBe(true);
+		expect(stored?.files).toHaveLength(0);
+
+		const sendRes = await api
+			.post('/api/v1/tx/message')
+			.set('Authorization', `Bearer apikey-${ctx!.userToken}`)
+			.field('name', templateName)
+			.field('domain', ctx!.domainName)
+			.field('rcpt', 'recipient@example.test')
+			.field('vars', JSON.stringify({ name: 'Ada' }));
+		expect(sendRes.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		const filenames = message.attachments.map((att) => String(att.filename ?? ''));
+		expect(filenames.some((name) => name.endsWith('logo.png'))).toBe(false);
+		expect(filenames.some((name) => name.endsWith('banner.png'))).toBe(false);
+	});
+
 	test('sends transactional mail with inline assets and attachments', async () => {
 		const uploadsDir = ctx.uploadsPath;
 		const beforeUploads = fs.existsSync(uploadsDir) ? fs.readdirSync(uploadsDir) : [];

@@ -104,7 +104,6 @@ The CLI is now a separate package: `@technomoron/mail-magic-cli`.
     - `await client.fetchPublicAsset('example.test', 'images/logo.png')` -> `/asset/{domain}/{path}`
     - `await client.fetchPublicAsset('example.test', 'images/logo.png', true)` -> `/api/asset/{domain}/{path}`
 
-    The third argument `viaApiBase` (default `false`) switches the route prefix. Use `false` (default) when the server
-    is configured to serve assets directly under `ASSET_ROUTE` (default `/asset`). Use `true` when you need to reach
-    assets via the API base path (e.g. `/api/asset`) — useful when the server is behind a reverse proxy that only
-    forwards requests under a single path prefix.
+    The third argument `viaApiBase` (default `false`) switches the route prefix. Use `false` (default) for the normal
+    public asset route (`/asset`). Use `true` when you need the compatibility API route (`/api/asset`) — useful when a
+    reverse proxy only forwards requests under the API prefix.

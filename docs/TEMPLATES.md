@@ -49,7 +49,7 @@ Locales affect:
 
 Locales do not affect:
 
-- Public asset URLs (assets are served at `/${ASSET_ROUTE}/${domain}/...` with no locale segment).
+- Public asset URLs (assets are served at `/asset/${domain}/...` with no locale segment).
 
 ### Filesystem layout for locale variants
 
@@ -218,7 +218,7 @@ Example:
 During preprocessing/import this becomes a URL like:
 
 ```text
-${ASSET_PUBLIC_BASE-or-API_URL}${ASSET_ROUTE}/${domain}/files/banner.png
+${ASSET_PUBLIC_BASE-or-API_URL}/asset/${domain}/files/banner.png
 ```
 
 The asset is _not_ embedded in the HTML; it will be fetched by the email client.

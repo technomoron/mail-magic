@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { mailStore } from '../store/store.js';
 import { StoredFile } from '../types.js';
 import { buildAssetUrl } from '../util/paths.js';
+import { MAIL_MAGIC_ASSET_ROUTE } from '../util/route.js';
 import { flattenTemplateWithAssets } from '../util/shared-template-flatten.js';
 import { user_and_domain } from '../util.js';
 
@@ -80,12 +81,11 @@ async function _load_template(
 		}
 
 		const assetBaseUrl = store.vars.ASSET_PUBLIC_BASE?.trim() ? store.vars.ASSET_PUBLIC_BASE : store.vars.API_URL;
-		const assetRoute = store.vars.ASSET_ROUTE;
 		const { html, assets } = flattenTemplateWithAssets({
 			domainRoot,
 			templateKey,
 			baseUrl: assetBaseUrl,
-			assetFormatter: (urlPath) => buildAssetUrl(assetBaseUrl, assetRoute, domain.name, urlPath),
+			assetFormatter: (urlPath) => buildAssetUrl(assetBaseUrl, MAIL_MAGIC_ASSET_ROUTE, domain.name, urlPath),
 			normalizeInlineCid: buildInlineAssetCid
 		});
 
@@ -108,7 +108,7 @@ export async function loadTxTemplate(store: mailStore, template: api_txmail_type
 	return _load_template(store, template.filename, '', user, domain, locale, 'tx-template');
 }
 
-export async function importData(store: mailStore) {
+export async function importData(store: mailStore, options?: { force?: boolean }) {
 	const initfile = path.join(store.configpath, 'init-data.json');
 	if (fs.existsSync(initfile)) {
 		store.print_debug(`Loading init data from ${initfile}`);
@@ -159,7 +159,7 @@ export async function importData(store: mailStore) {
 			store.print_debug('Creating template records');
 			for (const record of records.template) {
 				const fixed = await upsert_txmail(record);
-				if (!fixed.template) {
+				if (!fixed.template || options?.force) {
 					const { html, assets } = await loadTxTemplate(store, fixed);
 					await fixed.update({ template: html, files: assets });
 				}
@@ -169,7 +169,7 @@ export async function importData(store: mailStore) {
 			store.print_debug('Creating form records');
 			for (const record of records.form) {
 				const fixed = await upsert_form(record);
-				if (!fixed.template) {
+				if (!fixed.template || options?.force) {
 					const { html, assets } = await loadFormTemplate(store, fixed);
 					await fixed.update({ template: html, files: assets });
 				}

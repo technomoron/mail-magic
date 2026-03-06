@@ -49,6 +49,10 @@ export interface TemplateDirUploader extends TemplateUploader {
 		subject?: string;
 		locale?: string;
 		secret?: string;
+		replyto_email?: string;
+		replyto_from_fields?: boolean;
+		allowed_fields?: string[] | string;
+		captcha_required?: boolean;
 	}) => Promise<unknown>;
 	uploadAssets: (payload: {
 		domain: string;
@@ -101,6 +105,10 @@ type InitForm = {
 	recipient: string;
 	subject?: string;
 	secret?: string;
+	replyto_email?: string;
+	replyto_from_fields?: boolean;
+	allowed_fields?: string[] | string;
+	captcha_required?: boolean;
 	filename?: string;
 	form_key?: string;
 };
@@ -216,24 +224,36 @@ function patchInitDataFormKeys(rootDir: string, patches: FormKeyPatch[], backup:
 	const raw = fs.readFileSync(initPath, 'utf8');
 	const data = JSON.parse(raw) as InitData;
 	const forms = Array.isArray(data.form) ? data.form : [];
+	const domains = Array.isArray(data.domain) ? data.domain : [];
 	const domainIdByName = new Map(
-		(data.domain ?? [])
+		domains
 			.filter((domain): domain is InitDomain & { domain_id: number } => typeof domain.domain_id === 'number')
 			.map((domain) => [domain.name, domain.domain_id] as const)
+	);
+	const domainByName = new Map(domains.map((domain) => [domain.name, domain] as const));
+	const domainById = new Map(
+		domains
+			.filter((domain): domain is InitDomain & { domain_id: number } => typeof domain.domain_id === 'number')
+			.map((domain) => [domain.domain_id, domain] as const)
 	);
 	let updated = 0;
 	for (const patch of patches) {
 		const targetDomainId = domainIdByName.get(patch.domain_name);
-		const target = forms.find(
-			(form) =>
-				(String(form.domain ?? '').trim()
-					? String(form.domain ?? '').trim() === patch.domain_name
-					: typeof form.domain_id === 'number' &&
-						typeof targetDomainId === 'number' &&
-						form.domain_id === targetDomainId) &&
-				String(form.idname ?? '') === patch.idname &&
-				String(form.locale ?? '') === patch.locale
-		);
+		const target = forms.find((form) => {
+			const domainName = String(form.domain ?? '').trim();
+			const domainRecord = domainName
+				? domainByName.get(domainName)
+				: typeof form.domain_id === 'number'
+					? domainById.get(form.domain_id)
+					: undefined;
+			const domainMatches = domainName
+				? domainName === patch.domain_name
+				: typeof form.domain_id === 'number' &&
+					typeof targetDomainId === 'number' &&
+					form.domain_id === targetDomainId;
+			const effectiveLocale = String(form.locale ?? '').trim() || String(domainRecord?.locale ?? '').trim();
+			return domainMatches && String(form.idname ?? '') === patch.idname && effectiveLocale === patch.locale;
+		});
 		if (!target) {
 			continue;
 		}
@@ -821,7 +841,11 @@ export async function pushTemplateDir(
 						recipient: form.recipient,
 						subject: form.subject,
 						locale: localeValue,
-						secret: form.secret
+						secret: form.secret,
+						replyto_email: form.replyto_email,
+						replyto_from_fields: form.replyto_from_fields,
+						allowed_fields: form.allowed_fields,
+						captcha_required: form.captcha_required
 					})) as { data?: { form_key?: unknown } };
 					if (patchSourceIds) {
 						const returnedFormKey = String(response?.data?.form_key ?? '').trim();

@@ -1,3 +1,6 @@
+export const MAIL_MAGIC_API_BASE_PATH = '/api';
+export const MAIL_MAGIC_ASSET_ROUTE = '/asset';
+export const MAIL_MAGIC_SWAGGER_PATH = '/api/swagger';
 export function normalizeRoute(value, fallback = '') {
     if (!value) {
         return fallback;

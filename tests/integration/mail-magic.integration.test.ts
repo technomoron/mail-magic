@@ -140,7 +140,9 @@ describe('mail-magic integration', () => {
 	});
 
 	afterAll(async () => {
-		await ctx.cleanup();
+		if (ctx) {
+			await ctx.cleanup();
+		}
 	});
 
 	beforeEach(() => {

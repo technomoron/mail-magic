@@ -54,7 +54,6 @@ CONFIG_PATH=./data
 
 API_HOST=127.0.0.1
 API_PORT=3776
-API_BASE_PATH=/api
 API_URL=http://127.0.0.1:3776
 
 SMTP_HOST=127.0.0.1
@@ -135,9 +134,7 @@ The full set of environment variables is documented in the repository’s `.env-
 Commonly used variables:
 
 - `API_HOST`, `API_PORT`, `API_URL`
-- `API_BASE_PATH` (default `/api`)
 - `CONFIG_PATH` (default `./data/`)
-- `ASSET_ROUTE` (default `/asset`)
 - `ASSET_PUBLIC_BASE` (optional public base URL for assets)
 - `AUTOESCAPE_HTML` (default `true`)
 - `UPLOAD_PATH`, `UPLOAD_MAX` (multipart uploads)
@@ -150,7 +147,7 @@ Commonly used variables:
     - `SMTP_REQUIRE_TLS` (default `true`; set to `false` for local dev servers like MailHog that don't support STARTTLS)
     - `SMTP_TLS_REJECT` (default `true`; set to `false` to accept self-signed certificates)
 - Swagger/OpenAPI:
-    - `SWAGGER_ENABLED`, `SWAGGER_PATH`
+    - `SWAGGER_ENABLED` (serves `/api/swagger`)
 
 ## Swagger / OpenAPI
 
@@ -163,8 +160,7 @@ Packaged spec (on disk):
 Runtime spec endpoint:
 
 - set `SWAGGER_ENABLED=true`
-- optionally set `SWAGGER_PATH` (defaults to `<API_BASE_PATH>/swagger`, typically `/api/swagger`)
-- fetch the JSON from that endpoint and feed it to Swagger UI / Postman / Insomnia
+- fetch `/api/swagger` and feed the JSON to Swagger UI / Postman / Insomnia
 
 This spec is the canonical reference for:
 
@@ -280,7 +276,7 @@ by the form template’s `allowed_fields` setting).
 
 Templates may reference assets with `asset('path')`:
 
-- `asset('images/logo.png')` rewrites to a public URL under `ASSET_ROUTE` (default `/asset`)
+- `asset('images/logo.png')` rewrites to a public URL under `/asset`
 - `asset('images/logo.png', true)` embeds as a CID attachment
 
 All assets must live under:

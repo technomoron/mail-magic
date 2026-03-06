@@ -62,6 +62,7 @@
 		"@technomoron/env-loader": "^1.0.8",
 		"@technomoron/unyuck": "^1.0.4",
 		"bcryptjs": "^3.0.2",
+		"chokidar": "^5.0.0",
 		"dotenv": "^16.4.5",
 		"email-addresses": "^5.0.0",
 		"html-to-text": "^9.0.5",

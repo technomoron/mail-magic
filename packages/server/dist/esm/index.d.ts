@@ -1,7 +1,7 @@
 import { mailApiServer } from './server.js';
 import { MailStoreVars, mailStore } from './store/store.js';
 import type { ApiServerConf } from '@technomoron/api-server-base';
-export type MailMagicServerOptions = Partial<ApiServerConf>;
+export type MailMagicServerOptions = Partial<Omit<ApiServerConf, 'apiBasePath' | 'swaggerPath'>>;
 export type MailMagicServerBootstrap = {
     server: mailApiServer;
     store: mailStore;

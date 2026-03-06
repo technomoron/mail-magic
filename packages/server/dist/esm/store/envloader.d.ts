@@ -32,22 +32,14 @@ export declare const envOptions: {
         description: string;
         default: string;
     };
-    API_BASE_PATH: {
-        description: string;
-        default: string;
-    };
     ASSET_PUBLIC_BASE: {
         description: string;
         default: string;
     };
     SWAGGER_ENABLED: {
         description: string;
-        type: "boolean";
         default: false;
-    };
-    SWAGGER_PATH: {
-        description: string;
-        default: string;
+        type: "boolean";
     };
     ADMIN_ENABLED: {
         description: string;
@@ -55,10 +47,6 @@ export declare const envOptions: {
         type: "boolean";
     };
     ADMIN_APP_PATH: {
-        description: string;
-        default: string;
-    };
-    ASSET_ROUTE: {
         description: string;
         default: string;
     };

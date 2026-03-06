@@ -6,11 +6,12 @@ import { MailerAPI } from './api/mailer.js';
 import { mailApiServer } from './server.js';
 import { MailStoreVars, mailStore } from './store/store.js';
 import { installMailMagicSwagger } from './swagger.js';
-import { normalizeRoute } from './util/route.js';
+import { MAIL_MAGIC_API_BASE_PATH, MAIL_MAGIC_ASSET_ROUTE, MAIL_MAGIC_SWAGGER_PATH } from './util/route.js';
 
 import type { ApiModule, ApiServerConf } from '@technomoron/api-server-base';
 
-export type MailMagicServerOptions = Partial<ApiServerConf>;
+export type MailMagicServerOptions = Partial<Omit<ApiServerConf, 'apiBasePath' | 'swaggerPath'>>;
+type ResolvedMailMagicServerOptions = MailMagicServerOptions & Pick<ApiServerConf, 'apiBasePath' | 'swaggerPath'>;
 
 export type MailMagicServerBootstrap = {
 	server: mailApiServer;
@@ -31,7 +32,7 @@ function mergeStaticDirs(
 	return merged;
 }
 
-function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions): MailMagicServerOptions {
+function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions): ResolvedMailMagicServerOptions {
 	const env = store.vars;
 	return {
 		apiHost: env.API_HOST,
@@ -39,12 +40,12 @@ function buildServerConfig(store: mailStore, overrides: MailMagicServerOptions):
 		uploadPath: store.getUploadStagingPath(),
 		uploadMax: env.UPLOAD_MAX,
 		debug: env.DEBUG,
-		apiBasePath: normalizeRoute(env.API_BASE_PATH, '/api'),
 		swaggerEnabled: env.SWAGGER_ENABLED,
-		swaggerPath: env.SWAGGER_PATH,
 		apiKeyEnabled: true,
 		apiKeyPrefix: 'apikey-',
-		...overrides
+		...overrides,
+		apiBasePath: MAIL_MAGIC_API_BASE_PATH,
+		swaggerPath: MAIL_MAGIC_SWAGGER_PATH
 	};
 }
 
@@ -53,9 +54,6 @@ export async function createMailMagicServer(
 	envOverrides: Partial<MailStoreVars> = {}
 ): Promise<MailMagicServerBootstrap> {
 	const store = await new mailStore().init(envOverrides);
-	if (typeof overrides.apiBasePath === 'string') {
-		store.vars.API_BASE_PATH = overrides.apiBasePath;
-	}
 	const baseStaticDirs: Record<string, string> = {};
 
 	let adminUiPath: string | null = null;
@@ -71,33 +69,20 @@ export async function createMailMagicServer(
 	};
 
 	const config = buildServerConfig(store, mergedOverrides);
-	// ApiServerBase's built-in swagger handler loads from process.cwd(); install our own handler so
+	// ApiServerBase's built-in swagger handler loads from process.cwd(); install our own fixed-path handler so
 	// SWAGGER_ENABLED works regardless of where the .env lives (mail-magic CLI chdir's to the env dir).
-	const { swaggerEnabled, swaggerPath } = config;
+	const { swaggerEnabled } = config;
 	const serverConfig = { ...config, swaggerEnabled: false, swaggerPath: '' };
 	const server = new mailApiServer(serverConfig, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
 	installMailMagicSwagger(server, {
-		apiBasePath: String(config.apiBasePath || '/api'),
-		assetRoute: String(store.vars.ASSET_ROUTE || '/asset'),
 		apiUrl: String(store.vars.API_URL || ''),
-		swaggerEnabled,
-		swaggerPath
+		swaggerEnabled
 	});
 
-	// Serve domain assets from a public route with traversal protection and caching.
-	const assetRoute = normalizeRoute(store.vars.ASSET_ROUTE, '/asset');
-	const assetPrefix = assetRoute === '/' ? '' : assetRoute;
-	const apiBasePath = normalizeRoute(store.vars.API_BASE_PATH, '/api');
-	const apiBasePrefix = apiBasePath === '/' ? '' : apiBasePath;
+	// Serve domain assets from the fixed public route with traversal protection and caching.
 	const assetHandler = createAssetHandler(server);
-	const assetMounts = new Set<string>();
-	assetMounts.add(assetPrefix);
-	// Integration tests (and API_URL defaults) expect assets to also be reachable under the API base path.
-	if (apiBasePrefix && assetPrefix && !assetPrefix.startsWith(`${apiBasePrefix}/`)) {
-		assetMounts.add(`${apiBasePrefix}${assetPrefix}`);
-	}
-	for (const prefix of assetMounts) {
-		// Use ApiServer.useExpress() so mounts under `apiBasePath` are installed before the API
+	for (const prefix of [MAIL_MAGIC_ASSET_ROUTE, `${MAIL_MAGIC_API_BASE_PATH}${MAIL_MAGIC_ASSET_ROUTE}`]) {
+		// Use ApiServer.useExpress() so mounts under the fixed API path are installed before the API
 		// 404 handler. Fastify (find-my-way) requires the wildcard to be an unnamed `*`.
 		server.useExpress(`${prefix}/:domain/*`, assetHandler);
 	}
@@ -168,8 +153,8 @@ async function enableAdminFeatures(server: mailApiServer, store: mailStore, admi
 		};
 		if (typeof mod?.registerAdmin === 'function') {
 			await mod.registerAdmin(server, {
-				apiBasePath: normalizeRoute(store.vars.API_BASE_PATH, '/api'),
-				assetRoute: normalizeRoute(store.vars.ASSET_ROUTE, '/asset'),
+				apiBasePath: MAIL_MAGIC_API_BASE_PATH,
+				assetRoute: MAIL_MAGIC_ASSET_ROUTE,
 				appPath: adminUiPath ?? store.vars.ADMIN_APP_PATH,
 				logger: (message: string) => store.print_debug(message),
 				staticFallback: Boolean(adminUiPath)

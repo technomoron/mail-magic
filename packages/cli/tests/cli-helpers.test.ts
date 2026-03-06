@@ -131,7 +131,11 @@ it('pushes a config-style directory with templates and assets', async () => {
 				sender: 'Forms <forms@alpha.example.test>',
 				recipient: 'owner@alpha.example.test',
 				subject: 'Contact',
-				secret: 'shh'
+				secret: 'shh',
+				replyto_email: 'replyto@alpha.example.test',
+				replyto_from_fields: true,
+				allowed_fields: ['name', 'email'],
+				captcha_required: true
 			}
 		]
 	};
@@ -165,6 +169,10 @@ it('pushes a config-style directory with templates and assets', async () => {
 	expect(formPayload.idname).toBe('contact');
 	expect(formPayload.domain).toBe(domain);
 	expect(formPayload.locale).toBe('en');
+	expect(formPayload.replyto_email).toBe('replyto@alpha.example.test');
+	expect(formPayload.replyto_from_fields).toBe(true);
+	expect(formPayload.allowed_fields).toEqual(['name', 'email']);
+	expect(formPayload.captcha_required).toBe(true);
 
 	const domainAssetsCall = uploadAssets.mock.calls.find((call) => !call[0].templateType);
 	expect(domainAssetsCall).toBeTruthy();
@@ -433,6 +441,50 @@ it('patches returned form_key into init-data when requested', async () => {
 	};
 	expect(patched.form?.[0]?.form_key).toBe('generated-form-key');
 	expect(fs.readdirSync(root).some((name) => name.startsWith('init-data.json.bak.'))).toBe(true);
+
+	fs.rmSync(root, { recursive: true, force: true });
+});
+
+it('patches returned form_key when the form inherits locale from the domain default', async () => {
+	const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mmcli-writeback-inherited-locale-'));
+	const domain = 'alpha.example.test';
+	const domainDir = path.join(root, domain);
+	const formRoot = path.join(domainDir, 'form-template', 'en');
+	fs.mkdirSync(formRoot, { recursive: true });
+	fs.writeFileSync(path.join(formRoot, 'contact.njk'), '<p>Form {{ _fields_.name }}</p>');
+
+	const initData = {
+		domain: [{ domain_id: 1, name: domain, locale: 'en' }],
+		template: [],
+		form: [{ domain_id: 1, idname: 'contact', sender: 'forms@test', recipient: 'owner@test' }]
+	};
+	fs.writeFileSync(path.join(root, 'init-data.json'), JSON.stringify(initData, null, 2));
+
+	const storeTxTemplate = vi.fn(async () => ({ Status: 'OK' }));
+	const storeFormTemplate = vi.fn(async () => ({
+		Status: 'OK',
+		data: { form_key: 'generated-inherited-locale-key' }
+	}));
+	const uploadAssets = vi.fn(async () => ({ Status: 'OK' }));
+
+	await pushTemplateDir(
+		{
+			api: 'http://localhost:3000',
+			token: 'test-token',
+			input: root,
+			domain,
+			includeTx: false,
+			includeForms: true,
+			includeAssets: false,
+			patchSourceIds: true
+		},
+		{ storeTxTemplate, storeFormTemplate, uploadAssets }
+	);
+
+	const patched = JSON.parse(fs.readFileSync(path.join(root, 'init-data.json'), 'utf8')) as {
+		form?: Array<{ form_key?: string }>;
+	};
+	expect(patched.form?.[0]?.form_key).toBe('generated-inherited-locale-key');
 
 	fs.rmSync(root, { recursive: true, force: true });
 });

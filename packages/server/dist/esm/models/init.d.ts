@@ -8,5 +8,7 @@ interface LoadedTemplate {
 }
 export declare function loadFormTemplate(store: mailStore, form: api_form_type): Promise<LoadedTemplate>;
 export declare function loadTxTemplate(store: mailStore, template: api_txmail_type): Promise<LoadedTemplate>;
-export declare function importData(store: mailStore): Promise<void>;
+export declare function importData(store: mailStore, options?: {
+    force?: boolean;
+}): Promise<void>;
 export {};

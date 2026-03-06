@@ -1,7 +1,12 @@
 import { STARTUP_ERROR_MESSAGE } from '../src/index.js';
 import { usesSqlitePragmas } from '../src/models/db.js';
 import { envOptions } from '../src/store/envloader.js';
-import { normalizeRoute } from '../src/util/route.js';
+import {
+	MAIL_MAGIC_API_BASE_PATH,
+	MAIL_MAGIC_ASSET_ROUTE,
+	MAIL_MAGIC_SWAGGER_PATH,
+	normalizeRoute
+} from '../src/util/route.js';
 import { buildRequestMeta, normalizeSlug } from '../src/util.js';
 
 import type { Sequelize } from 'sequelize';
@@ -42,6 +47,15 @@ describe('util', () => {
 	test('DB_TYPE env description is API-database specific', () => {
 		expect(envOptions.DB_TYPE.description).toBe('Database type for the API database');
 		expect(envOptions.DB_TYPE.description.includes('WP')).toBe(false);
+	});
+
+	test('public routes are fixed and not env-configurable', () => {
+		expect(MAIL_MAGIC_API_BASE_PATH).toBe('/api');
+		expect(MAIL_MAGIC_ASSET_ROUTE).toBe('/asset');
+		expect(MAIL_MAGIC_SWAGGER_PATH).toBe('/api/swagger');
+		expect('API_BASE_PATH' in envOptions).toBe(false);
+		expect('ASSET_ROUTE' in envOptions).toBe(false);
+		expect('SWAGGER_PATH' in envOptions).toBe(false);
 	});
 
 	test('normalizeRoute normalizes leading/trailing slashes', () => {

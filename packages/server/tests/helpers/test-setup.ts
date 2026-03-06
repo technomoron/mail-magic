@@ -7,6 +7,7 @@ import { simpleParser } from 'mailparser';
 import { SMTPServer } from 'smtp-server';
 
 import { createMailMagicServer } from '../../src/index.js';
+import { MAIL_MAGIC_ASSET_ROUTE } from '../../src/util/route.js';
 
 import type { mailApiServer } from '../../src/server.js';
 import type { mailStore } from '../../src/store/store.js';
@@ -35,7 +36,6 @@ export type TestContext = {
 	userToken: string;
 	otherUserToken: string;
 	apiUrl: string;
-	apiBasePath: string;
 	assetRoute: string;
 	assetPublicBase: string;
 	cleanup: () => Promise<void>;
@@ -43,8 +43,6 @@ export type TestContext = {
 
 export type TestContextOptions = {
 	apiUrl?: string;
-	apiBasePath?: string;
-	assetRoute?: string;
 	assetPublicBase?: string;
 };
 
@@ -261,8 +259,6 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 	fs.writeFileSync(uploadFile, 'upload-bytes');
 
 	const apiUrl = options.apiUrl ?? 'http://mail.test';
-	const apiBasePath = options.apiBasePath ?? '/api';
-	const assetRoute = options.assetRoute ?? '/asset';
 	const assetPublicBase = options.assetPublicBase ?? '';
 
 	const envOverrides = {
@@ -275,8 +271,6 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		DB_SYNC_ALTER: true,
 		DB_AUTO_RELOAD: false,
 		API_URL: apiUrl,
-		API_BASE_PATH: apiBasePath,
-		ASSET_ROUTE: assetRoute,
 		ASSET_PUBLIC_BASE: assetPublicBase,
 		API_TOKEN_PEPPER: 'test-token-pepper-value',
 		API_HOST: '127.0.0.1',
@@ -326,8 +320,7 @@ export async function createTestContext(options: TestContextOptions = {}): Promi
 		userToken: 'test-token',
 		otherUserToken: 'other-token',
 		apiUrl,
-		apiBasePath,
-		assetRoute,
+		assetRoute: MAIL_MAGIC_ASSET_ROUTE,
 		assetPublicBase,
 		cleanup
 	};

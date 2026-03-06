@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { normalizeRoute } from './util/route.js';
+import { MAIL_MAGIC_SWAGGER_PATH } from './util/route.js';
 
 import type { mailApiServer } from './server.js';
 import type { ApiRequest, ExtendedReq } from '@technomoron/api-server-base';
@@ -10,59 +10,20 @@ import type { ApiRequest, ExtendedReq } from '@technomoron/api-server-base';
 type ApiRes = ApiRequest['res'];
 
 type SwaggerInstallOptions = {
-	apiBasePath: string;
-	assetRoute: string;
 	apiUrl: string;
 	swaggerEnabled?: boolean;
-	swaggerPath?: string;
 };
 
-function replacePrefix(input: string, from: string, to: string): string {
-	if (input === from) {
-		return to;
-	}
-	if (input.startsWith(`${from}/`)) {
-		const suffix = input.slice(from.length);
-		if (to === '/') {
-			return suffix.replace(/^\/+/, '/') || '/';
-		}
-		return `${to}${suffix}`;
-	}
-	return input;
-}
-
-function rewriteSpecForRuntime(
-	spec: unknown,
-	opts: { apiBasePath: string; assetRoute: string; apiUrl: string }
-): unknown {
+function rewriteSpecForRuntime(spec: unknown, opts: { apiUrl: string }): unknown {
 	if (!spec || typeof spec !== 'object') {
 		return spec;
 	}
 
-	const base = normalizeRoute(opts.apiBasePath, '/api');
-	const asset = normalizeRoute(opts.assetRoute, '/asset');
-
 	const root = spec as Record<string, unknown>;
 	const out: Record<string, unknown> = { ...root };
 
-	// Keep the spec stable while still reflecting the configured public URL and base paths.
+	// Keep the spec stable while still reflecting the configured public URL.
 	out.servers = [{ url: String(opts.apiUrl || ''), description: 'Configured API_URL' }];
-
-	const rawPaths = root.paths;
-	if (!rawPaths || typeof rawPaths !== 'object') {
-		return out;
-	}
-
-	const rewritten: Record<string, unknown> = {};
-	for (const [p, v] of Object.entries(rawPaths as Record<string, unknown>)) {
-		let next = String(p);
-		next = replacePrefix(next, '/api', base);
-		next = replacePrefix(next, '/asset', asset);
-		// Normalize double slashes after prefix replacement (path only, not URLs).
-		next = next.replace(/\/{2,}/g, '/');
-		rewritten[next] = v;
-	}
-	out.paths = rewritten;
 
 	return out;
 }
@@ -88,18 +49,12 @@ function loadPackagedOpenApiSpec(): unknown | null {
 }
 
 export function installMailMagicSwagger(server: mailApiServer, opts: SwaggerInstallOptions): void {
-	const rawPath = typeof opts.swaggerPath === 'string' ? opts.swaggerPath.trim() : '';
-	const enabled = Boolean(opts.swaggerEnabled) || rawPath.length > 0;
-	if (!enabled) {
+	if (!opts.swaggerEnabled) {
 		return;
 	}
 
-	const base = normalizeRoute(opts.apiBasePath, '/api');
-	const resolved = rawPath.length > 0 ? rawPath : `${base}/swagger`;
-	const mount = normalizeRoute(resolved, `${base}/swagger`);
-
 	// Mount under the API router so it runs before the API 404 handler.
-	server.useExpress(mount, (req: ExtendedReq, res: ApiRes, next: (error?: unknown) => void) => {
+	server.useExpress(MAIL_MAGIC_SWAGGER_PATH, (req: ExtendedReq, res: ApiRes, next: (error?: unknown) => void) => {
 		if (req.method && req.method !== 'GET' && req.method !== 'HEAD') {
 			next();
 			return;
@@ -119,8 +74,6 @@ export function installMailMagicSwagger(server: mailApiServer, opts: SwaggerInst
 
 		res.status(200).json(
 			rewriteSpecForRuntime(spec, {
-				apiBasePath: base,
-				assetRoute: opts.assetRoute,
 				apiUrl: opts.apiUrl
 			})
 		);

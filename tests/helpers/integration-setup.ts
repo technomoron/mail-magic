@@ -147,7 +147,7 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 
 	const smtp = await startSmtpServer();
 	const port = await getAvailablePort();
-	const apiUrl = `http://127.0.0.1:${port}/api`;
+	const apiUrl = `http://127.0.0.1:${port}`;
 
 	const envOverrides = {
 		NODE_ENV: 'development',
@@ -159,7 +159,6 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 		DB_SYNC_ALTER: true,
 		DB_AUTO_RELOAD: false,
 		API_URL: apiUrl,
-		ASSET_ROUTE: '/asset',
 		API_HOST: '127.0.0.1',
 		API_PORT: port,
 		API_TOKEN_PEPPER: 'integration-token-pepper-value',
@@ -182,7 +181,7 @@ export async function createIntegrationContext(): Promise<IntegrationContext> {
 		DEBUG: false
 	};
 
-	const bootstrap = await createMailMagicServer({ apiBasePath: '' }, envOverrides);
+	const bootstrap = await createMailMagicServer({}, envOverrides);
 	const listener: Server = bootstrap.server.app.listen(port, '127.0.0.1');
 	// app.listen() in the Fastify-based server schedules the actual bind asynchronously
 	// via readyPromise; wait for the 'listening' event before accepting test connections.

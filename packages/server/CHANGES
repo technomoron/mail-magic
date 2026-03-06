@@ -1,6 +1,19 @@
 CHANGES
 =======
 
+Version 1.0.45 (2026-03-06)
+
+- fix(routes): make the server route contract fixed again (`/api`, `/asset`, `/api/swagger`) instead of env-configurable.
+- docs(routes): remove `API_BASE_PATH`, `ASSET_ROUTE`, and `SWAGGER_PATH` from server env/docs/examples; document the fixed public routes.
+- test(routes): update helpers and integration fixtures to use the fixed route contract; guard root integration teardown when setup fails.
+- fix(mailer): clear stale transactional template asset metadata when `POST /api/v1/tx/template` updates an existing template.
+- test(mailer): add regression coverage for transactional template API updates and stronger public form recipient contract assertions.
+- feat(autoreload): watch `*.njk` files under `CONFIG_PATH` with chokidar; force-reload all templates (including already-loaded ones) when any template file changes.
+- fix(autoreload): `importData` now accepts `{ force }` option to re-read templates from disk even when a DB record already has rendered content.
+- docs(tutorial): correct `DB_AUTO_RELOAD` description — init-data.json triggers metadata re-import; `.njk` changes trigger template force-reload.
+- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+- (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
+
 Version 1.0.44 (2026-03-05)
 
 - fix(autoreload): catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.

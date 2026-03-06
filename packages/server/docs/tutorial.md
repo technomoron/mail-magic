@@ -22,7 +22,7 @@ Update your `.env` (or runtime environment) to point at the new workspace:
 ```dotenv
 API_TOKEN_PEPPER=<generate-a-long-random-string>
 CONFIG_PATH=${CONFIG_ROOT}
-DB_AUTO_RELOAD=1  # optional: hot-reload init-data and templates
+DB_AUTO_RELOAD=1  # optional: hot-reload init-data.json and template files
 UPLOAD_PATH=./{domain}/uploads
 ```
 
@@ -64,8 +64,8 @@ myorg-config/
 
 > **Assets vs inline:** Any file referenced via `asset('...')` must live under `myorg.com/assets/`. The helper
 > `asset('logo.png')` will become `http://localhost:3776/asset/myorg.com/logo.png` by default. You can change the base
-> via `ASSET_PUBLIC_BASE` (or `API_URL`) and the route via `ASSET_ROUTE`. Use `asset('logo.png', true)` when you need
-> the file embedded as a CID attachment instead.
+> via `ASSET_PUBLIC_BASE` (or `API_URL`). Use `asset('logo.png', true)` when you need the file embedded as a CID
+> attachment instead.
 
 ---
 
@@ -327,7 +327,8 @@ The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach
       }'
     ```
 
-With `DB_AUTO_RELOAD=1`, editing templates or assets is as simple as saving the file.
+With `DB_AUTO_RELOAD=1`, saving `init-data.json` re-imports domain/user/template metadata; saving any `.njk` template
+file forces a full template re-render including inline asset collection.
 
 You now have a clean, self-contained configuration for MyOrg that inherits Mail Magic behaviour while keeping templates,
 partials, and assets under version control in a dedicated folder.

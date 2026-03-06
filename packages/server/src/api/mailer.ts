@@ -62,7 +62,8 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 			subject,
 			locale,
 			sender,
-			template
+			template,
+			files: []
 		};
 
 		try {

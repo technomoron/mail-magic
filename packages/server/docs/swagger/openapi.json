@@ -30,11 +30,11 @@
 		},
 		{
 			"name": "public-assets",
-			"description": "Publicly served domain assets under ASSET_ROUTE."
+			"description": "Publicly served domain assets under the fixed /asset route."
 		},
 		{
 			"name": "swagger",
-			"description": "Swagger/OpenAPI spec endpoint (enabled via SWAGGER_ENABLED / SWAGGER_PATH)."
+			"description": "Swagger/OpenAPI spec endpoint at the fixed /api/swagger route when enabled."
 		}
 	],
 	"paths": {
@@ -751,7 +751,7 @@
 			"get": {
 				"tags": ["public-assets"],
 				"summary": "Fetch a public asset (under API base path)",
-				"description": "Compatibility route for assets reachable under API_BASE_PATH + ASSET_ROUTE.",
+				"description": "Compatibility route for clients that fetch assets under /api/asset.",
 				"security": [],
 				"parameters": [
 					{
@@ -797,7 +797,7 @@
 			"get": {
 				"tags": ["swagger"],
 				"summary": "Get OpenAPI spec",
-				"description": "Returns the OpenAPI spec JSON when Swagger is enabled. This endpoint is not wrapped in ApiResponse.",
+				"description": "Returns the OpenAPI spec JSON at the fixed /api/swagger route when Swagger is enabled. This endpoint is not wrapped in ApiResponse.",
 				"security": [],
 				"responses": {
 					"200": {

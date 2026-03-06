@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { z } from 'zod';
 import { buildAssetUrl } from '../util/paths.js';
+import { MAIL_MAGIC_ASSET_ROUTE } from '../util/route.js';
 import { flattenTemplateWithAssets } from '../util/shared-template-flatten.js';
 import { user_and_domain } from '../util.js';
 import { api_domain, api_domain_schema } from './domain.js';
@@ -51,12 +52,11 @@ async function _load_template(store, filename, pathname, user, domain, locale, t
             throw new Error(`Unable to resolve template path for "${absPath}"`);
         }
         const assetBaseUrl = store.vars.ASSET_PUBLIC_BASE?.trim() ? store.vars.ASSET_PUBLIC_BASE : store.vars.API_URL;
-        const assetRoute = store.vars.ASSET_ROUTE;
         const { html, assets } = flattenTemplateWithAssets({
             domainRoot,
             templateKey,
             baseUrl: assetBaseUrl,
-            assetFormatter: (urlPath) => buildAssetUrl(assetBaseUrl, assetRoute, domain.name, urlPath),
+            assetFormatter: (urlPath) => buildAssetUrl(assetBaseUrl, MAIL_MAGIC_ASSET_ROUTE, domain.name, urlPath),
             normalizeInlineCid: buildInlineAssetCid
         });
         return { html, assets: assets };
@@ -75,7 +75,7 @@ export async function loadTxTemplate(store, template) {
     const locale = template.locale || domain.locale || null;
     return _load_template(store, template.filename, '', user, domain, locale, 'tx-template');
 }
-export async function importData(store) {
+export async function importData(store, options) {
     const initfile = path.join(store.configpath, 'init-data.json');
     if (fs.existsSync(initfile)) {
         store.print_debug(`Loading init data from ${initfile}`);
@@ -125,7 +125,7 @@ export async function importData(store) {
             store.print_debug('Creating template records');
             for (const record of records.template) {
                 const fixed = await upsert_txmail(record);
-                if (!fixed.template) {
+                if (!fixed.template || options?.force) {
                     const { html, assets } = await loadTxTemplate(store, fixed);
                     await fixed.update({ template: html, files: assets });
                 }
@@ -135,7 +135,7 @@ export async function importData(store) {
             store.print_debug('Creating form records');
             for (const record of records.form) {
                 const fixed = await upsert_form(record);
-                if (!fixed.template) {
+                if (!fixed.template || options?.force) {
                     const { html, assets } = await loadFormTemplate(store, fixed);
                     await fixed.update({ template: html, files: assets });
                 }

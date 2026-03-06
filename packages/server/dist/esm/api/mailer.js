@@ -50,7 +50,8 @@ export class MailerAPI extends ApiModule {
             subject,
             locale,
             sender,
-            template
+            template,
+            files: []
         };
         try {
             const [templateRecord, created] = await api_txmail.upsert(data, {

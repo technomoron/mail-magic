@@ -18,7 +18,7 @@ type AutoReloadContext = {
     config_filename: (name: string) => string;
     print_debug: (msg: string) => void;
 };
-export declare function enableInitDataAutoReload(ctx: AutoReloadContext, reload: () => void | Promise<void>): AutoReloadHandle | null;
+export declare function enableInitDataAutoReload(ctx: AutoReloadContext, reload: () => void | Promise<void>, reloadForce?: () => void | Promise<void>): AutoReloadHandle | null;
 export declare class mailStore {
     private env;
     vars: MailStoreVars;

@@ -3,10 +3,15 @@ import request from 'supertest';
 import { createTestContext } from './helpers/test-setup.js';
 
 import type { TestContext } from './helpers/test-setup.js';
+import type { ParsedMail } from 'mailparser';
 
 describe('public form submission contract', () => {
 	let ctx: TestContext | null = null;
 	let api: ReturnType<typeof request>;
+
+	function recipientAddresses(message: ParsedMail): string[] {
+		return message.to?.value?.map((entry) => String(entry.address ?? '').trim()).filter(Boolean) ?? [];
+	}
 
 	beforeAll(async () => {
 		ctx = await createTestContext();
@@ -46,35 +51,50 @@ describe('public form submission contract', () => {
 		expect(res.status).toBe(400);
 	});
 
-	test('rejects legacy lookup fields (domain/formid/secret)', async () => {
+	test('ignores legacy lookup fields (domain/formid/secret)', async () => {
 		const res = await api.post('/api/v1/form/message').send({
 			_mm_form_key: ctx!.contactFormKey,
 			domain: ctx!.domainName,
 			formid: 'contact',
-			secret: 'nope'
+			secret: 'nope',
+			email: 'ada@example.test'
 		});
 		expect(res.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		expect(recipientAddresses(message)).toContain('owner@example.test');
 	});
 
-	test('rejects legacy recipient override fields (recipient/recipient_idname)', async () => {
+	test('ignores legacy recipient override fields (recipient/recipient_idname)', async () => {
 		const emailOverride = await api.post('/api/v1/form/message').send({
 			_mm_form_key: ctx!.contactFormKey,
-			recipient: 'attacker@example.test'
+			recipient: 'attacker@example.test',
+			email: 'ada@example.test'
 		});
 		expect(emailOverride.status).toBe(200);
+		const firstMessage = await ctx!.smtp.waitForMessage();
+		expect(recipientAddresses(firstMessage)).toContain('owner@example.test');
+		expect(recipientAddresses(firstMessage)).not.toContain('attacker@example.test');
 
 		const idOverride = await api.post('/api/v1/form/message').send({
 			_mm_form_key: ctx!.contactFormKey,
-			recipient_idname: 'alice'
+			recipient_idname: 'alice',
+			email: 'bea@example.test'
 		});
 		expect(idOverride.status).toBe(200);
+		const secondMessage = await ctx!.smtp.waitForMessage();
+		expect(recipientAddresses(secondMessage)).toContain('owner@example.test');
 	});
 
-	test('rejects provider-specific captcha field names (must use captcha_token)', async () => {
+	test('accepts provider-specific captcha field names as extra fields when captcha is not required', async () => {
 		const res = await api.post('/api/v1/form/message').send({
 			_mm_form_key: ctx!.contactFormKey,
-			'cf-turnstile-response': 'token'
+			'cf-turnstile-response': 'token',
+			email: 'ada@example.test'
 		});
 		expect(res.status).toBe(200);
+
+		const message = await ctx!.smtp.waitForMessage();
+		expect(recipientAddresses(message)).toContain('owner@example.test');
 	});
 });
