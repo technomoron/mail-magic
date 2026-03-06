@@ -75,6 +75,13 @@ interface RequestLike {
 	socket?: { remoteAddress?: string | null } | null;
 }
 
+/**
+ * Collect informational request metadata (client IP, IP chain, timestamp) for
+ * use in template rendering context.  The values are **not** used for security
+ * decisions such as rate limiting — those rely on `getClientIp()` which is
+ * trust-proxy aware.  For the IP chain to be meaningful the server must sit
+ * behind a trusted reverse proxy that sets the forwarded headers.
+ */
 export function buildRequestMeta(rawReq: unknown): RequestMeta {
 	const req = (rawReq ?? {}) as RequestLike;
 	const headers = req.headers ?? {};

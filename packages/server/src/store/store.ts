@@ -51,7 +51,10 @@ function create_mail_transport(vars: MailStoreVars): Transporter {
 	return createTransport(args);
 }
 
-export function enableInitDataAutoReload(ctx: AutoReloadContext, reload: () => void): AutoReloadHandle | null {
+export function enableInitDataAutoReload(
+	ctx: AutoReloadContext,
+	reload: () => void | Promise<void>
+): AutoReloadHandle | null {
 	if (!ctx.vars.DB_AUTO_RELOAD) {
 		return null;
 	}
@@ -65,8 +68,12 @@ export function enableInitDataAutoReload(ctx: AutoReloadContext, reload: () => v
 		debounceTimer = setTimeout(() => {
 			debounceTimer = null;
 			ctx.print_debug('Config file changed, reloading...');
+			// reload() may be sync or async — try/catch handles a synchronous
+			// throw, while Promise.resolve().catch() handles an async rejection.
 			try {
-				reload();
+				Promise.resolve(reload()).catch((err) => {
+					ctx.print_debug(`Failed to reload config: ${err}`);
+				});
 			} catch (err) {
 				ctx.print_debug(`Failed to reload config: ${err}`);
 			}

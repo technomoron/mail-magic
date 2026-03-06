@@ -1,6 +1,13 @@
 CHANGES
 =======
 
+Version 1.0.44 (2026-03-05)
+
+- fix(autoreload): catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.
+- fix(mailer): validate that parsed `vars` is a non-null, non-array object after `JSON.parse`; return 400 for invalid types.
+- docs(utils): add doc comment to `buildRequestMeta` clarifying it is informational and requires a trusted reverse proxy for reliable IP data.
+- (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
+
 Version 1.0.43 (2026-03-04)
 
 - fix(security): add allowlist for custom email headers on `/v1/tx/message` to prevent header injection via arbitrary keys (e.g. `Bcc`, `From`, `Sender`).

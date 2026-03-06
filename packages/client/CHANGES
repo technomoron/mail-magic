@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+Version 1.0.35 (2026-03-05)
+
+- fix(client): check response `content-type` header in `postFormData` before calling `response.json()`; extract shared `parseJsonResponse` helper used by both `request()` and `postFormData()`.
+- (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
+
 Version 1.0.34 (2026-03-04)
 
 - chore(dist): remove generated `dist/mail-magic-client.js` artifact from package tree.

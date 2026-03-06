@@ -99,6 +99,24 @@ class TemplateClient {
 		}
 	}
 
+	private async parseJsonResponse<T>(response: Response): Promise<T> {
+		const contentType = response.headers.get('content-type') || '';
+		if (!contentType.includes('application/json')) {
+			const text = await response.text();
+			throw new Error(
+				`FETCH FAILED: ${response.status} unexpected content-type "${contentType}" - ${text.slice(0, 200)}`
+			);
+		}
+		const j = await response.json();
+		if (response.ok) {
+			return j;
+		}
+		if (j && j.message) {
+			throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
+		}
+		throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
+	}
+
 	async request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', command: string, body?: RequestBody): Promise<T> {
 		const url = `${this.baseURL}${command}`;
 		const headers: Record<string, string> = {
@@ -115,22 +133,7 @@ class TemplateClient {
 			options.body = JSON.stringify(body);
 		}
 		const response = await fetch(url, options);
-		const contentType = response.headers.get('content-type') || '';
-		if (!contentType.includes('application/json')) {
-			const text = await response.text();
-			throw new Error(
-				`FETCH FAILED: ${response.status} unexpected content-type "${contentType}" - ${text.slice(0, 200)}`
-			);
-		}
-		const j = await response.json();
-		if (response.ok) {
-			return j;
-		}
-		if (j && j.message) {
-			throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
-		} else {
-			throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
-		}
+		return this.parseJsonResponse<T>(response);
 	}
 
 	async get<T>(command: string): Promise<T> {
@@ -235,14 +238,7 @@ class TemplateClient {
 			},
 			body: formData
 		});
-		const j = await response.json();
-		if (response.ok) {
-			return j;
-		}
-		if (j && j.message) {
-			throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
-		}
-		throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
+		return this.parseJsonResponse<T>(response);
 	}
 
 	async storeTemplate(td: StoreTxTemplateInput): Promise<ApiResponse> {

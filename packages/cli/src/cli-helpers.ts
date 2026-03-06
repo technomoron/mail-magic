@@ -167,6 +167,7 @@ function resolveTemplateName(template: string, inputDir: string): string {
 	return cleaned.endsWith('.njk') ? cleaned.slice(0, -4) : cleaned;
 }
 
+// Duplicated from packages/server/src/util/utils.ts — keep in sync.
 function normalizeSlug(input: string): string {
 	if (!input) {
 		return '';

@@ -105,6 +105,9 @@ export class MailerAPI extends ApiModule<mailApiServer> {
 				throw new ApiError({ code: 400, message: 'Invalid JSON provided in "vars"' });
 			}
 		}
+		if (!parsedVars || typeof parsedVars !== 'object' || Array.isArray(parsedVars)) {
+			throw new ApiError({ code: 400, message: '"vars" must be a JSON object' });
+		}
 		const thevars = parsedVars as Record<string, unknown>;
 
 		const { valid, invalid } = this.validateEmails(rcpt);

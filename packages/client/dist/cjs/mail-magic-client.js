@@ -15,6 +15,21 @@ class TemplateClient {
             throw new Error('Apikey/api-url required');
         }
     }
+    async parseJsonResponse(response) {
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(`FETCH FAILED: ${response.status} unexpected content-type "${contentType}" - ${text.slice(0, 200)}`);
+        }
+        const j = await response.json();
+        if (response.ok) {
+            return j;
+        }
+        if (j && j.message) {
+            throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
+        }
+        throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
+    }
     async request(method, command, body) {
         const url = `${this.baseURL}${command}`;
         const headers = {
@@ -31,21 +46,7 @@ class TemplateClient {
             options.body = JSON.stringify(body);
         }
         const response = await fetch(url, options);
-        const contentType = response.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-            const text = await response.text();
-            throw new Error(`FETCH FAILED: ${response.status} unexpected content-type "${contentType}" - ${text.slice(0, 200)}`);
-        }
-        const j = await response.json();
-        if (response.ok) {
-            return j;
-        }
-        if (j && j.message) {
-            throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
-        }
-        else {
-            throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
-        }
+        return this.parseJsonResponse(response);
     }
     async get(command) {
         return this.request('GET', command);
@@ -144,14 +145,7 @@ class TemplateClient {
             },
             body: formData
         });
-        const j = await response.json();
-        if (response.ok) {
-            return j;
-        }
-        if (j && j.message) {
-            throw new Error(`FETCH FAILED: ${response.status} ${j.message}`);
-        }
-        throw new Error(`FETCH FAILED: ${response.status} ${response.statusText}`);
+        return this.parseJsonResponse(response);
     }
     async storeTemplate(td) {
         // Backward-compatible alias for transactional template storage.

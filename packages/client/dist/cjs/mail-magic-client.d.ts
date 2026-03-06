@@ -77,6 +77,7 @@ declare class TemplateClient {
     private baseURL;
     private apiKey;
     constructor(baseURL: string, apiKey: string);
+    private parseJsonResponse;
     request<T>(method: 'GET' | 'POST' | 'PUT' | 'DELETE', command: string, body?: RequestBody): Promise<T>;
     get<T>(command: string): Promise<T>;
     post<T>(command: string, body: RequestBody): Promise<T>;

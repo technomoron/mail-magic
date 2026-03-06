@@ -97,7 +97,11 @@ program
 				subject: program.opts().subject,
 				locale: program.opts().locale,
 				domain: program.opts().domain,
-				part: !!program.opts().part
+				part: ['true', '1', 'yes', 'on'].includes(
+					String(program.opts().part ?? '')
+						.trim()
+						.toLowerCase()
+				)
 			};
 			await client.storeTemplate(templateData);
 			console.log('Template updated');

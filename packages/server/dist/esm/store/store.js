@@ -38,8 +38,12 @@ export function enableInitDataAutoReload(ctx, reload) {
         debounceTimer = setTimeout(() => {
             debounceTimer = null;
             ctx.print_debug('Config file changed, reloading...');
+            // reload() may be sync or async — try/catch handles a synchronous
+            // throw, while Promise.resolve().catch() handles an async rejection.
             try {
-                reload();
+                Promise.resolve(reload()).catch((err) => {
+                    ctx.print_debug(`Failed to reload config: ${err}`);
+                });
             }
             catch (err) {
                 ctx.print_debug(`Failed to reload config: ${err}`);
