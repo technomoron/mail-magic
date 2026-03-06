@@ -15,9 +15,14 @@ export const envOptions = defineEnvOptions({
         default: '0.0.0.0'
     },
     DB_AUTO_RELOAD: {
-        description: 'Reload init-data.json automatically on change',
+        description: 'Watch init-data.json and *.njk template files for changes and reload automatically',
         type: 'boolean',
         default: false
+    },
+    DB_RELOAD_DEBOUNCE_MS: {
+        description: 'Debounce delay in milliseconds before triggering a reload after a file change (default 300)',
+        type: 'number',
+        default: 300
     },
     DB_FORCE_SYNC: {
         description: 'Drop and recreate database tables on startup (DANGEROUS)',

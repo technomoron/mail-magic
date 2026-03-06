@@ -13,6 +13,12 @@ vi.mock('chokidar', () => ({
 	watch: vi.fn(() => mockChokidarWatcher)
 }));
 
+const ctx = (overrides: { DB_AUTO_RELOAD?: boolean; DB_RELOAD_DEBOUNCE_MS?: number } = {}) => ({
+	vars: { DB_AUTO_RELOAD: true, DB_RELOAD_DEBOUNCE_MS: 300, ...overrides },
+	config_filename: (name: string) => `/tmp/config/${name}`,
+	print_debug: vi.fn()
+});
+
 describe('enableInitDataAutoReload', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
@@ -34,17 +40,9 @@ describe('enableInitDataAutoReload', () => {
 			return { close: closeSpy } as unknown as fs.FSWatcher;
 		}) as typeof fs.watch);
 		const watchFileSpy = vi.spyOn(fs, 'watchFile');
-		const debugSpy = vi.fn();
 		const reloadSpy = vi.fn();
 
-		const handle = enableInitDataAutoReload(
-			{
-				vars: { DB_AUTO_RELOAD: true },
-				config_filename: (name) => `/tmp/${name}`,
-				print_debug: debugSpy
-			},
-			reloadSpy
-		);
+		const handle = enableInitDataAutoReload(ctx(), reloadSpy);
 
 		expect(handle).toBeTruthy();
 		expect(watchSpy).toHaveBeenCalledTimes(1);
@@ -75,17 +73,10 @@ describe('enableInitDataAutoReload', () => {
 			listener(stats, stats);
 		}) as typeof fs.watchFile);
 		const unwatchSpy = vi.spyOn(fs, 'unwatchFile').mockImplementation((() => undefined) as typeof fs.unwatchFile);
-		const debugSpy = vi.fn();
+		const c = ctx();
 		const reloadSpy = vi.fn();
 
-		const handle = enableInitDataAutoReload(
-			{
-				vars: { DB_AUTO_RELOAD: true },
-				config_filename: (name) => `/tmp/${name}`,
-				print_debug: debugSpy
-			},
-			reloadSpy
-		);
+		const handle = enableInitDataAutoReload(c, reloadSpy);
 
 		expect(handle).toBeTruthy();
 		expect(watchSpy).toHaveBeenCalledTimes(1);
@@ -95,7 +86,7 @@ describe('enableInitDataAutoReload', () => {
 		expect(reloadSpy).not.toHaveBeenCalled();
 		vi.advanceTimersByTime(300);
 		expect(reloadSpy).toHaveBeenCalledTimes(1);
-		expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('falling back to fs.watchFile'));
+		expect(c.print_debug).toHaveBeenCalledWith(expect.stringContaining('falling back to fs.watchFile'));
 
 		handle?.close();
 		expect(unwatchSpy).toHaveBeenCalledTimes(1);
@@ -110,14 +101,7 @@ describe('enableInitDataAutoReload', () => {
 		const watchFileSpy = vi.spyOn(fs, 'watchFile');
 		const reloadSpy = vi.fn();
 
-		const handle = enableInitDataAutoReload(
-			{
-				vars: { DB_AUTO_RELOAD: false },
-				config_filename: (name) => `/tmp/${name}`,
-				print_debug: vi.fn()
-			},
-			reloadSpy
-		);
+		const handle = enableInitDataAutoReload(ctx({ DB_AUTO_RELOAD: false }), reloadSpy);
 
 		expect(handle).toBeNull();
 		expect(watchSpy).not.toHaveBeenCalled();
@@ -135,17 +119,9 @@ describe('enableInitDataAutoReload', () => {
 
 		const reloadSpy = vi.fn();
 		const reloadForceSpy = vi.fn();
-		const debugSpy = vi.fn();
+		const c = ctx();
 
-		const handle = enableInitDataAutoReload(
-			{
-				vars: { DB_AUTO_RELOAD: true },
-				config_filename: (name) => `/tmp/config/${name}`,
-				print_debug: debugSpy
-			},
-			reloadSpy,
-			reloadForceSpy
-		);
+		const handle = enableInitDataAutoReload(c, reloadSpy, reloadForceSpy);
 
 		expect(handle).toBeTruthy();
 		expect(chokidarWatch).toHaveBeenCalledWith(
@@ -154,7 +130,7 @@ describe('enableInitDataAutoReload', () => {
 		);
 		expect(mockChokidarOn).toHaveBeenCalledWith('add', expect.any(Function));
 		expect(mockChokidarOn).toHaveBeenCalledWith('change', expect.any(Function));
-		expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('template files'));
+		expect(c.print_debug).toHaveBeenCalledWith(expect.stringContaining('template files'));
 
 		// Simulate a .njk file change via the registered 'change' handler.
 		const changeHandler = mockChokidarOn.mock.calls.find(([event]) => event === 'change')?.[1] as () => void;
@@ -177,17 +153,31 @@ describe('enableInitDataAutoReload', () => {
 			close: vi.fn()
 		})) as unknown as typeof fs.watch);
 
-		enableInitDataAutoReload(
-			{
-				vars: { DB_AUTO_RELOAD: true },
-				config_filename: (name) => `/tmp/config/${name}`,
-				print_debug: vi.fn()
-			},
-			vi.fn()
-			// no reloadForce
-		);
+		enableInitDataAutoReload(ctx(), vi.fn());
 
 		expect(chokidarWatch).not.toHaveBeenCalled();
+
+		vi.mocked(fs.watch).mockRestore();
+	});
+
+	test('respects DB_RELOAD_DEBOUNCE_MS from context', () => {
+		vi.spyOn(fs, 'watch').mockImplementation(((
+			_path: fs.PathLike,
+			_options: unknown,
+			listener: fs.WatchListener<string>
+		) => {
+			listener('change', 'init-data.json');
+			return { close: vi.fn() } as unknown as fs.FSWatcher;
+		}) as typeof fs.watch);
+
+		const reloadSpy = vi.fn();
+		enableInitDataAutoReload(ctx({ DB_RELOAD_DEBOUNCE_MS: 1000 }), reloadSpy);
+
+		vi.advanceTimersByTime(300);
+		expect(reloadSpy).not.toHaveBeenCalled(); // not yet
+
+		vi.advanceTimersByTime(700);
+		expect(reloadSpy).toHaveBeenCalledTimes(1); // fires at 1000ms
 
 		vi.mocked(fs.watch).mockRestore();
 	});

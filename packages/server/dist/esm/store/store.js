@@ -31,6 +31,7 @@ export function enableInitDataAutoReload(ctx, reload, reloadForce) {
     }
     const initDataPath = ctx.config_filename('init-data.json');
     const configPath = path.dirname(initDataPath);
+    const debounceMs = ctx.vars.DB_RELOAD_DEBOUNCE_MS ?? 300;
     function makeDebounced(fn, label) {
         let timer = null;
         const trigger = () => {
@@ -49,7 +50,7 @@ export function enableInitDataAutoReload(ctx, reload, reloadForce) {
                 catch (err) {
                     ctx.print_debug(`Failed to reload: ${err}`);
                 }
-            }, 300);
+            }, debounceMs);
         };
         const cancel = () => {
             if (timer) {

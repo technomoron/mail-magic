@@ -26,7 +26,7 @@ type AutoReloadHandle = {
 };
 
 type AutoReloadContext = {
-	vars: Pick<MailStoreVars, 'DB_AUTO_RELOAD'>;
+	vars: Pick<MailStoreVars, 'DB_AUTO_RELOAD' | 'DB_RELOAD_DEBOUNCE_MS'>;
 	config_filename: (name: string) => string;
 	print_debug: (msg: string) => void;
 };
@@ -62,6 +62,7 @@ export function enableInitDataAutoReload(
 	}
 	const initDataPath = ctx.config_filename('init-data.json');
 	const configPath = path.dirname(initDataPath);
+	const debounceMs = ctx.vars.DB_RELOAD_DEBOUNCE_MS ?? 300;
 
 	function makeDebounced(fn: () => void | Promise<void>, label: string) {
 		let timer: ReturnType<typeof setTimeout> | null = null;
@@ -79,7 +80,7 @@ export function enableInitDataAutoReload(
 				} catch (err) {
 					ctx.print_debug(`Failed to reload: ${err}`);
 				}
-			}, 300);
+			}, debounceMs);
 		};
 		const cancel = () => {
 			if (timer) {

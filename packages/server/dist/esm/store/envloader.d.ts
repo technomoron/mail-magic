@@ -18,6 +18,11 @@ export declare const envOptions: {
         type: "boolean";
         default: false;
     };
+    DB_RELOAD_DEBOUNCE_MS: {
+        description: string;
+        type: "number";
+        default: number;
+    };
     DB_FORCE_SYNC: {
         description: string;
         type: "boolean";

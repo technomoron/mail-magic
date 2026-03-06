@@ -14,7 +14,7 @@ type AutoReloadHandle = {
     close: () => void;
 };
 type AutoReloadContext = {
-    vars: Pick<MailStoreVars, 'DB_AUTO_RELOAD'>;
+    vars: Pick<MailStoreVars, 'DB_AUTO_RELOAD' | 'DB_RELOAD_DEBOUNCE_MS'>;
     config_filename: (name: string) => string;
     print_debug: (msg: string) => void;
 };
