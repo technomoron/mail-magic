@@ -3,7 +3,18 @@ set -euo pipefail
 
 PKG_DIR="${1:-$(pwd)}"
 MODE="${2:-normal}"
+if [ "$MODE" = "--" ]; then
+	MODE="${3:-normal}"
+fi
 PKG_DIR="$(cd "$PKG_DIR" && pwd)"
+
+is_local_mode() {
+	[ "$MODE" = "--local" ]
+}
+
+is_ci_mode() {
+	[ "$MODE" = "--ci" ]
+}
 
 skip() {
 	local message="$1"
@@ -25,30 +36,32 @@ if [ -z "$REPO_ROOT" ]; then
 	exit 1
 fi
 
-if [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
+if ! is_local_mode && ! is_ci_mode && [ -n "$(git -C "$REPO_ROOT" status --porcelain)" ]; then
 	echo "Working tree is not clean in $REPO_ROOT. Commit or stash changes before release." >&2
 	exit 1
 fi
 
-BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD)"
-UPSTREAM="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)"
-if [ -z "$UPSTREAM" ]; then
-	echo "No upstream configured for ${BRANCH} in ${REPO_ROOT}. Set upstream before release." >&2
-	exit 1
-fi
+if ! is_local_mode && ! is_ci_mode; then
+	BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD)"
+	UPSTREAM="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null || true)"
+	if [ -z "$UPSTREAM" ]; then
+		echo "No upstream configured for ${BRANCH} in ${REPO_ROOT}. Set upstream before release." >&2
+		exit 1
+	fi
 
-if ! git -C "$REPO_ROOT" fetch --quiet; then
-	echo "Failed to fetch remote updates for ${REPO_ROOT}. Check network/remote access." >&2
-	exit 1
-fi
+	if ! git -C "$REPO_ROOT" fetch --quiet; then
+		echo "Failed to fetch remote updates for ${REPO_ROOT}. Check network/remote access." >&2
+		exit 1
+	fi
 
-set -- $(git -C "$REPO_ROOT" rev-list --left-right --count "${UPSTREAM}...HEAD")
-BEHIND="$1"
-AHEAD="$2"
-if [ "$BEHIND" -ne 0 ] || [ "$AHEAD" -ne 0 ]; then
-	echo "Branch ${BRANCH} is not in sync with ${UPSTREAM} in ${REPO_ROOT} (behind ${BEHIND}, ahead ${AHEAD})." >&2
-	echo "Pull/push until branch matches upstream before release." >&2
-	exit 1
+	set -- $(git -C "$REPO_ROOT" rev-list --left-right --count "${UPSTREAM}...HEAD")
+	BEHIND="$1"
+	AHEAD="$2"
+	if [ "$BEHIND" -ne 0 ] || [ "$AHEAD" -ne 0 ]; then
+		echo "Branch ${BRANCH} is not in sync with ${UPSTREAM} in ${REPO_ROOT} (behind ${BEHIND}, ahead ${AHEAD})." >&2
+		echo "Pull/push until branch matches upstream before release." >&2
+		exit 1
+	fi
 fi
 
 NAME="$(node -p "require('$PKG_DIR/package.json').name")"
@@ -59,11 +72,23 @@ if [ "$PRIVATE" = "true" ]; then
 	skip "${NAME}: private package."
 fi
 
-if git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/${NAME}@${VERSION}" >/dev/null; then
+if ! is_ci_mode && git -C "$REPO_ROOT" rev-parse -q --verify "refs/tags/${NAME}@${VERSION}" >/dev/null; then
 	skip "${NAME}: tag ${NAME}@${VERSION} already exists."
 fi
 
-LAST_TAG="$(git -C "$REPO_ROOT" tag -l "${NAME}@*" --sort=-v:refname | head -n1 || true)"
+if is_ci_mode && [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+	EXPECTED_TAG="${NAME}@${VERSION}"
+	if [ "${GITHUB_REF_NAME:-}" != "$EXPECTED_TAG" ]; then
+		echo "Workflow tag ${GITHUB_REF_NAME:-<missing>} does not match expected package tag ${EXPECTED_TAG}." >&2
+		exit 1
+	fi
+fi
+
+if is_ci_mode; then
+	LAST_TAG="$(git -C "$REPO_ROOT" tag -l "${NAME}@*" --sort=-v:refname | grep -vx "${NAME}@${VERSION}" | head -n1 || true)"
+else
+	LAST_TAG="$(git -C "$REPO_ROOT" tag -l "${NAME}@*" --sort=-v:refname | head -n1 || true)"
+fi
 LAST_VERSION=""
 if [ -n "$LAST_TAG" ]; then
 	LAST_VERSION="${LAST_TAG##*@}"

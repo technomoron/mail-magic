@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic-admin",
-	"version": "0.0.3",
+	"version": "0.1.0",
 	"description": "Admin UI for mail-magic (placeholder)",
 	"type": "module",
 	"main": "index.js",
@@ -16,7 +16,8 @@
 		"cleanbuild": "run-s clean:dist format build",
 		"clean:dist": "rimraf ./dist/",
 		"release": "bash ../../scripts/release-package.sh .",
-		"release:check": "bash ../../scripts/release-package-check.sh ."
+		"release:check": "bash ../../scripts/release-package-check.sh .",
+		"release:preflight": "bash ../../scripts/release-package-preflight.sh ."
 	},
 	"files": [
 		"dist/**",

@@ -1,9 +1,9 @@
-name: Release mail-magic
+name: Release mail-magic-cli
 
 on:
     push:
         tags:
-            - '@technomoron/mail-magic@*'
+            - '@technomoron/mail-magic-cli@*'
     workflow_dispatch:
 
 permissions:
@@ -36,21 +36,21 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Verify Release Candidate
-              run: pnpm release:verify -- --ci packages/server
+              run: pnpm release:verify -- --ci packages/cli
 
             - name: Pack npm Package
               run: npm pack
-              working-directory: packages/server
+              working-directory: packages/cli
 
             - name: Publish npm Package
               if: github.event_name == 'push'
-              run: bash ./scripts/release-package-publish.sh packages/server --ci
+              run: bash ./scripts/release-package-publish.sh packages/cli --ci
 
             - name: Create GitHub Release
               if: github.event_name == 'push'
               uses: softprops/action-gh-release@v1
               with:
                   files: |
-                      packages/server/*.tgz
+                      packages/cli/*.tgz
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

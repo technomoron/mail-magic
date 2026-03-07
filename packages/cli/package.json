@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic-cli",
-	"version": "1.0.3",
+	"version": "2.0.0-beta1",
 	"description": "CLI for mail-magic",
 	"main": "dist/cli.js",
 	"bin": {
@@ -23,11 +23,24 @@
 		"cleanbuild": "run-s clean:dist format build",
 		"clean:dist": "rimraf ./dist/",
 		"release": "bash ../../scripts/release-package.sh .",
-		"release:check": "bash ../../scripts/release-package-check.sh ."
+		"release:check": "bash ../../scripts/release-package-check.sh .",
+		"release:preflight": "bash ../../scripts/release-package-preflight.sh ."
 	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/technomoron/mail-magic.git",
+		"directory": "packages/cli"
+	},
+	"author": "Bjørn Erik Jacobsen",
 	"license": "MIT",
+	"files": [
+		"dist/**/*.js",
+		"README.md",
+		"CHANGES",
+		"package.json"
+	],
 	"dependencies": {
-		"@technomoron/mail-magic-client": "workspace:*",
+		"@technomoron/mail-magic-client": "^2.0.0-beta1",
 		"cheerio": "^1.1.2",
 		"commander": "^10.0.1",
 		"juice": "^11.0.1",
@@ -38,5 +51,9 @@
 		"@types/nunjucks": "^3.2.6",
 		"typescript": "^5.9.3",
 		"vitest": "^4.0.16"
-	}
+	},
+	"bugs": {
+		"url": "https://github.com/technomoron/mail-magic/issues"
+	},
+	"homepage": "https://github.com/technomoron/mail-magic#readme"
 }

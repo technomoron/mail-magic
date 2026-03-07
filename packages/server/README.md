@@ -38,13 +38,25 @@ endpoint, use the OpenAPI spec described in **Swagger / OpenAPI** below.
 npm install @technomoron/mail-magic
 ```
 
-The package ships a `mail-magic` CLI that loads a `.env` file and starts the server.
+The package ships a `mail-magic` CLI that loads a `.env` file and starts the server. It also ships a runnable example
+env/config tree under `examples/`.
 
 ## Quick Start
 
 ### 1. Create a `.env`
 
-Start from the repo’s `.env-dist` and set at least:
+If you installed from npm, start from:
+
+`node_modules/@technomoron/mail-magic/examples/.env-dist`
+
+If you are working from the monorepo, the same file lives at:
+
+`packages/server/examples/.env-dist`
+
+That example env is tuned for local development. For internet-facing form deployments, review the security notes and set
+stricter values for rate limiting, CAPTCHA, attachment limits, schema migration, and SMTP TLS verification.
+
+Set at least:
 
 ```ini
 # REQUIRED. Keep stable: used to HMAC API tokens before DB lookup.
@@ -64,6 +76,14 @@ SMTP_TLS_REJECT=false
 ```
 
 ### 2. Create a minimal config directory
+
+If you want a ready-made starting point instead of creating one from scratch, copy:
+
+- `node_modules/@technomoron/mail-magic/examples/data`
+
+or, from the monorepo:
+
+- `packages/server/examples/data`
 
 `CONFIG_PATH` points at a directory containing `init-data.json` plus per-domain subfolders:
 

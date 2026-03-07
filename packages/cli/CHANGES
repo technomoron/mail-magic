@@ -1,10 +1,22 @@
 CHANGES
 =======
 
-Unreleased (2026-03-06)
+Unreleased (2026-03-07)
+
+- chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
+- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+
+Version 2.0.0-beta1 (2026-03-07)
+
+- chore(release): stage the `2.0.0-beta1` prerelease and align package metadata with it.
+- chore(release): add a GitHub Actions CLI release workflow that verifies, packs, publishes to npm on tag pushes, and creates a GitHub Release.
+- chore(package): replace the internal `workspace:*` client dependency with a publishable `^2.0.0-beta1` range and add a `files` whitelist for the public CLI tarball.
+- chore(release): add shared local/CI release verification tooling plus a local `npm publish --dry-run` path so package publication can be smoke-tested before tagging.
+- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+
+Version 1.0.4 (2026-03-06)
 
 - feat(cli): add `mm-cli reload` command to trigger a server-side force-reload via the API.
-
 - fix(push-dir): preserve newer form config fields and patch returned `form_key` values even when a form inherits locale from the domain default.
 - test(push-dir): add regression coverage for form field round-tripping and inherited-locale `--patch-source-ids` write-back.
 - (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)

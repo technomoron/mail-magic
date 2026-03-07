@@ -2,7 +2,7 @@
 	"openapi": "3.1.0",
 	"info": {
 		"title": "Mail Magic API",
-		"version": "1.0.42",
+		"version": "2.0.0-beta1",
 		"description": "OpenAPI definition for the Mail Magic server. Authenticated endpoints require an API key provided as `Authorization: Bearer apikey-<token>`."
 	},
 	"servers": [
@@ -699,6 +699,63 @@
 				}
 			}
 		},
+		"/api/v1/reload": {
+			"post": {
+				"tags": ["base"],
+				"summary": "Force reload templates and config",
+				"description": "Auth: API key. Triggers a force-reload of init-data metadata and all templates from disk. Returns whether the reload started immediately or was queued behind a reload already in progress.",
+				"security": [
+					{
+						"apiKeyBearer": []
+					}
+				],
+				"responses": {
+					"200": {
+						"description": "Reload request accepted.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"allOf": [
+										{
+											"$ref": "#/components/schemas/ApiResponse"
+										},
+										{
+											"type": "object",
+											"properties": {
+												"data": {
+													"$ref": "#/components/schemas/ReloadResponseData"
+												}
+											},
+											"required": ["data"]
+										}
+									]
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Server error.",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse"
+								}
+							}
+						}
+					}
+				}
+			}
+		},
 		"/asset/{domain}/{path}": {
 			"get": {
 				"tags": ["public-assets"],
@@ -890,6 +947,21 @@
 					}
 				},
 				"required": ["Status"]
+			},
+			"ReloadResponseData": {
+				"type": "object",
+				"properties": {
+					"Status": {
+						"type": "string",
+						"examples": ["OK"]
+					},
+					"reload": {
+						"type": "string",
+						"enum": ["triggered", "queued"],
+						"description": "Whether a new force-reload started immediately or was queued behind one already in progress."
+					}
+				},
+				"required": ["Status", "reload"]
 			},
 			"TxTemplateUpsertRequest": {
 				"type": "object",

@@ -1,6 +1,6 @@
 {
 	"name": "@technomoron/mail-magic",
-	"version": "1.0.44",
+	"version": "2.0.0-beta1",
 	"main": "dist/cjs/index.js",
 	"module": "dist/esm/index.js",
 	"type": "module",
@@ -48,7 +48,8 @@
 		"lintconfig": "node ../../lintconfig.cjs",
 		"clean:dist": "rimraf ./dist/",
 		"release": "bash ../../scripts/release-package.sh .",
-		"release:check": "bash ../../scripts/release-package-check.sh ."
+		"release:check": "bash ../../scripts/release-package-check.sh .",
+		"release:preflight": "bash ../../scripts/release-package-preflight.sh ."
 	},
 	"keywords": [],
 	"author": "Bjørn Erik Jacobsen",

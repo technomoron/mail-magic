@@ -1,0 +1,179 @@
+GitHub -> npmjs release notes for mail-magic
+===========================================
+
+This repo now has a shared release verification and publish path for both local use and GitHub Actions.
+
+Developer preflight
+-------------------
+
+If you want one local command that formats/fixes files, rebuilds, runs tests, and then checks release metadata, use:
+
+  pnpm release:preflight
+
+That command is developer-oriented and mutates the working tree via `cleanbuild`, which keeps diffs clean before a
+release commit. It defaults to all packages, or you can scope it:
+
+  pnpm release:preflight -- packages/cli
+
+Each package also exposes its own package-local preflight command, so from inside a package directory you can run:
+
+  pnpm release:preflight
+
+Local pre-tag verification
+--------------------------
+
+Run the full workspace gate plus package release checks before tagging:
+
+  pnpm release:verify -- packages/server
+  pnpm release:verify -- packages/client
+  pnpm release:verify -- packages/cli
+
+What this does:
+
+  1. pnpm lint
+  2. pnpm test
+  3. pnpm build
+  4. package release:check in --local mode
+
+Unlike `release:preflight`, `release:verify` is non-mutating. It is the closest local equivalent to what CI runs.
+
+`--local` mode is intended for a developer machine before tagging:
+
+  - it does NOT require a clean working tree
+  - it does NOT require an upstream branch or network fetch
+  - it DOES still validate version/changelog/package state
+
+You can also run the metadata-only local check directly:
+
+  pnpm release:check -- --local packages/server
+  pnpm release:check -- --local packages/client
+  pnpm release:check -- --local packages/cli
+
+Local publish dry-run
+---------------------
+
+To test the same publish command used by GitHub Actions without uploading anything:
+
+  pnpm release:publish:dry-run -- packages/server
+  pnpm release:publish:dry-run -- packages/client
+  pnpm release:publish:dry-run -- packages/cli
+
+This uses `npm publish --dry-run` under the hood so the packed contents and lifecycle scripts are exercised locally.
+If no npm cache is configured, the helper uses a temporary cache under `/tmp` so local dry-runs do not depend on the
+state of `~/.npm`.
+
+GitHub Actions release flow
+---------------------------
+
+The GitHub release workflows now run:
+
+  pnpm release:verify -- --ci packages/server
+  pnpm release:verify -- --ci packages/client
+  pnpm release:verify -- --ci packages/cli
+  npm pack
+  npm publish
+  GitHub Release creation
+
+`--ci` mode is intended for tag-triggered workflows:
+
+  - it accepts the already-existing pushed tag
+  - it validates that the workflow tag matches the package version
+  - it skips local-only checks like working tree cleanliness and upstream sync
+
+Manual `workflow_dispatch` runs are safe smoke tests:
+
+  - they verify and pack
+  - they do NOT publish to npm
+  - they do NOT create a GitHub Release
+
+Actual npm publication and GitHub Release creation only happen on matching tag pushes.
+
+Trusted Publishing (recommended)
+--------------------------------
+
+npm now recommends Trusted Publishing for GitHub-hosted Actions instead of long-lived tokens.
+
+Per package on npmjs.com:
+
+  1. Open the package page
+  2. Go to Settings -> Trusted publishing
+  3. Choose GitHub Actions
+  4. Set:
+       Organization or user: technomoron
+       Repository: mail-magic
+       Workflow filename: release-mail-magic.yml (server)
+       Workflow filename: release-mail-magic-client.yml (client)
+       Workflow filename: release-mail-magic-cli.yml (cli)
+       Environment name: leave blank unless you use a protected Actions environment
+
+Important:
+
+  - Trusted publishing is configured per npm package
+  - `@technomoron/mail-magic`, `@technomoron/mail-magic-client`, and `@technomoron/mail-magic-cli` must each be configured separately
+  - the workflows already use Node 24 and `permissions.id-token: write`
+
+Creating NPM_TOKEN
+------------------
+
+Only use this if you choose token-based publishing instead of Trusted Publishing.
+
+If you want GitHub Actions to publish to npm using a token:
+
+  1. Log in to https://www.npmjs.com/
+  2. Click your avatar -> Access Tokens
+  3. Generate a new token
+  4. Use a publish-capable token suitable for CI
+  5. Copy the token immediately
+
+Suggested values in the npm UI:
+
+  Token name:
+    GITHUB-PUBLISH
+
+  Description:
+    Automatic package publishing to npmjs.org
+
+  Allowed IP ranges:
+    Leave blank for GitHub-hosted runners
+
+Then store it in GitHub:
+
+  1. Repository Settings -> Secrets and variables -> Actions
+  2. New repository secret
+  3. Name: NPM_TOKEN
+  4. Value: paste the npm token
+
+Workflow publish env:
+
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+Important note
+--------------
+
+npm currently recommends Trusted Publishing instead of long-lived tokens for GitHub-hosted Actions runners.
+The workflows in this repo are set up for Trusted Publishing. If you switch back to token-based publishing later:
+
+  - use Node 24 (already set in the workflows)
+  - keep `permissions.id-token: write`
+  - add `NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}` to the publish step
+  - remove the token-based publish secret if you move back to Trusted Publishing
+
+Suggested release sequence
+--------------------------
+
+  1. Update package versions and CHANGES
+  2. Run local verification:
+       pnpm release:verify -- packages/server
+       pnpm release:verify -- packages/client
+       pnpm release:verify -- packages/cli
+  3. Run local publish dry-runs:
+       pnpm release:publish:dry-run -- packages/server
+       pnpm release:publish:dry-run -- packages/client
+       pnpm release:publish:dry-run -- packages/cli
+  4. Commit
+  5. Tag:
+       git tag -a @technomoron/mail-magic@<version> -m "Release @technomoron/mail-magic <version>"
+       git tag -a @technomoron/mail-magic-client@<version> -m "Release @technomoron/mail-magic-client <version>"
+       git tag -a @technomoron/mail-magic-cli@<version> -m "Release @technomoron/mail-magic-cli <version>"
+  6. Push branch and tags
+  7. Let GitHub Actions verify, pack, publish to npm, and create the GitHub Release

@@ -1,47 +1,56 @@
 name: Release mail-magic-client
 
 on:
-  push:
-    tags:
-      - '@technomoron/mail-magic-client@*'
-  workflow_dispatch:
+    push:
+        tags:
+            - '@technomoron/mail-magic-client@*'
+    workflow_dispatch:
 
 permissions:
-  contents: write
+    contents: write
+    id-token: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+    release:
+        runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout Code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+            - name: Set up pnpm
+              uses: pnpm/action-setup@v4
+              with:
+                  version: 10
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '24'
+                  cache: 'pnpm'
+                  registry-url: 'https://registry.npmjs.org'
 
-      - name: Install Dependencies
-        run: pnpm install --frozen-lockfile
+            - name: Install Dependencies
+              run: pnpm install --frozen-lockfile
 
-      - name: Build Package
-        run: pnpm run client
+            - name: Verify Release Candidate
+              run: pnpm release:verify -- --ci packages/client
 
-      - name: Pack npm Package
-        run: npm pack
-        working-directory: packages/client
+            - name: Pack npm Package
+              run: npm pack
+              working-directory: packages/client
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            packages/client/*.tgz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Publish npm Package
+              if: github.event_name == 'push'
+              run: bash ./scripts/release-package-publish.sh packages/client --ci
+
+            - name: Create GitHub Release
+              if: github.event_name == 'push'
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: |
+                      packages/client/*.tgz
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

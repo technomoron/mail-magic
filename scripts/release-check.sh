@@ -3,12 +3,37 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-PACKAGE_DIRS=(
-	"$ROOT/packages/server"
-	"$ROOT/packages/client"
-	"$ROOT/packages/cli"
-	"$ROOT/packages/admin"
-)
+MODE="normal"
+declare -a PACKAGE_DIRS=()
+
+resolve_pkg_dir() {
+	local raw="$1"
+	if [ -d "$raw" ]; then
+		(cd "$raw" && pwd)
+	else
+		(cd "$ROOT" && cd "$raw" && pwd)
+	fi
+}
+
+for arg in "$@"; do
+	case "$arg" in
+		--local|--ci|--strict-ready)
+			MODE="$arg"
+			;;
+		*)
+			PACKAGE_DIRS+=("$(resolve_pkg_dir "$arg")")
+			;;
+	esac
+done
+
+if [ "${#PACKAGE_DIRS[@]}" -eq 0 ]; then
+	PACKAGE_DIRS=(
+		"$ROOT/packages/server"
+		"$ROOT/packages/client"
+		"$ROOT/packages/cli"
+		"$ROOT/packages/admin"
+	)
+fi
 
 checked_count=0
 
@@ -23,7 +48,7 @@ for pkg_dir in "${PACKAGE_DIRS[@]}"; do
 	fi
 
 	echo "Running release readiness for $(basename "$pkg_dir")"
-	if pnpm --dir "$pkg_dir" run release:check; then
+	if pnpm --dir "$pkg_dir" run release:check -- "$MODE"; then
 		checked_count=$((checked_count + 1))
 	else
 		echo "Release readiness failed for $pkg_dir" >&2
