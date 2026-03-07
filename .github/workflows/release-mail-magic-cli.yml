@@ -32,7 +32,7 @@ jobs:
                   registry-url: 'https://registry.npmjs.org'
 
             - name: Install Dependencies
-              run: pnpm install --frozen-lockfile
+              run: pnpm install --no-frozen-lockfile --link-workspace-packages
 
             - name: Verify Release Candidate
               run: pnpm release:verify -- --ci packages/cli
