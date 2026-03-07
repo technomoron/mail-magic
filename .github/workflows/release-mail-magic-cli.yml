@@ -44,6 +44,8 @@ jobs:
             - name: Publish npm Package
               if: github.event_name == 'push'
               run: bash ./scripts/release-package-publish.sh packages/cli --ci
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
             - name: Create GitHub Release
               if: github.event_name == 'push'
