@@ -6,6 +6,7 @@ Unreleased (2026-03-07)
 - chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
 - chore(release): stop using `setup-node` pnpm caching in the GitHub client release workflow because this repo does not ship a `pnpm-lock.yaml`.
 - chore(release): install workspace dependencies with `pnpm install --no-frozen-lockfile --link-workspace-packages` in the GitHub client release workflow because this repo does not ship a `pnpm-lock.yaml` and the CLI depends on the local prerelease client package.
+- chore(release): add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the shared test/build pipeline before publishing the client.
 - (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
 Version 2.0.0-beta1 (2026-03-07)
