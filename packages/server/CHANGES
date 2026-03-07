@@ -4,6 +4,7 @@ CHANGES
 Unreleased (2026-03-07)
 
 - chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
+- chore(release): stop using `setup-node` pnpm caching in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml`.
 - (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
 Version 2.0.0-beta1 (2026-03-07)
