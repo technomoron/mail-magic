@@ -1,6 +1,11 @@
 CHANGES
 =======
 
+Unreleased (2026-03-06)
+
+- feat(reload): add `mailStore.triggerReload(force?)` with in-progress guard — concurrent reload requests are coalesced into a single queued follow-up run rather than running in parallel.
+- feat(reload): add `POST /v1/reload` API endpoint that triggers a force-reload of all templates; returns `{ reload: 'triggered' | 'queued' }`.
+
 Version 1.0.45 (2026-03-06)
 
 - fix(routes): make the server route contract fixed again (`/api`, `/asset`, `/api/swagger`) instead of env-configurable.

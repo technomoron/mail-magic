@@ -140,6 +140,9 @@ export class mailStore {
 	uploadTemplate?: string;
 	uploadStagingPath?: string;
 	autoReloadHandle: AutoReloadHandle | null = null;
+	private reloadInProgress = false;
+	private reloadQueued = false;
+	private reloadQueuedForce = false;
 
 	print_debug(msg: string) {
 		if (this.vars.DEBUG) {
@@ -149,6 +152,35 @@ export class mailStore {
 
 	config_filename(name: string): string {
 		return path.resolve(path.join(this.configpath, name));
+	}
+
+	/**
+	 * Trigger an importData reload. If a reload is already in progress the request is
+	 * queued (at most one pending run) so no reload is silently dropped. Returns
+	 * 'triggered' when a new run starts, or 'queued' when one is already running.
+	 */
+	triggerReload(force = false): 'triggered' | 'queued' {
+		if (this.reloadInProgress) {
+			this.reloadQueued = true;
+			if (force) this.reloadQueuedForce = true;
+			this.print_debug(`Reload already in progress; queued (force=${force})`);
+			return 'queued';
+		}
+		this.reloadInProgress = true;
+		this.print_debug(`Triggering reload (force=${force})`);
+		const fn = force ? () => importData(this, { force: true }) : () => importData(this);
+		Promise.resolve(fn())
+			.catch((err) => this.print_debug(`Reload failed: ${err}`))
+			.finally(() => {
+				this.reloadInProgress = false;
+				if (this.reloadQueued) {
+					this.reloadQueued = false;
+					const queued = this.reloadQueuedForce;
+					this.reloadQueuedForce = false;
+					this.triggerReload(queued);
+				}
+			});
+		return 'triggered';
 	}
 
 	resolveUploadPath(domainName?: string): string {
@@ -274,8 +306,12 @@ export class mailStore {
 		this.autoReloadHandle?.close();
 		this.autoReloadHandle = enableInitDataAutoReload(
 			this,
-			() => importData(this),
-			() => importData(this, { force: true })
+			() => {
+				this.triggerReload(false);
+			},
+			() => {
+				this.triggerReload(true);
+			}
 		);
 
 		return this;

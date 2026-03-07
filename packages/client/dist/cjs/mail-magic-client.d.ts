@@ -100,6 +100,9 @@ declare class TemplateClient {
     storeFormRecipient(data: StoreFormRecipientInput): Promise<ApiResponse>;
     sendFormMessage(data: SendFormMessageInput): Promise<ApiResponse>;
     uploadAssets(data: UploadAssetsInput): Promise<ApiResponse>;
+    triggerReload(): Promise<ApiResponse<{
+        reload: string;
+    }>>;
     getSwaggerSpec(): Promise<ApiResponse>;
     fetchPublicAsset(domain: string, assetPath: string, viaApiBase?: boolean): Promise<ArrayBuffer>;
 }

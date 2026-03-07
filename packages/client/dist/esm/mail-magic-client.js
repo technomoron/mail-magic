@@ -288,6 +288,9 @@ class TemplateClient {
         });
         return this.postFormData('/api/v1/assets', formData);
     }
+    async triggerReload() {
+        return this.post('/api/v1/reload', {});
+    }
     async getSwaggerSpec() {
         return this.get('/api/swagger');
     }

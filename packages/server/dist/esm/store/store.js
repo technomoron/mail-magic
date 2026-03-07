@@ -106,6 +106,9 @@ export class mailStore {
     uploadTemplate;
     uploadStagingPath;
     autoReloadHandle = null;
+    reloadInProgress = false;
+    reloadQueued = false;
+    reloadQueuedForce = false;
     print_debug(msg) {
         if (this.vars.DEBUG) {
             console.log(msg);
@@ -113,6 +116,35 @@ export class mailStore {
     }
     config_filename(name) {
         return path.resolve(path.join(this.configpath, name));
+    }
+    /**
+     * Trigger an importData reload. If a reload is already in progress the request is
+     * queued (at most one pending run) so no reload is silently dropped. Returns
+     * 'triggered' when a new run starts, or 'queued' when one is already running.
+     */
+    triggerReload(force = false) {
+        if (this.reloadInProgress) {
+            this.reloadQueued = true;
+            if (force)
+                this.reloadQueuedForce = true;
+            this.print_debug(`Reload already in progress; queued (force=${force})`);
+            return 'queued';
+        }
+        this.reloadInProgress = true;
+        this.print_debug(`Triggering reload (force=${force})`);
+        const fn = force ? () => importData(this, { force: true }) : () => importData(this);
+        Promise.resolve(fn())
+            .catch((err) => this.print_debug(`Reload failed: ${err}`))
+            .finally(() => {
+            this.reloadInProgress = false;
+            if (this.reloadQueued) {
+                this.reloadQueued = false;
+                const queued = this.reloadQueuedForce;
+                this.reloadQueuedForce = false;
+                this.triggerReload(queued);
+            }
+        });
+        return 'triggered';
     }
     resolveUploadPath(domainName) {
         const raw = this.vars.UPLOAD_PATH ?? '';
@@ -231,7 +263,11 @@ export class mailStore {
         this.transport = await create_mail_transport(this.vars);
         this.api_db = await connect_api_db(this);
         this.autoReloadHandle?.close();
-        this.autoReloadHandle = enableInitDataAutoReload(this, () => importData(this), () => importData(this, { force: true }));
+        this.autoReloadHandle = enableInitDataAutoReload(this, () => {
+            this.triggerReload(false);
+        }, () => {
+            this.triggerReload(true);
+        });
         return this;
     }
 }

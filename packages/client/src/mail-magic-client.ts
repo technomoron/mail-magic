@@ -405,6 +405,10 @@ class TemplateClient {
 		return this.postFormData('/api/v1/assets', formData);
 	}
 
+	async triggerReload(): Promise<ApiResponse<{ reload: string }>> {
+		return this.post('/api/v1/reload', {});
+	}
+
 	async getSwaggerSpec(): Promise<ApiResponse> {
 		return this.get('/api/swagger');
 	}

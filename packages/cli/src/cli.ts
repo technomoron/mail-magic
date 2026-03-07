@@ -335,6 +335,25 @@ program
 		}
 	});
 
+program
+	.command('reload')
+	.description('Trigger a server-side force-reload of init-data.json and all template files')
+	.action(async () => {
+		const client = new TemplateClient(program.opts().api, program.opts().token);
+		try {
+			const result = await client.triggerReload();
+			const status = (result as { reload?: string }).reload ?? 'triggered';
+			console.log(`Reload ${status}`);
+		} catch (error) {
+			if (error instanceof Error) {
+				console.error('Error:', error.message);
+			} else {
+				console.error('An unknown error occurred.');
+			}
+			process.exit(1);
+		}
+	});
+
 // Apply .mmcli-env defaults just before parse so the file is not read at module-import time.
 const cliEnv = loadCliEnv();
 const cliToken = resolveToken(cliEnv);

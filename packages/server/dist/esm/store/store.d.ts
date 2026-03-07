@@ -28,8 +28,17 @@ export declare class mailStore {
     uploadTemplate?: string;
     uploadStagingPath?: string;
     autoReloadHandle: AutoReloadHandle | null;
+    private reloadInProgress;
+    private reloadQueued;
+    private reloadQueuedForce;
     print_debug(msg: string): void;
     config_filename(name: string): string;
+    /**
+     * Trigger an importData reload. If a reload is already in progress the request is
+     * queued (at most one pending run) so no reload is silently dropped. Returns
+     * 'triggered' when a new run starts, or 'queued' when one is already running.
+     */
+    triggerReload(force?: boolean): 'triggered' | 'queued';
     resolveUploadPath(domainName?: string): string;
     getUploadStagingPath(): string;
     relocateUploads(domainName: string | null, files: UploadedFile[]): Promise<void>;

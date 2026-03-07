@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { AssetAPI, createAssetHandler } from './api/assets.js';
 import { FormAPI } from './api/forms.js';
 import { MailerAPI } from './api/mailer.js';
+import { ReloadAPI } from './api/reload.js';
 import { mailApiServer } from './server.js';
 import { mailStore } from './store/store.js';
 import { installMailMagicSwagger } from './swagger.js';
@@ -49,7 +50,11 @@ export async function createMailMagicServer(overrides = {}, envOverrides = {}) {
     // SWAGGER_ENABLED works regardless of where the .env lives (mail-magic CLI chdir's to the env dir).
     const { swaggerEnabled } = config;
     const serverConfig = { ...config, swaggerEnabled: false, swaggerPath: '' };
-    const server = new mailApiServer(serverConfig, store).api(new MailerAPI()).api(new FormAPI()).api(new AssetAPI());
+    const server = new mailApiServer(serverConfig, store)
+        .api(new MailerAPI())
+        .api(new FormAPI())
+        .api(new AssetAPI())
+        .api(new ReloadAPI());
     installMailMagicSwagger(server, {
         apiUrl: String(store.vars.API_URL || ''),
         swaggerEnabled
