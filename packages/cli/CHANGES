@@ -3,6 +3,8 @@ CHANGES
 
 Unreleased (2026-03-07)
 
+- fix(release): move the GitHub CLI workflow npm auth token to job scope so the publish step inherits the same registry credentials used earlier in the run instead of overriding them with an empty step-local value.
+- fix(release): allow the GitHub CLI workflow to publish and create the GitHub release when manually dispatched on an existing CLI tag, so a failed tagged release can be retried without minting a new version.
 - chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
 - chore(release): stop using `setup-node` pnpm caching in the GitHub CLI release workflow because this repo does not ship a `pnpm-lock.yaml`.
 - chore(release): install workspace dependencies with `pnpm install --no-frozen-lockfile --link-workspace-packages` in the GitHub CLI release workflow because this repo does not ship a `pnpm-lock.yaml` and the CLI depends on the local prerelease client package.
