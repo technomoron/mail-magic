@@ -266,8 +266,6 @@ const features = [
 					>
 						GitHub
 					</a>
-					<a href="/docs/changelog">Changelog</a>
-					<a href="/docs/license">License</a>
 				</nav>
 			</div>
 			<div class="footer-bottom">

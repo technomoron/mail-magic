@@ -134,6 +134,148 @@ img, svg { display: block; max-width: 100%; }
 	line-height: 1.65;
 }
 
+/* ─── Prose (docs content) ──────────────────────────────────────────────── */
+.prose {
+	color: var(--text-2);
+	line-height: 1.7;
+	font-size: 1rem;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+	font-family: var(--font-display);
+	color: var(--text);
+	font-weight: 500;
+	line-height: 1.25;
+	letter-spacing: -0.015em;
+	margin-top: 2em;
+	margin-bottom: 0.75em;
+}
+
+.prose h1 {
+	font-size: clamp(1.75rem, 4vw, 2.5rem);
+	margin-top: 0;
+}
+
+.prose h2 {
+	font-size: 1.5rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border-subtle);
+}
+
+.prose h3 { font-size: 1.2rem; }
+.prose h4 { font-size: 1rem; }
+
+.prose p {
+	margin-bottom: 1.25em;
+	color: var(--text-2);
+	line-height: 1.7;
+}
+
+.prose a {
+	color: var(--amber);
+	text-decoration: none;
+	transition: color 0.15s;
+}
+
+.prose a:hover {
+	color: var(--amber-hi);
+	text-decoration: underline;
+}
+
+.prose code {
+	font-family: var(--font-mono);
+	font-size: 0.875em;
+	color: var(--amber);
+	background: var(--bg-elevated);
+	padding: 0.1em 0.35em;
+	border-radius: var(--radius);
+	border: 1px solid var(--border-subtle);
+}
+
+.prose pre {
+	background: var(--bg-card);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	padding: 1.25rem 1.5rem;
+	overflow-x: auto;
+	margin-bottom: 1.5em;
+	font-family: var(--font-mono);
+	font-size: 0.8125rem;
+	line-height: 1.75;
+}
+
+.prose pre code {
+	color: var(--text-2);
+	background: none;
+	border: none;
+	padding: 0;
+	font-size: inherit;
+}
+
+.prose ul,
+.prose ol {
+	padding-left: 1.5rem;
+	margin-bottom: 1.25em;
+}
+
+.prose li {
+	color: var(--text-2);
+	margin-bottom: 0.375em;
+	line-height: 1.65;
+}
+
+.prose ul { list-style-type: disc; }
+.prose ol { list-style-type: decimal; }
+
+.prose table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-bottom: 1.5em;
+	font-size: 0.9rem;
+}
+
+.prose th {
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-3);
+	text-align: left;
+	padding: 0.625rem 0.875rem;
+	border-bottom: 1px solid var(--amber-lo);
+}
+
+.prose td {
+	padding: 0.625rem 0.875rem;
+	color: var(--text-2);
+	border-bottom: 1px solid var(--border-subtle);
+	vertical-align: top;
+}
+
+.prose blockquote {
+	border-left: 3px solid var(--amber);
+	background: var(--bg-surface);
+	padding: 1rem 1.25rem;
+	margin: 1.5em 0;
+	border-radius: 0 var(--radius) var(--radius) 0;
+	font-style: italic;
+	color: var(--text-3);
+}
+
+.prose blockquote p {
+	margin: 0;
+	color: inherit;
+}
+
+.prose hr {
+	border: none;
+	border-top: 1px solid var(--border-subtle);
+	margin: 2.5em 0;
+}
+
 /* ─── Grain overlay ─────────────────────────────────────────────────────── */
 .grain::after {
 	content: '';

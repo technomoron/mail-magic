@@ -9,13 +9,6 @@ export default defineNuxtConfig({
 
 	css: ['~/assets/css/main.css'],
 
-	nitro: {
-		prerender: {
-			// Don't fail on missing /docs/* pages — they will exist before release
-			failOnError: false,
-			ignore: ['/docs'],
-		},
-	},
 
 	typescript: {
 		strict: true,
