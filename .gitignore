@@ -1,5 +1,6 @@
 .nuxt/
 .output/
+packages/website/dist
 node_modules/
 dist/
 !packages/server/dist/
