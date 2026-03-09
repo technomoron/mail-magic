@@ -4,7 +4,7 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   PNPM_VERSION = "10"
 
 # Nuxt static: serve 200.html for all unmatched routes (client-side routing)

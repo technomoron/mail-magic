@@ -1,6 +1,7 @@
 {
 	"name": "mail-magic-workspace",
 	"private": true,
+	"packageManager": "pnpm@10.28.1",
 	"workspaces": [
 		"packages/*"
 	],
