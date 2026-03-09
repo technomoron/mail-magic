@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'docs' })
+definePageMeta({ layout: 'docs', middleware: ['docs-section'] })
 
 const route = useRoute()
 
@@ -7,10 +7,6 @@ const { data: page } = await useAsyncData(
 	() => `content-${route.path}`,
 	() => queryContent(route.path).findOne(),
 )
-
-if (!page.value) {
-	throw createError({ statusCode: 404, statusMessage: 'Page not found' })
-}
 
 useSeoMeta({
 	title: () => (page.value?.title ? `${page.value.title} — Mail Magic Docs` : 'Mail Magic Docs'),
