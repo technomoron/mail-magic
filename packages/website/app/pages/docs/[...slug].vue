@@ -3,16 +3,9 @@ definePageMeta({ layout: 'docs' })
 
 const route = useRoute()
 
-const path = computed(() => {
-	const slug = route.params.slug
-	if (Array.isArray(slug) && slug.length > 0) {
-		return `/docs/${slug.join('/')}`
-	}
-	return '/docs'
-})
-
-const { data: page } = await useAsyncData(`content-${path.value}`, () =>
-	queryContent(path.value).findOne(),
+const { data: page } = await useAsyncData(
+	() => `content-${route.path}`,
+	() => queryContent(route.path).findOne(),
 )
 
 if (!page.value) {
@@ -25,10 +18,14 @@ useSeoMeta({
 })
 
 const tocState = useState<unknown>('docsToc', () => null)
-tocState.value = page.value?.body?.toc ?? null
 
-const { data: surround } = await useAsyncData(`surround-${path.value}`, () =>
-	queryContent('docs').findSurround(path.value),
+watchEffect(() => {
+	tocState.value = page.value?.body?.toc ?? null
+})
+
+const { data: surround } = await useAsyncData(
+	() => `surround-${route.path}`,
+	() => queryContent('docs').findSurround(route.path),
 )
 </script>
 

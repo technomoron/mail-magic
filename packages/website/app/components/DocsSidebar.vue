@@ -5,37 +5,31 @@ const props = defineProps<{
 	navigation: NavItem[]
 }>()
 
-function isGroup(item: NavItem): boolean {
-	return Array.isArray(item.children) && item.children.length > 0
-}
+// fetchContentNavigation returns a single /docs root item with sections as children.
+// Unwrap it so we render sections as group headers and their pages as links.
+const sections = computed<NavItem[]>(() => {
+	if (!props.navigation?.length) return []
+	const first = props.navigation[0]
+	if (first?._path === '/docs' && Array.isArray(first.children) && first.children.length > 0) {
+		return first.children
+	}
+	return props.navigation
+})
 </script>
 
 <template>
 	<nav class="docs-sidebar" aria-label="Documentation navigation">
-		<template v-for="item in props.navigation" :key="item._path">
-			<div v-if="isGroup(item)" class="sidebar-group">
-				<span class="sidebar-group-title">{{ item.title }}</span>
+		<template v-for="section in sections" :key="section._path">
+			<div class="sidebar-group">
+				<span class="sidebar-group-title">{{ section.title }}</span>
 				<ul class="sidebar-list">
-					<li v-for="child in item.children" :key="child._path" class="sidebar-item">
-						<NuxtLink
-							:to="child._path"
-							class="sidebar-link"
-							active-class="is-active"
-						>
-							{{ child.title }}
-						</NuxtLink>
-					</li>
-				</ul>
-			</div>
-			<div v-else class="sidebar-group">
-				<ul class="sidebar-list">
-					<li class="sidebar-item">
-						<NuxtLink
-							:to="item._path"
-							class="sidebar-link"
-							active-class="is-active"
-						>
-							{{ item.title }}
+					<li
+						v-for="page in section.children ?? []"
+						:key="page._path"
+						class="sidebar-item"
+					>
+						<NuxtLink :to="page._path" class="sidebar-link" active-class="is-active">
+							{{ page.title }}
 						</NuxtLink>
 					</li>
 				</ul>
