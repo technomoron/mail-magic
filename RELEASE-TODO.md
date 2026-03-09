@@ -2,7 +2,22 @@
 
 Reviewed against the repository state on 2026-03-07.
 
-Pre-release checklist for a public product launch of mail-magic.
+Pre-release checklist for the initial public release of the mail-magic package set.
+
+Versioning policy for the public repo:
+
+- The root-level repo tracks only the shared `major.minor` public release line.
+- There is no repo-wide patch version.
+- Each public package versions independently with full semver: `major.minor.patch`.
+- `major` changes for breaking changes in that package.
+- `minor` changes for backward-compatible features in that package.
+- `patch` changes for backward-compatible fixes in that package.
+- Public packages should stay on the current root-level `major.minor` line unless there is a deliberate reason for a package to diverge.
+- Public release tags must always be package-qualified (for example `@technomoron/mail-magic@2.0.0`).
+- The clean-slate public reset establishes the first public versions for each package; future releases continue from
+  those package-specific baselines.
+- For the first public release, the baseline is `2.0.0` for each public package; after that, patch versions may drift
+  independently within the shared root-level `major.minor` line.
 
 ---
 
@@ -13,20 +28,28 @@ Pre-release checklist for a public product launch of mail-magic.
 Package versions and versioned `CHANGES` sections are now aligned again, but the release process is still incomplete
 until the matching tags exist and the final release checks are run.
 
-A public release should map cleanly from source tree -> package version -> changelog section -> git tag.
+A public release should map cleanly from source tree -> package version -> changelog section -> package-qualified git
+tag.
 
 - [x] Bump package versions for every package with unreleased changes
 - [x] Convert the top `Unreleased` section into a versioned release section when cutting the release
-- [ ] Ensure git tags match the package versions being released
+- [ ] Ensure package-qualified git tags match the package versions being released
 - [ ] Run the shared `release:check` flow before creating any public release
 
-### 2. Add a real license file
+### 2. Switch license to AGPL v3 + CLA
 
-The repo now has a root `LICENSE` file. The remaining question is whether each published package should also include a
-package-local copy/reference.
+The current MIT license permits anyone to run mail-magic as a commercial hosted service without contributing back.
+Switch to AGPL v3 (deters SaaS resellers via copyleft) with a CLA so contributors grant you the right to incorporate
+their changes.
 
-- [x] Add `LICENSE` to the repo root with the standard MIT text
-- [ ] Optionally copy or reference it from package directories if publishing packages independently
+- [ ] Confirm you hold the necessary rights to relicense all included code (or get explicit consent from any other copyright holders)
+- [ ] Replace `LICENSE` with AGPL v3 text
+- [ ] Add a `CLA.md` describing the contributor agreement
+- [ ] Add a `CONTRIBUTING.md` referencing the CLA and explaining how to sign
+- [ ] Update license field in all `package.json` files from `"MIT"` to `"AGPL-3.0-only"`
+- [ ] Update any license headers or references in README files
+- [ ] Set up CLA bot (e.g. cla-assistant.io) on the GitHub repo so PRs are gated on CLA signature
+- [ ] Optionally copy or reference LICENSE from package directories if publishing packages independently
 
 ### 3. Regenerate the OpenAPI spec
 
@@ -53,7 +76,7 @@ Server/client/cli GitHub Actions release workflows now:
 - run `pnpm lint`, `pnpm test`, and `pnpm build`
 - run package-level `release:check`
 - `npm pack`
-- publish to npm on matching tag pushes
+- publish to npm on matching package tag pushes
 - create a GitHub Release with the tarball
 
 Admin release publication is still undecided.
@@ -173,6 +196,62 @@ These areas already look strong enough for a public technical beta:
 - Documentation is already solid for a technical audience: server README, tutorial, form security guide, examples, and
   client/CLI READMEs
 - The example set is strong and makes the product understandable quickly
+
+## Git & Repo Cleanup (do immediately before going public)
+
+One-shot operation — do this as the final step before making the repo public. Do not do it earlier as it rewrites
+history and deletes all existing tags.
+
+### Steps
+
+1. **Delete clutter files from the repo**
+   - `GPT-REVIEW.md` — internal AI review notes
+   - `PLAN.md` — internal planning doc
+   - `RELEASE-TODO.md` — this file (internal)
+   - `how-to-github-npmjs.txt` — personal notes
+   - `pkg.tgz` — binary artifact (also add to `.gitignore`)
+
+2. **Fix root-owned files** — several files were created while running as root; `chown` or recreate before committing:
+   - `LICENSE`, `README.md`, `scripts/release-package-preflight.sh`, `scripts/release-package-publish.sh`,
+     `scripts/release-preflight.sh`, `scripts/release-verify.sh`
+
+3. **Make the tree intentionally clean before rewriting history**
+   - Remove any other temporary files or local-only notes not listed above
+   - Run `git status --short` and confirm only intentional public-release files remain
+   - Confirm no old prerelease tarballs, review notes, secrets, or scratch files will be captured in the fresh root commit
+
+4. **Wipe git history with an orphan branch**
+   ```bash
+   git checkout --orphan fresh-main
+   git add -A
+   git commit -m "chore: initial 2.0.0 public release"
+   git branch -D main
+   git branch -m main
+   git push --force origin main
+   ```
+
+5. **Delete all old tags from local and remote** — there are 40+ version tags from pre-public development and they
+   should not survive the public reset:
+   ```bash
+   git tag | xargs -r git tag -d
+   git for-each-ref --format='%(refname:strip=2)' refs/tags | xargs -r -n 1 git push origin --delete
+   ```
+
+6. **Create the initial public package tags** — there is no repo-wide version tag:
+   ```bash
+   git tag @technomoron/mail-magic@2.0.0
+   git tag @technomoron/mail-magic-client@2.0.0
+   git tag @technomoron/mail-magic-cli@2.0.0
+   git push origin @technomoron/mail-magic@2.0.0
+   git push origin @technomoron/mail-magic-client@2.0.0
+   git push origin @technomoron/mail-magic-cli@2.0.0
+   ```
+
+7. **Verify** — the public repo should show exactly 1 root public commit and only the intended initial public package
+   tags (for example `@technomoron/mail-magic@2.0.0`, `@technomoron/mail-magic-client@2.0.0`,
+   `@technomoron/mail-magic-cli@2.0.0`).
+
+---
 
 ## Overall Verdict
 
