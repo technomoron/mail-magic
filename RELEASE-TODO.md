@@ -13,7 +13,7 @@ Versioning policy for the public repo:
 - `minor` changes for backward-compatible features in that package.
 - `patch` changes for backward-compatible fixes in that package.
 - Public packages should stay on the current root-level `major.minor` line unless there is a deliberate reason for a package to diverge.
-- Public release tags must always be package-qualified (for example `@technomoron/mail-magic@2.0.0`).
+- Public release tags must always be package-qualified (for example `@technomoron/mail-magic-server@2.0.0`).
 - The clean-slate public reset establishes the first public versions for each package; future releases continue from
   those package-specific baselines.
 - For the first public release, the baseline is `2.0.0` for each public package; after that, patch versions may drift
@@ -64,7 +64,7 @@ The packaged spec has been refreshed. Keep it in sync with future server release
 The server README now points npm users to the packaged `examples/.env-dist` and `examples/data` paths. What remains is
 an end-to-end validation of that quick start from a packed tarball or fresh install.
 
-- [x] Either ship a sample env file in `@technomoron/mail-magic` or update the README to point to a packaged path
+- [x] Either ship a sample env file in `@technomoron/mail-magic-server` or update the README to point to a packaged path
 - [ ] Validate the quick start from a packed tarball or fresh `npm install`, not only from the monorepo checkout
 - [x] Make sure every path referenced by the server README exists in the published package
 
@@ -239,16 +239,16 @@ history and deletes all existing tags.
 
 6. **Create the initial public package tags** — there is no repo-wide version tag:
    ```bash
-   git tag @technomoron/mail-magic@2.0.0
+   git tag @technomoron/mail-magic-server@2.0.0
    git tag @technomoron/mail-magic-client@2.0.0
    git tag @technomoron/mail-magic-cli@2.0.0
-   git push origin @technomoron/mail-magic@2.0.0
+   git push origin @technomoron/mail-magic-server@2.0.0
    git push origin @technomoron/mail-magic-client@2.0.0
    git push origin @technomoron/mail-magic-cli@2.0.0
    ```
 
 7. **Verify** — the public repo should show exactly 1 root public commit and only the intended initial public package
-   tags (for example `@technomoron/mail-magic@2.0.0`, `@technomoron/mail-magic-client@2.0.0`,
+   tags (for example `@technomoron/mail-magic-server@2.0.0`, `@technomoron/mail-magic-client@2.0.0`,
    `@technomoron/mail-magic-cli@2.0.0`).
 
 ---

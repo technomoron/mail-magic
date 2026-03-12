@@ -2,7 +2,7 @@
 
 This repository contains:
 
-- `packages/server` - server (`@technomoron/mail-magic`)
+- `packages/server` - server (`@technomoron/mail-magic-server`)
 - `packages/client` - typed client library (`@technomoron/mail-magic-client`)
 - `packages/cli` - CLI (`@technomoron/mail-magic-cli`)
 - `packages/admin` - admin UI placeholder (`@technomoron/mail-magic-admin`)

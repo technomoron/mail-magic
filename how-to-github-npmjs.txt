@@ -109,7 +109,7 @@ Per package on npmjs.com:
 Important:
 
   - Trusted publishing is configured per npm package
-  - `@technomoron/mail-magic`, `@technomoron/mail-magic-client`, and `@technomoron/mail-magic-cli` must each be configured separately
+  - `@technomoron/mail-magic-server`, `@technomoron/mail-magic-client`, and `@technomoron/mail-magic-cli` must each be configured separately
   - the workflows already use Node 24 and `permissions.id-token: write`
 
 Creating NPM_TOKEN
@@ -172,7 +172,7 @@ Suggested release sequence
        pnpm release:publish:dry-run -- packages/cli
   4. Commit
   5. Tag:
-       git tag -a @technomoron/mail-magic@<version> -m "Release @technomoron/mail-magic <version>"
+       git tag -a @technomoron/mail-magic-server@<version> -m "Release @technomoron/mail-magic-server <version>"
        git tag -a @technomoron/mail-magic-client@<version> -m "Release @technomoron/mail-magic-client <version>"
        git tag -a @technomoron/mail-magic-cli@<version> -m "Release @technomoron/mail-magic-cli <version>"
   6. Push branch and tags

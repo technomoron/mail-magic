@@ -1,94 +1,94 @@
 {
-	"name": "@technomoron/mail-magic",
-	"version": "2.0.0-beta1",
-	"main": "dist/cjs/index.js",
-	"module": "dist/esm/index.js",
-	"type": "module",
-	"bin": {
-		"mail-magic": "dist/esm/bin/mail-magic.js"
-	},
-	"exports": {
-		".": {
-			"types": "./dist/cjs/index.d.ts",
-			"import": "./dist/esm/index.js",
-			"require": "./dist/cjs/index.js"
-		}
-	},
-	"files": [
-		"dist",
-		"docs",
-		"examples",
-		"README.md",
-		"CHANGES"
-	],
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/technomoron/mail-magic.git",
-		"directory": "packages/server"
-	},
-	"scripts": {
-		"start": "node dist/esm/index.js",
-		"dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --watch 'config/**/*.*' --watch '.env' --exec 'tsx' src/index.ts",
-		"run": "NODE_ENV=production run-s start",
-		"sync:shared": "node ../../scripts/sync-shared-code.cjs >/dev/null",
-		"build:esm": "tsc --project tsconfig/tsconfig.esm.json",
-		"build:cjs": "node scripts/add-shebang.cjs --cjs-only",
-		"build": "run-s sync:shared build:esm build:cjs",
-		"postbuild": "node scripts/add-shebang.cjs",
-		"prepack": "run-s build",
-		"test:unit": "vitest run --silent --reporter=dot",
-		"test": "run-s --silent sync:shared test:unit",
-		"test:watch": "vitest",
-		"scrub": "rimraf ./node_modules/ ./dist/ pnpm-lock.yaml package-lock.json yarn.lock",
-		"lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern ./",
-		"lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern ./",
-		"pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,jsx,cjs,mjs,ts,tsx,mts,vue,json,md}\"",
-		"format": "run-s lintfix pretty",
-		"cleanbuild": "run-s clean:dist format build",
-		"lintconfig": "node ../../lintconfig.cjs",
-		"clean:dist": "rimraf ./dist/",
-		"release": "bash ../../scripts/release-package.sh .",
-		"release:check": "bash ../../scripts/release-package-check.sh .",
-		"release:preflight": "bash ../../scripts/release-package-preflight.sh ."
-	},
-	"keywords": [],
-	"author": "Bjørn Erik Jacobsen",
-	"license": "MIT",
-	"copyright": "Copyright (c) 2025 Bjørn Erik Jacobsen",
-	"bugs": {
-		"url": "https://github.com/technomoron/mail-magic/issues"
-	},
-	"dependencies": {
-		"@technomoron/api-server-base": "2.0.0-beta.24",
-		"@technomoron/env-loader": "^1.0.8",
-		"@technomoron/unyuck": "^1.0.4",
-		"bcryptjs": "^3.0.2",
-		"chokidar": "^5.0.0",
-		"dotenv": "^16.4.5",
-		"email-addresses": "^5.0.0",
-		"html-to-text": "^9.0.5",
-		"nanoid": "^5.1.6",
-		"nodemailer": "^6.10.1",
-		"nunjucks": "^3.2.4",
-		"sequelize": "^6.37.7",
-		"sqlite3": "^5.1.7",
-		"swagger-jsdoc": "^6.2.8",
-		"swagger-ui-express": "^5.0.1",
-		"zod": "^4.1.5"
-	},
-	"devDependencies": {
-		"@types/express": "^5.0.6",
-		"@types/html-to-text": "^9.0.4",
-		"@types/nodemailer": "^6.4.19",
-		"@types/nunjucks": "^3.2.6",
-		"@types/supertest": "^6.0.3",
-		"mailparser": "^3.9.1",
-		"nodemon": "^3.1.10",
-		"smtp-server": "^3.18.0",
-		"supertest": "^7.1.4",
-		"tsx": "^4.20.5",
-		"typescript": "^5.9.3",
-		"vitest": "^4.0.16"
-	},
-	"homepage": "https://github.com/technomoron/mail-magic#readme"
+  "name": "@technomoron/mail-magic-server",
+  "version": "2.0.0-beta1",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "type": "module",
+  "bin": {
+    "mail-magic": "dist/esm/bin/mail-magic.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs",
+    "examples",
+    "README.md",
+    "CHANGES"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/technomoron/mail-magic.git",
+    "directory": "packages/server"
+  },
+  "scripts": {
+    "start": "node dist/esm/index.js",
+    "dev": "NODE_ENV=development nodemon --watch 'src/**/*.ts' --watch 'config/**/*.*' --watch '.env' --exec 'tsx' src/index.ts",
+    "run": "NODE_ENV=production run-s start",
+    "sync:shared": "node ../../scripts/sync-shared-code.cjs >/dev/null",
+    "build:esm": "tsc --project tsconfig/tsconfig.esm.json",
+    "build:cjs": "node scripts/add-shebang.cjs --cjs-only",
+    "build": "run-s sync:shared build:esm build:cjs",
+    "postbuild": "node scripts/add-shebang.cjs",
+    "prepack": "run-s build",
+    "test:unit": "vitest run --silent --reporter=dot",
+    "test": "run-s --silent sync:shared test:unit",
+    "test:watch": "vitest",
+    "scrub": "rimraf ./node_modules/ ./dist/ pnpm-lock.yaml package-lock.json yarn.lock",
+    "lint": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --no-error-on-unmatched-pattern ./",
+    "lintfix": "node ../../node_modules/eslint/bin/eslint.js --config ../../eslint.config.mjs --fix --no-error-on-unmatched-pattern ./",
+    "pretty": "node ../../node_modules/prettier/bin/prettier.cjs --config ../../.prettierrc --write \"**/*.{js,jsx,cjs,mjs,ts,tsx,mts,vue,json,md}\"",
+    "format": "run-s lintfix pretty",
+    "cleanbuild": "run-s clean:dist format build",
+    "lintconfig": "node ../../lintconfig.cjs",
+    "clean:dist": "rimraf ./dist/",
+    "release": "bash ../../scripts/release-package.sh .",
+    "release:check": "bash ../../scripts/release-package-check.sh .",
+    "release:preflight": "bash ../../scripts/release-package-preflight.sh ."
+  },
+  "keywords": [],
+  "author": "Bj\u00f8rn Erik Jacobsen",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2025 Bj\u00f8rn Erik Jacobsen",
+  "bugs": {
+    "url": "https://github.com/technomoron/mail-magic/issues"
+  },
+  "dependencies": {
+    "@technomoron/api-server-base": "2.0.0-beta.24",
+    "@technomoron/env-loader": "^1.0.8",
+    "@technomoron/unyuck": "^1.0.4",
+    "bcryptjs": "^3.0.2",
+    "chokidar": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "email-addresses": "^5.0.0",
+    "html-to-text": "^9.0.5",
+    "nanoid": "^5.1.6",
+    "nodemailer": "^6.10.1",
+    "nunjucks": "^3.2.4",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/html-to-text": "^9.0.4",
+    "@types/nodemailer": "^6.4.19",
+    "@types/nunjucks": "^3.2.6",
+    "@types/supertest": "^6.0.3",
+    "mailparser": "^3.9.1",
+    "nodemon": "^3.1.10",
+    "smtp-server": "^3.18.0",
+    "supertest": "^7.1.4",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
+  },
+  "homepage": "https://github.com/technomoron/mail-magic#readme"
 }

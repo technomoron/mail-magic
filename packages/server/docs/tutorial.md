@@ -291,7 +291,7 @@ The inline flag (`true`) in `asset('logo.png', true)` tells Mail Magic to attach
 
 ## 5. Start Mail Magic and verify
 
-1. Restart `mail-magic` (or run `pnpm -w --filter @technomoron/mail-magic dev`) so it picks up the new `CONFIG_PATH`.
+1. Restart `mail-magic` (or run `pnpm -w --filter @technomoron/mail-magic-server dev`) so it picks up the new `CONFIG_PATH`.
 2. Confirm the bootstrap worked — the logs should mention importing user `myorg` and domain `myorg.com`.
 3. Verify the server is reachable:
     ```bash

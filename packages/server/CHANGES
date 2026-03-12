@@ -2,388 +2,434 @@ CHANGES
 =======
 
 Unreleased (2026-03-07)
-
-- chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
-- chore(release): stop using `setup-node` pnpm caching in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml`.
-- chore(release): install workspace dependencies with `pnpm install --no-frozen-lockfile --link-workspace-packages` in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml` and the CLI depends on the local prerelease client package.
-- chore(release): add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the server test/build pipeline.
-- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
-
-Version 2.0.0-beta1 (2026-03-07)
-
-- chore(release): stage the `2.0.0-beta1` prerelease and align package metadata with it.
-- chore(release): add shared local/CI release verification flow and update the GitHub server release workflow to use it on Node 24.
-- chore(release): publish tagged GitHub server releases to npm via a shared `npm publish` flow and add a local publish dry-run path for pre-tag testing.
-- docs(readme): point npm users to the packaged `examples/.env-dist` and example config tree instead of the monorepo root.
-- docs(swagger): refresh the packaged OpenAPI spec to `2.0.0-beta1` and document `POST /api/v1/reload`.
-- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
-
-Version 1.0.45 (2026-03-06)
-
-- feat(reload): add `mailStore.triggerReload(force?)` with in-progress guard — concurrent reload requests are coalesced into a single queued follow-up run rather than running in parallel.
-- feat(reload): add `POST /v1/reload` API endpoint that triggers a force-reload of all templates; returns `{ reload: 'triggered' | 'queued' }`.
-- fix(routes): make the server route contract fixed again (`/api`, `/asset`, `/api/swagger`) instead of env-configurable.
-- docs(routes): remove `API_BASE_PATH`, `ASSET_ROUTE`, and `SWAGGER_PATH` from server env/docs/examples; document the fixed public routes.
-- test(routes): update helpers and integration fixtures to use the fixed route contract; guard root integration teardown when setup fails.
-- fix(mailer): clear stale transactional template asset metadata when `POST /api/v1/tx/template` updates an existing template.
-- test(mailer): add regression coverage for transactional template API updates and stronger public form recipient contract assertions.
-- feat(autoreload): watch `*.njk` files under `CONFIG_PATH` with chokidar; force-reload all templates (including already-loaded ones) when any template file changes.
-- fix(autoreload): `importData` now accepts `{ force }` option to re-read templates from disk even when a DB record already has rendered content.
-- docs(tutorial): correct `DB_AUTO_RELOAD` description — init-data.json triggers metadata re-import; `.njk` changes trigger template force-reload.
-- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
-- (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
-
-Version 1.0.44 (2026-03-05)
-
-- fix(autoreload): catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.
-- fix(mailer): validate that parsed `vars` is a non-null, non-array object after `JSON.parse`; return 400 for invalid types.
-- docs(utils): add doc comment to `buildRequestMeta` clarifying it is informational and requires a trusted reverse proxy for reliable IP data.
-- (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
-
-Version 1.0.43 (2026-03-04)
-
-- fix(security): add allowlist for custom email headers on `/v1/tx/message` to prevent header injection via arbitrary keys (e.g. `Bcc`, `From`, `Sender`).
-- fix(security): sanitize Swagger error response to avoid leaking internal filesystem paths.
-- fix(security): reject `..` and `.` path segments explicitly in `normalizeSubdir`.
-- fix(forms): return 500 error instead of silent success when all `form_key` generation attempts are exhausted.
-- fix(mailer): guard `transport` with null check instead of non-null assertion; return 503 when transport is unavailable.
-- fix(mailer): stop leaking internal error details (SMTP errors, file paths) in `/v1/tx/message` error responses.
-- fix(autoreload): debounce `fs.watch` callback (300ms) to prevent reload storms from rapid file change events.
-- refactor(form-replyto): replace duplicated `getFirstStringField` with shared `getBodyValue` from utils.
-- docs(readme): fix `rcpt` example from JSON array to comma-separated string to match actual API contract.
-- feat(locale): implement 3-step locale fallback for template lookup: request locale → domain default locale → empty locale.
-- fix(auth): resolve default locale from domain record instead of hardcoding `'en'` when request omits `locale`.
-- refactor(locale): remove `user.locale` from all locale resolution chains; domain locale is the sole default.
-- docs(tutorial): replace non-existent `now().iso8601()` Nunjucks call with `default('unknown')`.
-- test(autoreload): update store-autoreload tests to use fake timers for debounced reload.
-- perf(forms): batch recipient resolution for `_mm_recipients` into scoped + fallback `IN` queries while preserving precedence and requested order.
-- test(forms): add coverage for multi-recipient resolution order with scoped-over-domain recipient precedence.
-- (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
-- (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
-
-Version 1.0.42 (2026-02-27)
-
-- chore(deps): upgrade `@technomoron/api-server-base` from `2.0.0-beta.20` to `2.0.0-beta.24` (Express → Fastify migration).
-- feat(auth): enable API key authentication (`apiKeyEnabled: true`, `apiKeyPrefix: 'apikey-'`) in server config to restore API key auth broken by the beta.24 default change.
-- feat(ratelimit): replace local `FixedWindowRateLimiter` implementation with the one exported by `@technomoron/api-server-base`; re-export for consumers.
-- feat(validation): add Fastify JSON Schema validation (`schema`) to `/v1/tx/template`, `/v1/form/template`, and `/v1/form/recipient` routes; omit schema from multipart-capable routes where body is populated after Fastify's validation phase.
-- fix(assets): use a MIME type map to set correct `Content-Type` headers (e.g. `image/png`) instead of passing raw file extensions to `fastifyReply.type()`, which Fastify 5 does not convert automatically.
-- fix(assets): read asset files into a `Buffer` for `res.send()` since Fastify 5 stream piping through `fastify.routing()` does not flush to supertest-style clients.
-- fix(ratelimit): restore `Retry-After` response header on 429 rate-limit rejections by setting it on the underlying Fastify reply before throwing `ApiError`.
-- fix(uploads): update `UploadedFile` type to match `ApiUploadedFile` from beta.24 (`filepath?`/`buffer?` instead of `path`); update `store.ts`, `uploads.ts`, `mailer.ts`, `forms.ts` to handle both in-memory buffers and on-disk files.
-- fix(swagger): replace Express-typed handler signature with `ExtendedReq`/`ApiRequest['res']` from `@technomoron/api-server-base`.
-- fix(routes): change wildcard route from `/:domain/*path` to `/:domain/*` (find-my-way/Fastify does not support named wildcards).
-- docs(swagger): bump packaged OpenAPI spec version to 1.0.42.
-- (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
-
-Version 1.0.41 (2026-02-22)
-
-- chore(release): add package-level `release:check` script and wire `release` to shared publish script.
-- chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
-- chore(examples): move example data, scripts, and `.env-dist` from standalone `packages/examples/` workspace into `packages/server/examples/`; add `examples` to the npm `files` list so they are shipped with the package.
-- chore(repo): rename admin package directory from `mail-magic-admin` to `admin` (npm package name unchanged).
-- test(logging): suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
-- test(logging): quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
-- fix(forms): replace global `nunjucks.configure()` call in `postSendForm` with a scoped `nunjucks.Environment` instance, matching the pattern already used in `post_send`.
-- fix(forms): add plain-text email part to form submissions via `html-to-text` (was HTML-only, harming deliverability).
-- fix(forms): derive `recipients` template variable from already-resolved DB records instead of re-parsing the raw input with a second `parseIdnameList` call.
-- fix(forms): remove silent `catch` in `resolveFormKeyForTemplate` so DB errors propagate instead of being silently treated as "no existing form".
-- fix(forms): extract `buildFormSlugAndFilename` into `util/paths.ts` to eliminate duplicated slug/filename generation between the API upload path and the DB upsert path.
-- fix(models): filter `allowed_fields` JSON getter to string elements only; previously returned non-string values (numbers, nulls) typed as `string[]`.
-- fix(smtp): make `requireTLS` configurable via `SMTP_REQUIRE_TLS` env var (default `true`, preserving existing behaviour); allows disabling STARTTLS for servers such as MailHog.
-- fix(smtp): change `SMTP_TLS_REJECT` default from `false` to `true` so TLS certificates are validated in production by default.
-- fix(smtp): correct `SMTP_TLS_REJECT` description (previously described the inverse of what the option does).
-- fix(config): change `DB_SYNC_ALTER` default from `true` to `false` to prevent automatic DDL on production startups.
-- fix(config): add `mysql` and `postgres` to the `DB_TYPE` allowed-values list to match what the connection code already supports.
-- fix(ratelimit): skip rate limiting when the client IP cannot be resolved, rather than bucketing all unresolvable IPs under a shared `unknown` key.
-- fix(captcha): throw an explicit error for unknown CAPTCHA providers instead of silently falling back to Turnstile.
-- fix(auth): make `domain` optional in `assert_domain_and_user`; when absent from the request body, fall back to the authenticated user's default domain (`api_user.domain`).
-- fix(build): remove `noImplicitAny: false` override from `tsconfig/tsconfig.esm.json`; the root tsconfig already enables `strict`, which includes `noImplicitAny`.
-- fix(build): add `declaration: true` to `tsconfig/tsconfig.esm.json` to emit `.d.ts` files; generate `dist/cjs/index.d.ts` re-exporting ESM types; add `types` condition to package exports; extract `STARTUP_ERROR_MESSAGE` from compiled ESM output instead of hardcoding it in the CJS shim script.
-- fix(scripts): remove `--ext` flags from all `lint`/`lintfix` npm scripts — ESLint v9 flat config silently ignores these flags; file coverage is already provided by the glob patterns in `eslint.config.mjs`.
-- docs(swagger): remove `domain` from the `required` array in all authenticated request schemas (`TxTemplateUpsertRequest`, `TxSendRequest`, `TxSendMultipartRequest`, `FormRecipientUpsertRequest`, `FormTemplateUpsertRequest`); mark property descriptions as optional; bump spec version to 1.0.41.
-- docs(readme): add `SMTP_REQUIRE_TLS` to quick-start `.env` example and configuration reference.
-- (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
-
-Version 1.0.40 (2026-02-22)
-
-- chore(changes): normalize this package changelog to required CHANGES format.
-- (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
-
-Version 1.0.39 (2026-02-19)
-
-- Code clarity pass: restore `DB_LOG` env-driven logging config (was commented
-  out), normalize import path in `db.ts`.
-- Simplify `create_mail_transport` by removing unnecessary spread and
-  intermediate variable.
-- Simplify `buildReplyToValue` by removing redundant variable and duplicate
-  return path in `forms.ts`.
-- Replace `forEach` with `for...of` and use separate `const` declarations in
-  `validateEmails` (`mailer.ts`).
-
-Version 1.0.38 (2026-02-17)
-
-- Prefer `fs.watch` for init-data auto-reload with automatic fallback to
-  `fs.watchFile` when native file watching is unavailable.
-- Add regression tests for auto-reload watcher behavior (`watch`, fallback,
-  disabled mode).
-- Add schema-drift regression tests that assert Zod schema keys match Sequelize
-  model attributes for core API models.
-
-Version 1.0.37 (2026-02-17)
-
-- Remove stale commented-out debug code from server mailer/store paths.
-- Remove unused legacy API-key store scaffolding from `mailStore` (`api_key`,
-  `ImailStore`, `keys`, `load_api_keys`, `get_api_key`).
-- Consolidate mailer address validation by reusing shared `util/email` helpers.
-
-Version 1.0.36 (2026-02-17)
-
-- Remove legacy plaintext-token fallback from request authentication; API key auth
-  now requires `token_hmac`.
-- Update token migration regression coverage to verify auth rejection before
-  migration and success after migration.
-- Extract shared `normalizeRoute` helper and reuse it across bootstrap and swagger
-  modules.
-- Standardize `getBodyValue` usage to `util/utils` imports in API modules for
-  clearer utility ownership.
-- Remove unreachable null check after `createTransport()`.
-- Add utility test coverage for route normalization.
-
-Version 1.0.35 (2026-02-17)
-
-- Enforce deterministic locale resolution for transactional template sends:
-  requested locale first, then root fallback (`locale=''`) only.
-- Enforce the same deterministic locale resolution for template-scoped asset uploads
-  (`POST /api/v1/assets`) for both `tx` and `form` template types.
-- Remove non-deterministic fallback to arbitrary locale records when requested/root
-  locales are missing.
-- Add regression tests covering deterministic locale fallback and missing-locale
-  behavior for both transactional sends and template asset upload resolution.
-- Harden JSON-backed getters for template/form asset columns so malformed DB JSON
-  safely falls back to empty arrays instead of throwing runtime errors.
-- Standardize form send SMTP failure handling to return ApiError responses
-  (consistent `message` contract instead of ad-hoc `error` payloads).
-- Guard SQLite-only PRAGMA usage by database dialect during DB sync.
-- Fix startup error text to use the current project name (`mail-magic`).
-- Fix `DB_TYPE` environment description text ("API database" wording).
-- Add regression tests for malformed JSON getter handling, standardized form-send
-  failure responses, sqlite PRAGMA guard helper behavior, startup error message,
-  and env option description text.
-- Disallow legacy plaintext-token fallback during API authentication; requests now
-  authenticate strictly via `token_hmac`.
-- Update token migration regression coverage to verify plaintext auth rejection
-  prior to migration and successful auth after migration.
-
-Version 1.0.34 (2026-02-10)
-
-- Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
-- Use safe, stable inline Content-IDs (no path separators) and keep stored `files[].cid` consistent with rendered HTML.
-- Expand tests to validate inline assets, linked assets, and uploaded attachments end-to-end.
-- Ensure record slugs and generated paths are domain-rooted only (no user segment).
-
-Version 1.0.33 (2026-02-09)
-
-- Route all env-derived config through `mailStore.vars` with explicit overrides for tests/examples.
-- Move shared helpers into `util/` modules (rate limiting, email parsing, path safety, uploads).
-- Switch template preprocessing to Unyuck’s asset collection while preserving existing URL and CID behavior.
-- Split form submission logic into focused util helpers and slim the API handler.
-
-Version 1.0.32 (2026-02-08)
-
-- Add regression coverage for legacy plaintext API token migration to `token_hmac`.
-- Publish `docs/swagger/openapi.json` and install a local swagger handler that is stable regardless of `process.cwd()`.
-- Refactor public form submissions to use explicit `_mm_*` control fields (`_mm_form_key`, `_mm_locale`,
-  `_mm_recipients`) and stricter attachment field naming (`_mm_file*`).
-- Centralize captcha verification in `util/captcha` and add contract-style test coverage for the public form endpoint.
-
-Version 1.0.31 (2026-02-08)
-
-- Add regression coverage for form lookup ambiguity handling and secret-gated recipient overrides.
-
-Version 1.0.30 (2026-02-08)
-
-- Add regression coverage for Nunjucks HTML autoescape behavior and the `|safe` filter.
-
-Version 1.0.29 (2026-02-08)
-
-- Add regression coverage for CAPTCHA verification flows on the public form endpoint.
-
-Version 1.0.28 (2026-02-08)
-
-- Add regression coverage for public form anti-abuse controls (rate limiting, attachment limits, and upload cleanup).
-
-Version 1.0.27 (2026-02-08)
-
-- Refresh README/TUTORIAL with current API routes, config layout, and security-related configuration (API token pepper,
-  form_key, recipient allowlist, and form anti-abuse options).
-- Update `config-example/` to match the current init-data schema and domain-rooted config directory layout.
-
-Version 1.0.26 (2026-02-07)
-
-- Fix env/docs polish and remove unused code flagged by ESLint.
-
-Version 1.0.25 (2026-02-07)
-
-- Default `DB_AUTO_RELOAD` to false to avoid unexpected config reloads in production.
-- Added `DB_SYNC_ALTER` to control Sequelize `sync({ alter: ... })` on startup.
-
-Version 1.0.24 (2026-02-07)
-
-- Validate imported domain names against a safe pattern to prevent config path
-  traversal via malformed domain identifiers.
-
-Version 1.0.23 (2026-02-07)
-
-- Added a form recipient allowlist table plus `POST /api/v1/form/recipient` to map a
-  public recipient `idname` to an email address (with optional display name),
-  scoped per domain and optionally per `form_key`.
-- `POST /api/v1/form/message` now supports `recipient_idname` so public forms can
-  select a configured recipient without exposing email addresses client-side.
-- Added integration tests covering recipient allowlist fallbacks, overrides, locale scoping,
-  validation, and ownership checks.
-
-Version 1.0.22 (2026-02-07)
-
-- Added opt-in anti-abuse controls for public form submissions, including:
-  `UPLOAD_MAX`, in-memory IP rate limiting, optional CAPTCHA verification
-  (Turnstile/hCaptcha/reCAPTCHA) with per-form `captcha_required`, optional
-  attachment count limits, and optional upload cleanup.
-
-Version 1.0.21 (2026-02-07)
-
-- Added `AUTOESCAPE_HTML` (default: true) to control Nunjucks HTML autoescaping
-  when rendering transactional and form templates.
-
-Version 1.0.20 (2026-02-07)
-
-- Centralized env parsing in `mailStore` (no direct `process.env` reads in core
-  server code).
-
-Version 1.0.19 (2026-02-07)
-
-- Store API tokens as HMAC-SHA256 (with required `API_TOKEN_PEPPER`) instead of
-  plaintext, and migrate legacy plaintext tokens on startup.
-
-Version 1.0.18 (2026-02-07)
-
-- Added a stable `form_key` (generated via nanoid) to uniquely identify forms and
-  return it from `POST /api/v1/form/template`.
-- Updated `POST /api/v1/form/message` form lookup to use `form_key` (preferred),
-  otherwise require `domain` + `formid` (+ optional `locale`) to avoid ambiguous
-  cross-domain/locale matches.
-
-Version 1.0.17 (2026-02-07)
-
-- Reduced sensitive logging by disabling env dumps unless `DEBUG` is enabled,
-  removing API tokens from debug output and API errors, and redacting DB
-  credentials in debug logs.
-- Fixed TypeScript build issues by aligning Express typings and updating
-  Express-related utility types.
-
-Version 1.0.15 (2026-02-01)
-
-- Made the optional admin UI/API opt-in via `ADMIN_ENABLED`, delegating admin
-  registration to the `@technomoron/mail-magic-admin` package with an
-  override path via `ADMIN_APP_PATH`.
-- Serve public assets directly from `ASSET_ROUTE` (outside the API base path)
-  and allow asset URLs to use `ASSET_PUBLIC_BASE` when rendering templates.
-- Added coverage for asset base URL overrides in the test suite.
-
-Version 1.0.14 (2026-02-01)
-
-- Consolidated the API domain/user assertion into a shared helper to keep
-  validation logic consistent across modules.
-
-Version 1.0.13 (2026-01-31)
-
-- Fixed the per-package release script name and tag format used to trigger
-  CI releases; no runtime changes.
-
-Version 1.0.12 (2026-01-31)
-
-- Removed the hard dependency on `@technomoron/mail-magic-admin` so installs
-  are fully standalone unless the admin UI is explicitly added.
-
-Version 1.0.11 (2026-01-31)
-
-- Scoped the client package to `@technomoron/mail-magic-client` and refreshed
-  documentation to match.
-- Added root build shortcuts for server/client/admin packages and aligned the
-  release tag pattern for the client workflow.
-- Added a TypeScript-based CLI bin so global installs expose `mail-magic`.
-
-Version 1.0.10 (2026-01-31)
-
-- Added authenticated asset uploads via `POST /api/v1/assets`, supporting
-  domain and template-scoped targets with path validation and ownership checks.
-- Mount optional admin UI at `/` when the admin package is installed, while
-  leaving API and asset routes unchanged.
-- Expanded automated testing with new Vitest unit/integration coverage, an
-  SMTP harness, and fixture-backed template/asset scenarios.
-- Updated the client library/CLI to support transactional/form uploads,
-  attachments, and config-driven bulk pushes.
-
-Version 1.0.9 (2026-01-02)
-
-- Default CONFIG_PATH to ./data and document the data-rooted layout, including
-  per-domain uploads.
-- Allow UPLOAD_PATH to include {domain}, staging incoming uploads under
-  <CONFIG_PATH>/_uploads before relocating to <CONFIG_PATH>/<domain>/uploads
-  for transactional and form submissions.
-
-Version 1.0.7 (2026-01-01)
-
-- Harden asset serving and template resolution against traversal/symlink escapes by
-  resolving real paths and requiring files to exist.
-- Enforce domain ownership for form/template and mailer endpoints, validate
-  reply-to/recipient addresses, and allow reply-to plus custom headers on
-  transactional sends.
-- Constrain stored template/form filenames to safe relative paths and widen the
-  txmail template column to TEXT for larger templates.
-- Added Vitest-based integration tests with a local SMTP harness, plus test
-  scripts and dependencies.
-
-Version 1.0.6 (2025-11-06)
-
-- Added the dedicated asset API module so files stored under `config/<domain>/assets`
-  are served directly from `/asset/<domain>/<path>` (configurable via `ASSET_ROUTE`).
-- Updated `@technomoron/api-server-base` to the latest 2.x beta and aligned mailer
-  server access with the new API server types.
-- Tightened the template preprocessor to require non-inline assets to live in the
-  domain `assets/` folder and automatically rewrite `asset('logo.png')` calls to the
-  public route.
-- Clarified inline usage: `asset('logo.png', true)` continues to embed a CID-backed
-  attachment, while omitting the second argument keeps the file external and expects
-  it under `config/<domain>/assets`.
-
-Version 1.0.5 (2025-10-29)
-
-- Store compiled templates and assets under domain-rooted directories inside
-  `CONFIG_PATH`, removing the redundant user segment while keeping slugs and
-  API behaviour unchanged.
-- Update documentation and examples to reflect the domain-first configuration
-  layout.
-
-Version 1.0.4 (2025-09-27)
-
-- Surface request metadata (client IP, IP chain, received-at) to form and transactional
-  template rendering and update the bundled templates to display it.
-- Correct domain lookups to match `api_domain.name` during form and mail submission
-  authentication so legitimate domains are accepted.
-- Export `createMailMagicServer`/`startMailMagicServer` helpers and only auto-start when
-  executed directly, printing the bound host/port after.
-
-Version 1.0.3 (2025-09-26)
-
-- Introduced the transactional mail model and API route updates so stored templates,
-  attachments, and message delivery flow through `api_txmail` instead of the
-  removed `api_template`.
-- Let authenticated clients upload form templates via the API, aligning filename/slug
-  generation with the new singular config structure.
-- Replaced the Nunjucks loader with `@technomoron/unyuck` to flatten includes
-  and collect referenced assets before persisting them.
-- Refreshed tooling and metadata (ESLint/Prettier configs, README, ecosystem config)
-  to match the renamed package and repository.
-- Added workspace metadata and sample templates so pnpm and new installs pick up example
-  assets.
+-----------------------
+
+* chore(package): rename the publishable server package to `@technomoron/mail-magic-server` and reserve `@technomoron/mail-magic` for the workspace root.
+* (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+
+* chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
+* chore(release): stop using `setup-node` pnpm caching in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml`.
+* chore(release): install workspace dependencies with `pnpm install --no-frozen-lockfile --link-workspace-packages` in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml` and the CLI depends on the local prerelease client package.
+* chore(release): add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the server test/build pipeline.
+* (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+
+v2.0.0-beta1 (2026-03-07)
+-------------------------
+
+* chore(release): stage the `2.0.0-beta1` prerelease and align package metadata with it.
+* chore(release): add shared local/CI release verification flow and update the GitHub server release workflow to use it on Node 24.
+* chore(release): publish tagged GitHub server releases to npm via a shared `npm publish` flow and add a local publish dry-run path for pre-tag testing.
+* docs(readme): point npm users to the packaged `examples/.env-dist` and example config tree instead of the monorepo root.
+* docs(swagger): refresh the packaged OpenAPI spec to `2.0.0-beta1` and document `POST /api/v1/reload`.
+* (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+
+v1.0.45 (2026-03-06)
+--------------------
+
+* feat(reload): add `mailStore.triggerReload(force?)` with in-progress guard — concurrent reload requests are coalesced into a single queued follow-up run rather than running in parallel.
+* feat(reload): add `POST /v1/reload` API endpoint that triggers a force-reload of all templates; returns `{ reload: 'triggered' | 'queued' }`.
+* fix(routes): make the server route contract fixed again (`/api`, `/asset`, `/api/swagger`) instead of env-configurable.
+* docs(routes): remove `API_BASE_PATH`, `ASSET_ROUTE`, and `SWAGGER_PATH` from server env/docs/examples; document the fixed public routes.
+* test(routes): update helpers and integration fixtures to use the fixed route contract; guard root integration teardown when setup fails.
+* fix(mailer): clear stale transactional template asset metadata when `POST /api/v1/tx/template` updates an existing template.
+* test(mailer): add regression coverage for transactional template API updates and stronger public form recipient contract assertions.
+* feat(autoreload): watch `*.njk` files under `CONFIG_PATH` with chokidar; force-reload all templates (including already-loaded ones) when any template file changes.
+* fix(autoreload): `importData` now accepts `{ force }` option to re-read templates from disk even when a DB record already has rendered content.
+* docs(tutorial): correct `DB_AUTO_RELOAD` description — init-data.json triggers metadata re-import; `.njk` changes trigger template force-reload.
+* (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+* (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
+
+v1.0.44 (2026-03-05)
+--------------------
+
+* fix(autoreload): catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.
+* fix(mailer): validate that parsed `vars` is a non-null, non-array object after `JSON.parse`; return 400 for invalid types.
+* docs(utils): add doc comment to `buildRequestMeta` clarifying it is informational and requires a trusted reverse proxy for reliable IP data.
+* (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
+
+v1.0.43 (2026-03-04)
+--------------------
+
+* fix(security): add allowlist for custom email headers on `/v1/tx/message` to prevent header injection via arbitrary keys (e.g. `Bcc`, `From`, `Sender`).
+* fix(security): sanitize Swagger error response to avoid leaking internal filesystem paths.
+* fix(security): reject `..` and `.` path segments explicitly in `normalizeSubdir`.
+* fix(forms): return 500 error instead of silent success when all `form_key` generation attempts are exhausted.
+* fix(mailer): guard `transport` with null check instead of non-null assertion; return 503 when transport is unavailable.
+* fix(mailer): stop leaking internal error details (SMTP errors, file paths) in `/v1/tx/message` error responses.
+* fix(autoreload): debounce `fs.watch` callback (300ms) to prevent reload storms from rapid file change events.
+* refactor(form-replyto): replace duplicated `getFirstStringField` with shared `getBodyValue` from utils.
+* docs(readme): fix `rcpt` example from JSON array to comma-separated string to match actual API contract.
+* feat(locale): implement 3-step locale fallback for template lookup: request locale → domain default locale → empty locale.
+* fix(auth): resolve default locale from domain record instead of hardcoding `'en'` when request omits `locale`.
+* refactor(locale): remove `user.locale` from all locale resolution chains; domain locale is the sole default.
+* docs(tutorial): replace non-existent `now().iso8601()` Nunjucks call with `default('unknown')`.
+* test(autoreload): update store-autoreload tests to use fake timers for debounced reload.
+* perf(forms): batch recipient resolution for `_mm_recipients` into scoped + fallback `IN` queries while preserving precedence and requested order.
+* test(forms): add coverage for multi-recipient resolution order with scoped-over-domain recipient precedence.
+* (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
+* (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
+
+v1.0.42 (2026-02-27)
+--------------------
+
+* chore(deps): upgrade `@technomoron/api-server-base` from `2.0.0-beta.20` to `2.0.0-beta.24` (Express → Fastify migration).
+* feat(auth): enable API key authentication (`apiKeyEnabled: true`, `apiKeyPrefix: 'apikey-'`) in server config to restore API key auth broken by the beta.24 default change.
+* feat(ratelimit): replace local `FixedWindowRateLimiter` implementation with the one exported by `@technomoron/api-server-base`; re-export for consumers.
+* feat(validation): add Fastify JSON Schema validation (`schema`) to `/v1/tx/template`, `/v1/form/template`, and `/v1/form/recipient` routes; omit schema from multipart-capable routes where body is populated after Fastify's validation phase.
+* fix(assets): use a MIME type map to set correct `Content-Type` headers (e.g. `image/png`) instead of passing raw file extensions to `fastifyReply.type()`, which Fastify 5 does not convert automatically.
+* fix(assets): read asset files into a `Buffer` for `res.send()` since Fastify 5 stream piping through `fastify.routing()` does not flush to supertest-style clients.
+* fix(ratelimit): restore `Retry-After` response header on 429 rate-limit rejections by setting it on the underlying Fastify reply before throwing `ApiError`.
+* fix(uploads): update `UploadedFile` type to match `ApiUploadedFile` from beta.24 (`filepath?`/`buffer?` instead of `path`); update `store.ts`, `uploads.ts`, `mailer.ts`, `forms.ts` to handle both in-memory buffers and on-disk files.
+* fix(swagger): replace Express-typed handler signature with `ExtendedReq`/`ApiRequest['res']` from `@technomoron/api-server-base`.
+* fix(routes): change wildcard route from `/:domain/*path` to `/:domain/*` (find-my-way/Fastify does not support named wildcards).
+* docs(swagger): bump packaged OpenAPI spec version to 1.0.42.
+* (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
+
+v1.0.41 (2026-02-22)
+--------------------
+
+* chore(release): add package-level `release:check` script and wire `release` to shared publish script.
+* chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
+* chore(examples): move example data, scripts, and `.env-dist` from standalone `packages/examples/` workspace into `packages/server/examples/`; add `examples` to the npm `files` list so they are shipped with the package.
+* chore(repo): rename admin package directory from `mail-magic-admin` to `admin` (npm package name unchanged).
+* test(logging): suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
+* test(logging): quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
+* fix(forms): replace global `nunjucks.configure()` call in `postSendForm` with a scoped `nunjucks.Environment` instance, matching the pattern already used in `post_send`.
+* fix(forms): add plain-text email part to form submissions via `html-to-text` (was HTML-only, harming deliverability).
+* fix(forms): derive `recipients` template variable from already-resolved DB records instead of re-parsing the raw input with a second `parseIdnameList` call.
+* fix(forms): remove silent `catch` in `resolveFormKeyForTemplate` so DB errors propagate instead of being silently treated as "no existing form".
+* fix(forms): extract `buildFormSlugAndFilename` into `util/paths.ts` to eliminate duplicated slug/filename generation between the API upload path and the DB upsert path.
+* fix(models): filter `allowed_fields` JSON getter to string elements only; previously returned non-string values (numbers, nulls) typed as `string[]`.
+* fix(smtp): make `requireTLS` configurable via `SMTP_REQUIRE_TLS` env var (default `true`, preserving existing behaviour); allows disabling STARTTLS for servers such as MailHog.
+* fix(smtp): change `SMTP_TLS_REJECT` default from `false` to `true` so TLS certificates are validated in production by default.
+* fix(smtp): correct `SMTP_TLS_REJECT` description (previously described the inverse of what the option does).
+* fix(config): change `DB_SYNC_ALTER` default from `true` to `false` to prevent automatic DDL on production startups.
+* fix(config): add `mysql` and `postgres` to the `DB_TYPE` allowed-values list to match what the connection code already supports.
+* fix(ratelimit): skip rate limiting when the client IP cannot be resolved, rather than bucketing all unresolvable IPs under a shared `unknown` key.
+* fix(captcha): throw an explicit error for unknown CAPTCHA providers instead of silently falling back to Turnstile.
+* fix(auth): make `domain` optional in `assert_domain_and_user`; when absent from the request body, fall back to the authenticated user's default domain (`api_user.domain`).
+* fix(build): remove `noImplicitAny: false` override from `tsconfig/tsconfig.esm.json`; the root tsconfig already enables `strict`, which includes `noImplicitAny`.
+* fix(build): add `declaration: true` to `tsconfig/tsconfig.esm.json` to emit `.d.ts` files; generate `dist/cjs/index.d.ts` re-exporting ESM types; add `types` condition to package exports; extract `STARTUP_ERROR_MESSAGE` from compiled ESM output instead of hardcoding it in the CJS shim script.
+* fix(scripts): remove `--ext` flags from all `lint`/`lintfix` npm scripts — ESLint v9 flat config silently ignores these flags; file coverage is already provided by the glob patterns in `eslint.config.mjs`.
+* docs(swagger): remove `domain` from the `required` array in all authenticated request schemas (`TxTemplateUpsertRequest`, `TxSendRequest`, `TxSendMultipartRequest`, `FormRecipientUpsertRequest`, `FormTemplateUpsertRequest`); mark property descriptions as optional; bump spec version to 1.0.41.
+* docs(readme): add `SMTP_REQUIRE_TLS` to quick-start `.env` example and configuration reference.
+* (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
+
+v1.0.40 (2026-02-22)
+--------------------
+
+* chore(changes): normalize this package changelog to required CHANGES format.
+* (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
+
+v1.0.39 (2026-02-19)
+--------------------
+
+* Code clarity pass: restore `DB_LOG` env-driven logging config (was commented
+out), normalize import path in `db.ts`.
+* Simplify `create_mail_transport` by removing unnecessary spread and
+intermediate variable.
+* Simplify `buildReplyToValue` by removing redundant variable and duplicate
+return path in `forms.ts`.
+* Replace `forEach` with `for...of` and use separate `const` declarations in
+`validateEmails` (`mailer.ts`).
+
+v1.0.38 (2026-02-17)
+--------------------
+
+* Prefer `fs.watch` for init-data auto-reload with automatic fallback to
+`fs.watchFile` when native file watching is unavailable.
+* Add regression tests for auto-reload watcher behavior (`watch`, fallback,
+disabled mode).
+* Add schema-drift regression tests that assert Zod schema keys match Sequelize
+model attributes for core API models.
+
+v1.0.37 (2026-02-17)
+--------------------
+
+* Remove stale commented-out debug code from server mailer/store paths.
+* Remove unused legacy API-key store scaffolding from `mailStore` (`api_key`,
+`ImailStore`, `keys`, `load_api_keys`, `get_api_key`).
+* Consolidate mailer address validation by reusing shared `util/email` helpers.
+
+v1.0.36 (2026-02-17)
+--------------------
+
+* Remove legacy plaintext-token fallback from request authentication; API key auth
+now requires `token_hmac`.
+* Update token migration regression coverage to verify auth rejection before
+migration and success after migration.
+* Extract shared `normalizeRoute` helper and reuse it across bootstrap and swagger
+modules.
+* Standardize `getBodyValue` usage to `util/utils` imports in API modules for
+clearer utility ownership.
+* Remove unreachable null check after `createTransport()`.
+* Add utility test coverage for route normalization.
+
+v1.0.35 (2026-02-17)
+--------------------
+
+* Enforce deterministic locale resolution for transactional template sends:
+requested locale first, then root fallback (`locale=''`) only.
+* Enforce the same deterministic locale resolution for template-scoped asset uploads
+(`POST /api/v1/assets`) for both `tx` and `form` template types.
+* Remove non-deterministic fallback to arbitrary locale records when requested/root
+locales are missing.
+* Add regression tests covering deterministic locale fallback and missing-locale
+behavior for both transactional sends and template asset upload resolution.
+* Harden JSON-backed getters for template/form asset columns so malformed DB JSON
+safely falls back to empty arrays instead of throwing runtime errors.
+* Standardize form send SMTP failure handling to return ApiError responses
+(consistent `message` contract instead of ad-hoc `error` payloads).
+* Guard SQLite-only PRAGMA usage by database dialect during DB sync.
+* Fix startup error text to use the current project name (`mail-magic`).
+* Fix `DB_TYPE` environment description text ("API database" wording).
+* Add regression tests for malformed JSON getter handling, standardized form-send
+failure responses, sqlite PRAGMA guard helper behavior, startup error message,
+and env option description text.
+* Disallow legacy plaintext-token fallback during API authentication; requests now
+authenticate strictly via `token_hmac`.
+* Update token migration regression coverage to verify plaintext auth rejection
+prior to migration and successful auth after migration.
+
+v1.0.34 (2026-02-10)
+--------------------
+
+* Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
+* Use safe, stable inline Content-IDs (no path separators) and keep stored `files[].cid` consistent with rendered HTML.
+* Expand tests to validate inline assets, linked assets, and uploaded attachments end-to-end.
+* Ensure record slugs and generated paths are domain-rooted only (no user segment).
+
+v1.0.33 (2026-02-09)
+--------------------
+
+* Route all env-derived config through `mailStore.vars` with explicit overrides for tests/examples.
+* Move shared helpers into `util/` modules (rate limiting, email parsing, path safety, uploads).
+* Switch template preprocessing to Unyuck’s asset collection while preserving existing URL and CID behavior.
+* Split form submission logic into focused util helpers and slim the API handler.
+
+v1.0.32 (2026-02-08)
+--------------------
+
+* Add regression coverage for legacy plaintext API token migration to `token_hmac`.
+* Publish `docs/swagger/openapi.json` and install a local swagger handler that is stable regardless of `process.cwd()`.
+* Refactor public form submissions to use explicit `_mm_*` control fields (`_mm_form_key`, `_mm_locale`,
+`_mm_recipients`) and stricter attachment field naming (`_mm_file*`).
+* Centralize captcha verification in `util/captcha` and add contract-style test coverage for the public form endpoint.
+
+v1.0.31 (2026-02-08)
+--------------------
+
+* Add regression coverage for form lookup ambiguity handling and secret-gated recipient overrides.
+
+v1.0.30 (2026-02-08)
+--------------------
+
+* Add regression coverage for Nunjucks HTML autoescape behavior and the `|safe` filter.
+
+v1.0.29 (2026-02-08)
+--------------------
+
+* Add regression coverage for CAPTCHA verification flows on the public form endpoint.
+
+v1.0.28 (2026-02-08)
+--------------------
+
+* Add regression coverage for public form anti-abuse controls (rate limiting, attachment limits, and upload cleanup).
+
+v1.0.27 (2026-02-08)
+--------------------
+
+* Refresh README/TUTORIAL with current API routes, config layout, and security-related configuration (API token pepper,
+form_key, recipient allowlist, and form anti-abuse options).
+* Update `config-example/` to match the current init-data schema and domain-rooted config directory layout.
+
+v1.0.26 (2026-02-07)
+--------------------
+
+* Fix env/docs polish and remove unused code flagged by ESLint.
+
+v1.0.25 (2026-02-07)
+--------------------
+
+* Default `DB_AUTO_RELOAD` to false to avoid unexpected config reloads in production.
+* Added `DB_SYNC_ALTER` to control Sequelize `sync({ alter: ... })` on startup.
+
+v1.0.24 (2026-02-07)
+--------------------
+
+* Validate imported domain names against a safe pattern to prevent config path
+traversal via malformed domain identifiers.
+
+v1.0.23 (2026-02-07)
+--------------------
+
+* Added a form recipient allowlist table plus `POST /api/v1/form/recipient` to map a
+public recipient `idname` to an email address (with optional display name),
+scoped per domain and optionally per `form_key`.
+* `POST /api/v1/form/message` now supports `recipient_idname` so public forms can
+select a configured recipient without exposing email addresses client-side.
+* Added integration tests covering recipient allowlist fallbacks, overrides, locale scoping,
+validation, and ownership checks.
+
+v1.0.22 (2026-02-07)
+--------------------
+
+* Added opt-in anti-abuse controls for public form submissions, including:
+`UPLOAD_MAX`, in-memory IP rate limiting, optional CAPTCHA verification
+(Turnstile/hCaptcha/reCAPTCHA) with per-form `captcha_required`, optional
+attachment count limits, and optional upload cleanup.
+
+v1.0.21 (2026-02-07)
+--------------------
+
+* Added `AUTOESCAPE_HTML` (default: true) to control Nunjucks HTML autoescaping
+when rendering transactional and form templates.
+
+v1.0.20 (2026-02-07)
+--------------------
+
+* Centralized env parsing in `mailStore` (no direct `process.env` reads in core
+server code).
+
+v1.0.19 (2026-02-07)
+--------------------
+
+* Store API tokens as HMAC-SHA256 (with required `API_TOKEN_PEPPER`) instead of
+plaintext, and migrate legacy plaintext tokens on startup.
+
+v1.0.18 (2026-02-07)
+--------------------
+
+* Added a stable `form_key` (generated via nanoid) to uniquely identify forms and
+return it from `POST /api/v1/form/template`.
+* Updated `POST /api/v1/form/message` form lookup to use `form_key` (preferred),
+otherwise require `domain` + `formid` (+ optional `locale`) to avoid ambiguous
+cross-domain/locale matches.
+
+v1.0.17 (2026-02-07)
+--------------------
+
+* Reduced sensitive logging by disabling env dumps unless `DEBUG` is enabled,
+removing API tokens from debug output and API errors, and redacting DB
+credentials in debug logs.
+* Fixed TypeScript build issues by aligning Express typings and updating
+Express-related utility types.
+
+v1.0.15 (2026-02-01)
+--------------------
+
+* Made the optional admin UI/API opt-in via `ADMIN_ENABLED`, delegating admin
+registration to the `@technomoron/mail-magic-admin` package with an
+override path via `ADMIN_APP_PATH`.
+* Serve public assets directly from `ASSET_ROUTE` (outside the API base path)
+and allow asset URLs to use `ASSET_PUBLIC_BASE` when rendering templates.
+* Added coverage for asset base URL overrides in the test suite.
+
+v1.0.14 (2026-02-01)
+--------------------
+
+* Consolidated the API domain/user assertion into a shared helper to keep
+validation logic consistent across modules.
+
+v1.0.13 (2026-01-31)
+--------------------
+
+* Fixed the per-package release script name and tag format used to trigger
+CI releases; no runtime changes.
+
+v1.0.12 (2026-01-31)
+--------------------
+
+* Removed the hard dependency on `@technomoron/mail-magic-admin` so installs
+are fully standalone unless the admin UI is explicitly added.
+
+v1.0.11 (2026-01-31)
+--------------------
+
+* Scoped the client package to `@technomoron/mail-magic-client` and refreshed
+documentation to match.
+* Added root build shortcuts for server/client/admin packages and aligned the
+release tag pattern for the client workflow.
+* Added a TypeScript-based CLI bin so global installs expose `mail-magic`.
+
+v1.0.10 (2026-01-31)
+--------------------
+
+* Added authenticated asset uploads via `POST /api/v1/assets`, supporting
+domain and template-scoped targets with path validation and ownership checks.
+* Mount optional admin UI at `/` when the admin package is installed, while
+leaving API and asset routes unchanged.
+* Expanded automated testing with new Vitest unit/integration coverage, an
+SMTP harness, and fixture-backed template/asset scenarios.
+* Updated the client library/CLI to support transactional/form uploads,
+attachments, and config-driven bulk pushes.
+
+v1.0.9 (2026-01-02)
+-------------------
+
+* Default CONFIG_PATH to ./data and document the data-rooted layout, including
+per-domain uploads.
+* Allow UPLOAD_PATH to include {domain}, staging incoming uploads under
+<CONFIG_PATH>/_uploads before relocating to <CONFIG_PATH>/<domain>/uploads
+for transactional and form submissions.
+
+v1.0.7 (2026-01-01)
+-------------------
+
+* Harden asset serving and template resolution against traversal/symlink escapes by
+resolving real paths and requiring files to exist.
+* Enforce domain ownership for form/template and mailer endpoints, validate
+reply-to/recipient addresses, and allow reply-to plus custom headers on
+transactional sends.
+* Constrain stored template/form filenames to safe relative paths and widen the
+txmail template column to TEXT for larger templates.
+* Added Vitest-based integration tests with a local SMTP harness, plus test
+scripts and dependencies.
+
+v1.0.6 (2025-11-06)
+-------------------
+
+* Added the dedicated asset API module so files stored under `config/<domain>/assets`
+are served directly from `/asset/<domain>/<path>` (configurable via `ASSET_ROUTE`).
+* Updated `@technomoron/api-server-base` to the latest 2.x beta and aligned mailer
+server access with the new API server types.
+* Tightened the template preprocessor to require non-inline assets to live in the
+domain `assets/` folder and automatically rewrite `asset('logo.png')` calls to the
+public route.
+* Clarified inline usage: `asset('logo.png', true)` continues to embed a CID-backed
+attachment, while omitting the second argument keeps the file external and expects
+it under `config/<domain>/assets`.
+
+v1.0.5 (2025-10-29)
+-------------------
+
+* Store compiled templates and assets under domain-rooted directories inside
+`CONFIG_PATH`, removing the redundant user segment while keeping slugs and
+API behaviour unchanged.
+* Update documentation and examples to reflect the domain-first configuration
+layout.
+
+v1.0.4 (2025-09-27)
+-------------------
+
+* Surface request metadata (client IP, IP chain, received-at) to form and transactional
+template rendering and update the bundled templates to display it.
+* Correct domain lookups to match `api_domain.name` during form and mail submission
+authentication so legitimate domains are accepted.
+* Export `createMailMagicServer`/`startMailMagicServer` helpers and only auto-start when
+executed directly, printing the bound host/port after.
+
+v1.0.3 (2025-09-26)
+-------------------
+
+* Introduced the transactional mail model and API route updates so stored templates,
+attachments, and message delivery flow through `api_txmail` instead of the
+removed `api_template`.
+* Let authenticated clients upload form templates via the API, aligning filename/slug
+generation with the new singular config structure.
+* Replaced the Nunjucks loader with `@technomoron/unyuck` to flatten includes
+and collect referenced assets before persisting them.
+* Refreshed tooling and metadata (ESLint/Prettier configs, README, ecosystem config)
+to match the renamed package and repository.
+* Added workspace metadata and sample templates so pnpm and new installs pick up example
+assets.

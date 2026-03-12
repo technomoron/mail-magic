@@ -1,4 +1,4 @@
-# @technomoron/mail-magic
+# @technomoron/mail-magic-server
 
 Mail Magic is a small TypeScript HTTP service that:
 
@@ -35,7 +35,7 @@ endpoint, use the OpenAPI spec described in **Swagger / OpenAPI** below.
 ## Install
 
 ```bash
-npm install @technomoron/mail-magic
+npm install @technomoron/mail-magic-server
 ```
 
 The package ships a `mail-magic` CLI that loads a `.env` file and starts the server. It also ships a runnable example
@@ -47,7 +47,7 @@ env/config tree under `examples/`.
 
 If you installed from npm, start from:
 
-`node_modules/@technomoron/mail-magic/examples/.env-dist`
+`node_modules/@technomoron/mail-magic-server/examples/.env-dist`
 
 If you are working from the monorepo, the same file lives at:
 
@@ -79,7 +79,7 @@ SMTP_TLS_REJECT=false
 
 If you want a ready-made starting point instead of creating one from scratch, copy:
 
-- `node_modules/@technomoron/mail-magic/examples/data`
+- `node_modules/@technomoron/mail-magic-server/examples/data`
 
 or, from the monorepo:
 
@@ -175,7 +175,7 @@ Mail Magic ships an OpenAPI JSON spec and can expose it at runtime.
 
 Packaged spec (on disk):
 
-- `node_modules/@technomoron/mail-magic/docs/swagger/openapi.json`
+- `node_modules/@technomoron/mail-magic-server/docs/swagger/openapi.json`
 
 Runtime spec endpoint:
 
@@ -322,9 +322,9 @@ In this repository, `pnpm` is the preferred package manager:
 
 ```bash
 pnpm install
-pnpm -w --filter @technomoron/mail-magic dev
-pnpm -w --filter @technomoron/mail-magic test
-pnpm -w --filter @technomoron/mail-magic cleanbuild
+pnpm -w --filter @technomoron/mail-magic-server dev
+pnpm -w --filter @technomoron/mail-magic-server test
+pnpm -w --filter @technomoron/mail-magic-server cleanbuild
 ```
 
 Documentation:
