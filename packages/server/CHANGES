@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-Unreleased (2026-03-07)
+Version 2.0.0-beta1 (2026-03-07)
 -----------------------
 
 * rename the publishable server package to `@technomoron/mail-magic-server` and reserve `@technomoron/mail-magic` for the workspace root.
@@ -13,7 +13,7 @@ Unreleased (2026-03-07)
 * add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the server test/build pipeline.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v2.0.0-beta1 (2026-03-07)
+Version 2.0.0-beta1 (2026-03-07)
 -------------------------
 
 * stage the `2.0.0-beta1` prerelease and align package metadata with it.
@@ -23,7 +23,7 @@ v2.0.0-beta1 (2026-03-07)
 * refresh the packaged OpenAPI spec to `2.0.0-beta1` and document `POST /api/v1/reload`.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v1.0.45 (2026-03-06)
+Version 1.0.45 (2026-03-06)
 --------------------
 
 * add `mailStore.triggerReload(force?)` with in-progress guard — concurrent reload requests are coalesced into a single queued follow-up run rather than running in parallel.
@@ -39,7 +39,7 @@ v1.0.45 (2026-03-06)
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
-v1.0.44 (2026-03-05)
+Version 1.0.44 (2026-03-05)
 --------------------
 
 * catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.
@@ -47,7 +47,7 @@ v1.0.44 (2026-03-05)
 * add doc comment to `buildRequestMeta` clarifying it is informational and requires a trusted reverse proxy for reliable IP data.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
-v1.0.43 (2026-03-04)
+Version 1.0.43 (2026-03-04)
 --------------------
 
 * add allowlist for custom email headers on `/v1/tx/message` to prevent header injection via arbitrary keys (e.g. `Bcc`, `From`, `Sender`).
@@ -69,7 +69,7 @@ v1.0.43 (2026-03-04)
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
-v1.0.42 (2026-02-27)
+Version 1.0.42 (2026-02-27)
 --------------------
 
 * upgrade `@technomoron/api-server-base` from `2.0.0-beta.20` to `2.0.0-beta.24` (Express → Fastify migration).
@@ -85,7 +85,7 @@ v1.0.42 (2026-02-27)
 * bump packaged OpenAPI spec version to 1.0.42.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 
-v1.0.41 (2026-02-22)
+Version 1.0.41 (2026-02-22)
 --------------------
 
 * add package-level `release:check` script and wire `release` to shared publish script.
@@ -115,13 +115,13 @@ v1.0.41 (2026-02-22)
 * add `SMTP_REQUIRE_TLS` to quick-start `.env` example and configuration reference.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 
-v1.0.40 (2026-02-22)
+Version 1.0.40 (2026-02-22)
 --------------------
 
 * normalize this package changelog to required CHANGES format.
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
-v1.0.39 (2026-02-19)
+Version 1.0.39 (2026-02-19)
 --------------------
 
 * Code clarity pass: restore `DB_LOG` env-driven logging config (was commented
@@ -133,7 +133,7 @@ return path in `forms.ts`.
 * Replace `forEach` with `for...of` and use separate `const` declarations in
 `validateEmails` (`mailer.ts`).
 
-v1.0.38 (2026-02-17)
+Version 1.0.38 (2026-02-17)
 --------------------
 
 * Prefer `fs.watch` for init-data auto-reload with automatic fallback to
@@ -143,7 +143,7 @@ disabled mode).
 * Add schema-drift regression tests that assert Zod schema keys match Sequelize
 model attributes for core API models.
 
-v1.0.37 (2026-02-17)
+Version 1.0.37 (2026-02-17)
 --------------------
 
 * Remove stale commented-out debug code from server mailer/store paths.
@@ -151,7 +151,7 @@ v1.0.37 (2026-02-17)
 `ImailStore`, `keys`, `load_api_keys`, `get_api_key`).
 * Consolidate mailer address validation by reusing shared `util/email` helpers.
 
-v1.0.36 (2026-02-17)
+Version 1.0.36 (2026-02-17)
 --------------------
 
 * Remove legacy plaintext-token fallback from request authentication; API key auth
@@ -165,7 +165,7 @@ clearer utility ownership.
 * Remove unreachable null check after `createTransport()`.
 * Add utility test coverage for route normalization.
 
-v1.0.35 (2026-02-17)
+Version 1.0.35 (2026-02-17)
 --------------------
 
 * Enforce deterministic locale resolution for transactional template sends:
@@ -191,7 +191,7 @@ authenticate strictly via `token_hmac`.
 * Update token migration regression coverage to verify plaintext auth rejection
 prior to migration and successful auth after migration.
 
-v1.0.34 (2026-02-10)
+Version 1.0.34 (2026-02-10)
 --------------------
 
 * Ensure inline form template assets (CID) are actually attached when delivering public form submissions.
@@ -199,7 +199,7 @@ v1.0.34 (2026-02-10)
 * Expand tests to validate inline assets, linked assets, and uploaded attachments end-to-end.
 * Ensure record slugs and generated paths are domain-rooted only (no user segment).
 
-v1.0.33 (2026-02-09)
+Version 1.0.33 (2026-02-09)
 --------------------
 
 * Route all env-derived config through `mailStore.vars` with explicit overrides for tests/examples.
@@ -207,7 +207,7 @@ v1.0.33 (2026-02-09)
 * Switch template preprocessing to Unyuck’s asset collection while preserving existing URL and CID behavior.
 * Split form submission logic into focused util helpers and slim the API handler.
 
-v1.0.32 (2026-02-08)
+Version 1.0.32 (2026-02-08)
 --------------------
 
 * Add regression coverage for legacy plaintext API token migration to `token_hmac`.
@@ -216,51 +216,51 @@ v1.0.32 (2026-02-08)
 `_mm_recipients`) and stricter attachment field naming (`_mm_file*`).
 * Centralize captcha verification in `util/captcha` and add contract-style test coverage for the public form endpoint.
 
-v1.0.31 (2026-02-08)
+Version 1.0.31 (2026-02-08)
 --------------------
 
 * Add regression coverage for form lookup ambiguity handling and secret-gated recipient overrides.
 
-v1.0.30 (2026-02-08)
+Version 1.0.30 (2026-02-08)
 --------------------
 
 * Add regression coverage for Nunjucks HTML autoescape behavior and the `|safe` filter.
 
-v1.0.29 (2026-02-08)
+Version 1.0.29 (2026-02-08)
 --------------------
 
 * Add regression coverage for CAPTCHA verification flows on the public form endpoint.
 
-v1.0.28 (2026-02-08)
+Version 1.0.28 (2026-02-08)
 --------------------
 
 * Add regression coverage for public form anti-abuse controls (rate limiting, attachment limits, and upload cleanup).
 
-v1.0.27 (2026-02-08)
+Version 1.0.27 (2026-02-08)
 --------------------
 
 * Refresh README/TUTORIAL with current API routes, config layout, and security-related configuration (API token pepper,
 form_key, recipient allowlist, and form anti-abuse options).
 * Update `config-example/` to match the current init-data schema and domain-rooted config directory layout.
 
-v1.0.26 (2026-02-07)
+Version 1.0.26 (2026-02-07)
 --------------------
 
 * Fix env/docs polish and remove unused code flagged by ESLint.
 
-v1.0.25 (2026-02-07)
+Version 1.0.25 (2026-02-07)
 --------------------
 
 * Default `DB_AUTO_RELOAD` to false to avoid unexpected config reloads in production.
 * Added `DB_SYNC_ALTER` to control Sequelize `sync({ alter: ... })` on startup.
 
-v1.0.24 (2026-02-07)
+Version 1.0.24 (2026-02-07)
 --------------------
 
 * Validate imported domain names against a safe pattern to prevent config path
 traversal via malformed domain identifiers.
 
-v1.0.23 (2026-02-07)
+Version 1.0.23 (2026-02-07)
 --------------------
 
 * Added a form recipient allowlist table plus `POST /api/v1/form/recipient` to map a
@@ -271,7 +271,7 @@ select a configured recipient without exposing email addresses client-side.
 * Added integration tests covering recipient allowlist fallbacks, overrides, locale scoping,
 validation, and ownership checks.
 
-v1.0.22 (2026-02-07)
+Version 1.0.22 (2026-02-07)
 --------------------
 
 * Added opt-in anti-abuse controls for public form submissions, including:
@@ -279,25 +279,25 @@ v1.0.22 (2026-02-07)
 (Turnstile/hCaptcha/reCAPTCHA) with per-form `captcha_required`, optional
 attachment count limits, and optional upload cleanup.
 
-v1.0.21 (2026-02-07)
+Version 1.0.21 (2026-02-07)
 --------------------
 
 * Added `AUTOESCAPE_HTML` (default: true) to control Nunjucks HTML autoescaping
 when rendering transactional and form templates.
 
-v1.0.20 (2026-02-07)
+Version 1.0.20 (2026-02-07)
 --------------------
 
 * Centralized env parsing in `mailStore` (no direct `process.env` reads in core
 server code).
 
-v1.0.19 (2026-02-07)
+Version 1.0.19 (2026-02-07)
 --------------------
 
 * Store API tokens as HMAC-SHA256 (with required `API_TOKEN_PEPPER`) instead of
 plaintext, and migrate legacy plaintext tokens on startup.
 
-v1.0.18 (2026-02-07)
+Version 1.0.18 (2026-02-07)
 --------------------
 
 * Added a stable `form_key` (generated via nanoid) to uniquely identify forms and
@@ -306,7 +306,7 @@ return it from `POST /api/v1/form/template`.
 otherwise require `domain` + `formid` (+ optional `locale`) to avoid ambiguous
 cross-domain/locale matches.
 
-v1.0.17 (2026-02-07)
+Version 1.0.17 (2026-02-07)
 --------------------
 
 * Reduced sensitive logging by disabling env dumps unless `DEBUG` is enabled,
@@ -315,7 +315,7 @@ credentials in debug logs.
 * Fixed TypeScript build issues by aligning Express typings and updating
 Express-related utility types.
 
-v1.0.15 (2026-02-01)
+Version 1.0.15 (2026-02-01)
 --------------------
 
 * Made the optional admin UI/API opt-in via `ADMIN_ENABLED`, delegating admin
@@ -325,25 +325,25 @@ override path via `ADMIN_APP_PATH`.
 and allow asset URLs to use `ASSET_PUBLIC_BASE` when rendering templates.
 * Added coverage for asset base URL overrides in the test suite.
 
-v1.0.14 (2026-02-01)
+Version 1.0.14 (2026-02-01)
 --------------------
 
 * Consolidated the API domain/user assertion into a shared helper to keep
 validation logic consistent across modules.
 
-v1.0.13 (2026-01-31)
+Version 1.0.13 (2026-01-31)
 --------------------
 
 * Fixed the per-package release script name and tag format used to trigger
 CI releases; no runtime changes.
 
-v1.0.12 (2026-01-31)
+Version 1.0.12 (2026-01-31)
 --------------------
 
 * Removed the hard dependency on `@technomoron/mail-magic-admin` so installs
 are fully standalone unless the admin UI is explicitly added.
 
-v1.0.11 (2026-01-31)
+Version 1.0.11 (2026-01-31)
 --------------------
 
 * Scoped the client package to `@technomoron/mail-magic-client` and refreshed
@@ -352,7 +352,7 @@ documentation to match.
 release tag pattern for the client workflow.
 * Added a TypeScript-based CLI bin so global installs expose `mail-magic`.
 
-v1.0.10 (2026-01-31)
+Version 1.0.10 (2026-01-31)
 --------------------
 
 * Added authenticated asset uploads via `POST /api/v1/assets`, supporting
@@ -364,7 +364,7 @@ SMTP harness, and fixture-backed template/asset scenarios.
 * Updated the client library/CLI to support transactional/form uploads,
 attachments, and config-driven bulk pushes.
 
-v1.0.9 (2026-01-02)
+Version 1.0.9 (2026-01-02)
 -------------------
 
 * Default CONFIG_PATH to ./data and document the data-rooted layout, including
@@ -373,7 +373,7 @@ per-domain uploads.
 <CONFIG_PATH>/_uploads before relocating to <CONFIG_PATH>/<domain>/uploads
 for transactional and form submissions.
 
-v1.0.7 (2026-01-01)
+Version 1.0.7 (2026-01-01)
 -------------------
 
 * Harden asset serving and template resolution against traversal/symlink escapes by
@@ -386,7 +386,7 @@ txmail template column to TEXT for larger templates.
 * Added Vitest-based integration tests with a local SMTP harness, plus test
 scripts and dependencies.
 
-v1.0.6 (2025-11-06)
+Version 1.0.6 (2025-11-06)
 -------------------
 
 * Added the dedicated asset API module so files stored under `config/<domain>/assets`
@@ -400,7 +400,7 @@ public route.
 attachment, while omitting the second argument keeps the file external and expects
 it under `config/<domain>/assets`.
 
-v1.0.5 (2025-10-29)
+Version 1.0.5 (2025-10-29)
 -------------------
 
 * Store compiled templates and assets under domain-rooted directories inside
@@ -409,7 +409,7 @@ API behaviour unchanged.
 * Update documentation and examples to reflect the domain-first configuration
 layout.
 
-v1.0.4 (2025-09-27)
+Version 1.0.4 (2025-09-27)
 -------------------
 
 * Surface request metadata (client IP, IP chain, received-at) to form and transactional
@@ -419,7 +419,7 @@ authentication so legitimate domains are accepted.
 * Export `createMailMagicServer`/`startMailMagicServer` helpers and only auto-start when
 executed directly, printing the bound host/port after.
 
-v1.0.3 (2025-09-26)
+Version 1.0.3 (2025-09-26)
 -------------------
 
 * Introduced the transactional mail model and API route updates so stored templates,

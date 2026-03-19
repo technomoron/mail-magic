@@ -5,6 +5,9 @@
 	"type": "module",
 	"main": "index.js",
 	"types": "index.d.ts",
+	"author": "Bjørn Erik Jacobsen",
+	"license": "MIT",
+	"copyright": "Copyright (c) 2026 Bjørn Erik Jacobsen / Technomoron.com",
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",

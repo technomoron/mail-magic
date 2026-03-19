@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-Unreleased (2026-03-07)
+Version 2.0.0-beta1 (2026-03-07)
 -----------------------
 
 * move the GitHub CLI workflow npm auth token to job scope so the publish step inherits the same registry credentials used earlier in the run instead of overriding them with an empty step-local value.
@@ -12,7 +12,7 @@ Unreleased (2026-03-07)
 * add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the shared test/build pipeline before publishing the CLI.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v2.0.0-beta1 (2026-03-07)
+Version 2.0.0-beta1 (2026-03-07)
 -------------------------
 
 * stage the `2.0.0-beta1` prerelease and align package metadata with it.
@@ -21,7 +21,7 @@ v2.0.0-beta1 (2026-03-07)
 * add shared local/CI release verification tooling plus a local `npm publish --dry-run` path so package publication can be smoke-tested before tagging.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v1.0.4 (2026-03-06)
+Version 1.0.4 (2026-03-06)
 -------------------
 
 * add `mm-cli reload` command to trigger a server-side force-reload via the API.
@@ -29,13 +29,13 @@ v1.0.4 (2026-03-06)
 * add regression coverage for form field round-tripping and inherited-locale `--patch-source-ids` write-back.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v1.0.3 (2026-03-05)
+Version 1.0.3 (2026-03-05)
 -------------------
 
 * parse `--part false` correctly instead of treating any non-empty string as truthy.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
-v1.0.2 (2026-03-04)
+Version 1.0.2 (2026-03-04)
 -------------------
 
 * correctly preserve child block overrides across multi-level `{% extends %}` chains during template merge.
@@ -51,7 +51,7 @@ v1.0.2 (2026-03-04)
 * document `push-dir` write-back flags and natural-key domain mapping support.
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
-v1.0.1 (2026-02-22)
+Version 1.0.1 (2026-02-22)
 -------------------
 
 * add package-level `release:check` script and wire `release` to shared publish script.
@@ -63,7 +63,7 @@ v1.0.1 (2026-02-22)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
-v1.0.0 (2026-02-22)
+Version 1.0.0 (2026-02-22)
 -------------------
 
 * add package CHANGES file in required format.

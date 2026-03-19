@@ -33,6 +33,7 @@
 	},
 	"author": "Bjørn Erik Jacobsen",
 	"license": "MIT",
+	"copyright": "Copyright (c) 2026 Bjørn Erik Jacobsen / Technomoron.com",
 	"files": [
 		"dist/**/*.js",
 		"README.md",

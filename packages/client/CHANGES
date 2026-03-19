@@ -1,7 +1,7 @@
 CHANGES
 =======
 
-Unreleased (2026-03-07)
+Version 2.0.0-beta1 (2026-03-07)
 -----------------------
 
 * switch the GitHub client publish job to npm trusted publishing by removing the forced `NODE_AUTH_TOKEN`, so npm can authorize `release-mail-magic-client.yml` through the configured OIDC publisher instead of the repository token.
@@ -13,7 +13,7 @@ Unreleased (2026-03-07)
 * add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the shared test/build pipeline before publishing the client.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v2.0.0-beta1 (2026-03-07)
+Version 2.0.0-beta1 (2026-03-07)
 -------------------------
 
 * stage the `2.0.0-beta1` prerelease and align package metadata with it.
@@ -21,20 +21,20 @@ v2.0.0-beta1 (2026-03-07)
 * publish tagged GitHub client releases to npm via a shared `npm publish` flow and add a local publish dry-run path for pre-tag testing.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v1.0.36 (2026-03-06)
+Version 1.0.36 (2026-03-06)
 --------------------
 
 * add `triggerReload()` method to trigger a server-side force-reload via `POST /api/v1/reload`.
 * remove references to server-side `ASSET_ROUTE` config and describe the fixed `/asset` and compatibility `/api/asset` routes.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-v1.0.35 (2026-03-05)
+Version 1.0.35 (2026-03-05)
 --------------------
 
 * check response `content-type` header in `postFormData` before calling `response.json()`; extract shared `parseJsonResponse` helper used by both `request()` and `postFormData()`.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
-v1.0.34 (2026-03-04)
+Version 1.0.34 (2026-03-04)
 --------------------
 
 * remove generated `dist/mail-magic-client.js` artifact from package tree.
@@ -43,7 +43,7 @@ v1.0.34 (2026-03-04)
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
-v1.0.33 (2026-02-22)
+Version 1.0.33 (2026-02-22)
 --------------------
 
 * add package-level `release:check` script and wire `release` to shared publish script.
@@ -54,13 +54,13 @@ v1.0.33 (2026-02-22)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
-v1.0.32 (2026-02-22)
+Version 1.0.32 (2026-02-22)
 --------------------
 
 * normalize this package changelog to required CHANGES format.
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
-v1.0.31 (2026-02-19)
+Version 1.0.31 (2026-02-19)
 --------------------
 
 * Extract CLI implementation to dedicated `@technomoron/mail-magic-cli`
@@ -68,7 +68,7 @@ package; remove CLI build/bin and CLI-only dependencies from this package.
 * Replace `forEach` with `for...of` and use separate `const` declarations in
 `validateEmails` for consistency with server-side style.
 
-v1.0.30 (2026-02-17)
+Version 1.0.30 (2026-02-17)
 --------------------
 
 * Refactor template preprocess compilation to use per-invocation configuration
@@ -76,7 +76,7 @@ v1.0.30 (2026-02-17)
 * Add regression coverage to ensure preprocess options (such as
 `inline_includes`) do not leak between compile calls.
 
-v1.0.29 (2026-02-11)
+Version 1.0.29 (2026-02-11)
 --------------------
 
 * Expand client coverage for mail-magic-owned endpoints:
@@ -88,33 +88,33 @@ v1.0.29 (2026-02-11)
 * Add tests for the new client methods and route mappings.
 * Refresh README usage docs for recipient upserts, swagger retrieval, and public asset fetch helpers.
 
-v1.0.28 (2026-02-08)
+Version 1.0.28 (2026-02-08)
 --------------------
 
 * Refresh README/examples to match current server auth and public form submission semantics (`_mm_form_key`,
 `_mm_locale`, `_mm_recipients`).
 * Update `sendFormMessage()` to require `_mm_form_key` and default attachment multipart fields to `_mm_fileN`.
 
-v1.0.27 (2026-02-07)
+Version 1.0.27 (2026-02-07)
 --------------------
 
 * Harden the template compiler to prevent `{% include %}` paths from escaping the
 configured template root directory.
 
-v1.0.26 (2026-02-07)
+Version 1.0.26 (2026-02-07)
 --------------------
 
 * Fix `GET` requests to omit request bodies and only set `Content-Type` when
 sending JSON payloads.
 * `mm-cli version` now reports the package version instead of a hardcoded string.
 
-v1.0.25 (2026-02-07)
+Version 1.0.25 (2026-02-07)
 --------------------
 
 * `sendFormMessage()` now requires `domain` when sending by `formid`, and also
 supports sending by `form_key`.
 
-v1.0.23 (2026-01-31)
+Version 1.0.23 (2026-01-31)
 --------------------
 
 * Fixed the per-package release script name and tag format used to trigger
