@@ -1,5 +1,6 @@
 {
   "name": "@technomoron/mail-magic",
+  "version": "2.0.0-beta1",
   "private": true,
   "packageManager": "pnpm@10.28.1",
   "workspaces": [
@@ -43,6 +44,8 @@
     "cleanbuild": "rimraf dist && run-s format build",
     "lintconfig": "node lintconfig.cjs --auto --vue"
   },
+  "license": "MIT",
+  "copyright": "Copyright (c) 2025 Bj\u00f8rn Erik Jacobsen",
   "devDependencies": {
     "@eslint/markdown": "^7.5.1",
     "@types/node": "^20.19.11",
