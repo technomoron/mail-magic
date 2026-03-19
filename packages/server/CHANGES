@@ -4,121 +4,121 @@ CHANGES
 Unreleased (2026-03-07)
 -----------------------
 
-* chore(package): rename the publishable server package to `@technomoron/mail-magic-server` and reserve `@technomoron/mail-magic` for the workspace root.
+* rename the publishable server package to `@technomoron/mail-magic-server` and reserve `@technomoron/mail-magic` for the workspace root.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
-* chore(release): add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
-* chore(release): stop using `setup-node` pnpm caching in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml`.
-* chore(release): install workspace dependencies with `pnpm install --no-frozen-lockfile --link-workspace-packages` in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml` and the CLI depends on the local prerelease client package.
-* chore(release): add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the server test/build pipeline.
+* add package-local `release:preflight` support so a single package can run cleanbuild, tests, and local release checks from its own directory.
+* stop using `setup-node` pnpm caching in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml`.
+* install workspace dependencies with `pnpm install --no-frozen-lockfile --link-workspace-packages` in the GitHub server release workflow because this repo does not ship a `pnpm-lock.yaml` and the CLI depends on the local prerelease client package.
+* add a repo-level pnpm build-script allowlist for `sqlite3` and `esbuild`, while explicitly blocking `@scarf/scarf`, so clean GitHub installs can run the server test/build pipeline.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
 v2.0.0-beta1 (2026-03-07)
 -------------------------
 
-* chore(release): stage the `2.0.0-beta1` prerelease and align package metadata with it.
-* chore(release): add shared local/CI release verification flow and update the GitHub server release workflow to use it on Node 24.
-* chore(release): publish tagged GitHub server releases to npm via a shared `npm publish` flow and add a local publish dry-run path for pre-tag testing.
-* docs(readme): point npm users to the packaged `examples/.env-dist` and example config tree instead of the monorepo root.
-* docs(swagger): refresh the packaged OpenAPI spec to `2.0.0-beta1` and document `POST /api/v1/reload`.
+* stage the `2.0.0-beta1` prerelease and align package metadata with it.
+* add shared local/CI release verification flow and update the GitHub server release workflow to use it on Node 24.
+* publish tagged GitHub server releases to npm via a shared `npm publish` flow and add a local publish dry-run path for pre-tag testing.
+* point npm users to the packaged `examples/.env-dist` and example config tree instead of the monorepo root.
+* refresh the packaged OpenAPI spec to `2.0.0-beta1` and document `POST /api/v1/reload`.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 
 v1.0.45 (2026-03-06)
 --------------------
 
-* feat(reload): add `mailStore.triggerReload(force?)` with in-progress guard — concurrent reload requests are coalesced into a single queued follow-up run rather than running in parallel.
-* feat(reload): add `POST /v1/reload` API endpoint that triggers a force-reload of all templates; returns `{ reload: 'triggered' | 'queued' }`.
-* fix(routes): make the server route contract fixed again (`/api`, `/asset`, `/api/swagger`) instead of env-configurable.
-* docs(routes): remove `API_BASE_PATH`, `ASSET_ROUTE`, and `SWAGGER_PATH` from server env/docs/examples; document the fixed public routes.
-* test(routes): update helpers and integration fixtures to use the fixed route contract; guard root integration teardown when setup fails.
-* fix(mailer): clear stale transactional template asset metadata when `POST /api/v1/tx/template` updates an existing template.
-* test(mailer): add regression coverage for transactional template API updates and stronger public form recipient contract assertions.
-* feat(autoreload): watch `*.njk` files under `CONFIG_PATH` with chokidar; force-reload all templates (including already-loaded ones) when any template file changes.
-* fix(autoreload): `importData` now accepts `{ force }` option to re-read templates from disk even when a DB record already has rendered content.
-* docs(tutorial): correct `DB_AUTO_RELOAD` description — init-data.json triggers metadata re-import; `.njk` changes trigger template force-reload.
+* add `mailStore.triggerReload(force?)` with in-progress guard — concurrent reload requests are coalesced into a single queued follow-up run rather than running in parallel.
+* add `POST /v1/reload` API endpoint that triggers a force-reload of all templates; returns `{ reload: 'triggered' | 'queued' }`.
+* make the server route contract fixed again (`/api`, `/asset`, `/api/swagger`) instead of env-configurable.
+* remove `API_BASE_PATH`, `ASSET_ROUTE`, and `SWAGGER_PATH` from server env/docs/examples; document the fixed public routes.
+* update helpers and integration fixtures to use the fixed route contract; guard root integration teardown when setup fails.
+* clear stale transactional template asset metadata when `POST /api/v1/tx/template` updates an existing template.
+* add regression coverage for transactional template API updates and stronger public form recipient contract assertions.
+* watch `*.njk` files under `CONFIG_PATH` with chokidar; force-reload all templates (including already-loaded ones) when any template file changes.
+* `importData` now accepts `{ force }` option to re-read templates from disk even when a DB record already has rendered content.
+* correct `DB_AUTO_RELOAD` description — init-data.json triggers metadata re-import; `.njk` changes trigger template force-reload.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
 v1.0.44 (2026-03-05)
 --------------------
 
-* fix(autoreload): catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.
-* fix(mailer): validate that parsed `vars` is a non-null, non-array object after `JSON.parse`; return 400 for invalid types.
-* docs(utils): add doc comment to `buildRequestMeta` clarifying it is informational and requires a trusted reverse proxy for reliable IP data.
+* catch unhandled promise rejections from async `reload()` in `enableInitDataAutoReload` `onChange` callback.
+* validate that parsed `vars` is a non-null, non-array object after `JSON.parse`; return 400 for invalid types.
+* add doc comment to `buildRequestMeta` clarifying it is informational and requires a trusted reverse proxy for reliable IP data.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
 v1.0.43 (2026-03-04)
 --------------------
 
-* fix(security): add allowlist for custom email headers on `/v1/tx/message` to prevent header injection via arbitrary keys (e.g. `Bcc`, `From`, `Sender`).
-* fix(security): sanitize Swagger error response to avoid leaking internal filesystem paths.
-* fix(security): reject `..` and `.` path segments explicitly in `normalizeSubdir`.
-* fix(forms): return 500 error instead of silent success when all `form_key` generation attempts are exhausted.
-* fix(mailer): guard `transport` with null check instead of non-null assertion; return 503 when transport is unavailable.
-* fix(mailer): stop leaking internal error details (SMTP errors, file paths) in `/v1/tx/message` error responses.
-* fix(autoreload): debounce `fs.watch` callback (300ms) to prevent reload storms from rapid file change events.
-* refactor(form-replyto): replace duplicated `getFirstStringField` with shared `getBodyValue` from utils.
-* docs(readme): fix `rcpt` example from JSON array to comma-separated string to match actual API contract.
-* feat(locale): implement 3-step locale fallback for template lookup: request locale → domain default locale → empty locale.
-* fix(auth): resolve default locale from domain record instead of hardcoding `'en'` when request omits `locale`.
-* refactor(locale): remove `user.locale` from all locale resolution chains; domain locale is the sole default.
-* docs(tutorial): replace non-existent `now().iso8601()` Nunjucks call with `default('unknown')`.
-* test(autoreload): update store-autoreload tests to use fake timers for debounced reload.
-* perf(forms): batch recipient resolution for `_mm_recipients` into scoped + fallback `IN` queries while preserving precedence and requested order.
-* test(forms): add coverage for multi-recipient resolution order with scoped-over-domain recipient precedence.
+* add allowlist for custom email headers on `/v1/tx/message` to prevent header injection via arbitrary keys (e.g. `Bcc`, `From`, `Sender`).
+* sanitize Swagger error response to avoid leaking internal filesystem paths.
+* reject `..` and `.` path segments explicitly in `normalizeSubdir`.
+* return 500 error instead of silent success when all `form_key` generation attempts are exhausted.
+* guard `transport` with null check instead of non-null assertion; return 503 when transport is unavailable.
+* stop leaking internal error details (SMTP errors, file paths) in `/v1/tx/message` error responses.
+* debounce `fs.watch` callback (300ms) to prevent reload storms from rapid file change events.
+* replace duplicated `getFirstStringField` with shared `getBodyValue` from utils.
+* fix `rcpt` example from JSON array to comma-separated string to match actual API contract.
+* implement 3-step locale fallback for template lookup: request locale → domain default locale → empty locale.
+* resolve default locale from domain record instead of hardcoding `'en'` when request omits `locale`.
+* remove `user.locale` from all locale resolution chains; domain locale is the sole default.
+* replace non-existent `now().iso8601()` Nunjucks call with `default('unknown')`.
+* update store-autoreload tests to use fake timers for debounced reload.
+* batch recipient resolution for `_mm_recipients` into scoped + fallback `IN` queries while preserving precedence and requested order.
+* add coverage for multi-recipient resolution order with scoped-over-domain recipient precedence.
 * (Changes generated/assisted by Codex (profile: openai-gpt-5-codex/medium).)
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-opus-4-6/high).)
 
 v1.0.42 (2026-02-27)
 --------------------
 
-* chore(deps): upgrade `@technomoron/api-server-base` from `2.0.0-beta.20` to `2.0.0-beta.24` (Express → Fastify migration).
-* feat(auth): enable API key authentication (`apiKeyEnabled: true`, `apiKeyPrefix: 'apikey-'`) in server config to restore API key auth broken by the beta.24 default change.
-* feat(ratelimit): replace local `FixedWindowRateLimiter` implementation with the one exported by `@technomoron/api-server-base`; re-export for consumers.
-* feat(validation): add Fastify JSON Schema validation (`schema`) to `/v1/tx/template`, `/v1/form/template`, and `/v1/form/recipient` routes; omit schema from multipart-capable routes where body is populated after Fastify's validation phase.
-* fix(assets): use a MIME type map to set correct `Content-Type` headers (e.g. `image/png`) instead of passing raw file extensions to `fastifyReply.type()`, which Fastify 5 does not convert automatically.
-* fix(assets): read asset files into a `Buffer` for `res.send()` since Fastify 5 stream piping through `fastify.routing()` does not flush to supertest-style clients.
-* fix(ratelimit): restore `Retry-After` response header on 429 rate-limit rejections by setting it on the underlying Fastify reply before throwing `ApiError`.
-* fix(uploads): update `UploadedFile` type to match `ApiUploadedFile` from beta.24 (`filepath?`/`buffer?` instead of `path`); update `store.ts`, `uploads.ts`, `mailer.ts`, `forms.ts` to handle both in-memory buffers and on-disk files.
-* fix(swagger): replace Express-typed handler signature with `ExtendedReq`/`ApiRequest['res']` from `@technomoron/api-server-base`.
-* fix(routes): change wildcard route from `/:domain/*path` to `/:domain/*` (find-my-way/Fastify does not support named wildcards).
-* docs(swagger): bump packaged OpenAPI spec version to 1.0.42.
+* upgrade `@technomoron/api-server-base` from `2.0.0-beta.20` to `2.0.0-beta.24` (Express → Fastify migration).
+* enable API key authentication (`apiKeyEnabled: true`, `apiKeyPrefix: 'apikey-'`) in server config to restore API key auth broken by the beta.24 default change.
+* replace local `FixedWindowRateLimiter` implementation with the one exported by `@technomoron/api-server-base`; re-export for consumers.
+* add Fastify JSON Schema validation (`schema`) to `/v1/tx/template`, `/v1/form/template`, and `/v1/form/recipient` routes; omit schema from multipart-capable routes where body is populated after Fastify's validation phase.
+* use a MIME type map to set correct `Content-Type` headers (e.g. `image/png`) instead of passing raw file extensions to `fastifyReply.type()`, which Fastify 5 does not convert automatically.
+* read asset files into a `Buffer` for `res.send()` since Fastify 5 stream piping through `fastify.routing()` does not flush to supertest-style clients.
+* restore `Retry-After` response header on 429 rate-limit rejections by setting it on the underlying Fastify reply before throwing `ApiError`.
+* update `UploadedFile` type to match `ApiUploadedFile` from beta.24 (`filepath?`/`buffer?` instead of `path`); update `store.ts`, `uploads.ts`, `mailer.ts`, `forms.ts` to handle both in-memory buffers and on-disk files.
+* replace Express-typed handler signature with `ExtendedReq`/`ApiRequest['res']` from `@technomoron/api-server-base`.
+* change wildcard route from `/:domain/*path` to `/:domain/*` (find-my-way/Fastify does not support named wildcards).
+* bump packaged OpenAPI spec version to 1.0.42.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 
 v1.0.41 (2026-02-22)
 --------------------
 
-* chore(release): add package-level `release:check` script and wire `release` to shared publish script.
-* chore(scripts): replace `rm -rf` cleanup scripts with `rimraf`.
-* chore(examples): move example data, scripts, and `.env-dist` from standalone `packages/examples/` workspace into `packages/server/examples/`; add `examples` to the npm `files` list so they are shipped with the package.
-* chore(repo): rename admin package directory from `mail-magic-admin` to `admin` (npm package name unchanged).
-* test(logging): suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
-* test(logging): quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
-* fix(forms): replace global `nunjucks.configure()` call in `postSendForm` with a scoped `nunjucks.Environment` instance, matching the pattern already used in `post_send`.
-* fix(forms): add plain-text email part to form submissions via `html-to-text` (was HTML-only, harming deliverability).
-* fix(forms): derive `recipients` template variable from already-resolved DB records instead of re-parsing the raw input with a second `parseIdnameList` call.
-* fix(forms): remove silent `catch` in `resolveFormKeyForTemplate` so DB errors propagate instead of being silently treated as "no existing form".
-* fix(forms): extract `buildFormSlugAndFilename` into `util/paths.ts` to eliminate duplicated slug/filename generation between the API upload path and the DB upsert path.
-* fix(models): filter `allowed_fields` JSON getter to string elements only; previously returned non-string values (numbers, nulls) typed as `string[]`.
-* fix(smtp): make `requireTLS` configurable via `SMTP_REQUIRE_TLS` env var (default `true`, preserving existing behaviour); allows disabling STARTTLS for servers such as MailHog.
-* fix(smtp): change `SMTP_TLS_REJECT` default from `false` to `true` so TLS certificates are validated in production by default.
-* fix(smtp): correct `SMTP_TLS_REJECT` description (previously described the inverse of what the option does).
-* fix(config): change `DB_SYNC_ALTER` default from `true` to `false` to prevent automatic DDL on production startups.
-* fix(config): add `mysql` and `postgres` to the `DB_TYPE` allowed-values list to match what the connection code already supports.
-* fix(ratelimit): skip rate limiting when the client IP cannot be resolved, rather than bucketing all unresolvable IPs under a shared `unknown` key.
-* fix(captcha): throw an explicit error for unknown CAPTCHA providers instead of silently falling back to Turnstile.
-* fix(auth): make `domain` optional in `assert_domain_and_user`; when absent from the request body, fall back to the authenticated user's default domain (`api_user.domain`).
-* fix(build): remove `noImplicitAny: false` override from `tsconfig/tsconfig.esm.json`; the root tsconfig already enables `strict`, which includes `noImplicitAny`.
-* fix(build): add `declaration: true` to `tsconfig/tsconfig.esm.json` to emit `.d.ts` files; generate `dist/cjs/index.d.ts` re-exporting ESM types; add `types` condition to package exports; extract `STARTUP_ERROR_MESSAGE` from compiled ESM output instead of hardcoding it in the CJS shim script.
-* fix(scripts): remove `--ext` flags from all `lint`/`lintfix` npm scripts — ESLint v9 flat config silently ignores these flags; file coverage is already provided by the glob patterns in `eslint.config.mjs`.
-* docs(swagger): remove `domain` from the `required` array in all authenticated request schemas (`TxTemplateUpsertRequest`, `TxSendRequest`, `TxSendMultipartRequest`, `FormRecipientUpsertRequest`, `FormTemplateUpsertRequest`); mark property descriptions as optional; bump spec version to 1.0.41.
-* docs(readme): add `SMTP_REQUIRE_TLS` to quick-start `.env` example and configuration reference.
+* add package-level `release:check` script and wire `release` to shared publish script.
+* replace `rm -rf` cleanup scripts with `rimraf`.
+* move example data, scripts, and `.env-dist` from standalone `packages/examples/` workspace into `packages/server/examples/`; add `examples` to the npm `files` list so they are shipped with the package.
+* rename admin package directory from `mail-magic-admin` to `admin` (npm package name unchanged).
+* suppress noisy SQL/startup stdout in automated tests by default (`DB_LOG=false` in test setup; startup logs debug-only).
+* quiet package test output by default (silent Vitest + silent sync step) and remove Node `DEP0170` warning in schema-drift test DB setup.
+* replace global `nunjucks.configure()` call in `postSendForm` with a scoped `nunjucks.Environment` instance, matching the pattern already used in `post_send`.
+* add plain-text email part to form submissions via `html-to-text` (was HTML-only, harming deliverability).
+* derive `recipients` template variable from already-resolved DB records instead of re-parsing the raw input with a second `parseIdnameList` call.
+* remove silent `catch` in `resolveFormKeyForTemplate` so DB errors propagate instead of being silently treated as "no existing form".
+* extract `buildFormSlugAndFilename` into `util/paths.ts` to eliminate duplicated slug/filename generation between the API upload path and the DB upsert path.
+* filter `allowed_fields` JSON getter to string elements only; previously returned non-string values (numbers, nulls) typed as `string[]`.
+* make `requireTLS` configurable via `SMTP_REQUIRE_TLS` env var (default `true`, preserving existing behaviour); allows disabling STARTTLS for servers such as MailHog.
+* change `SMTP_TLS_REJECT` default from `false` to `true` so TLS certificates are validated in production by default.
+* correct `SMTP_TLS_REJECT` description (previously described the inverse of what the option does).
+* change `DB_SYNC_ALTER` default from `true` to `false` to prevent automatic DDL on production startups.
+* add `mysql` and `postgres` to the `DB_TYPE` allowed-values list to match what the connection code already supports.
+* skip rate limiting when the client IP cannot be resolved, rather than bucketing all unresolvable IPs under a shared `unknown` key.
+* throw an explicit error for unknown CAPTCHA providers instead of silently falling back to Turnstile.
+* make `domain` optional in `assert_domain_and_user`; when absent from the request body, fall back to the authenticated user's default domain (`api_user.domain`).
+* remove `noImplicitAny: false` override from `tsconfig/tsconfig.esm.json`; the root tsconfig already enables `strict`, which includes `noImplicitAny`.
+* add `declaration: true` to `tsconfig/tsconfig.esm.json` to emit `.d.ts` files; generate `dist/cjs/index.d.ts` re-exporting ESM types; add `types` condition to package exports; extract `STARTUP_ERROR_MESSAGE` from compiled ESM output instead of hardcoding it in the CJS shim script.
+* remove `--ext` flags from all `lint`/`lintfix` npm scripts — ESLint v9 flat config silently ignores these flags; file coverage is already provided by the glob patterns in `eslint.config.mjs`.
+* remove `domain` from the `required` array in all authenticated request schemas (`TxTemplateUpsertRequest`, `TxSendRequest`, `TxSendMultipartRequest`, `FormRecipientUpsertRequest`, `FormTemplateUpsertRequest`); mark property descriptions as optional; bump spec version to 1.0.41.
+* add `SMTP_REQUIRE_TLS` to quick-start `.env` example and configuration reference.
 * (Changes generated/assisted by Claude Code (profile: anthropic-claude-sonnet-4-6/high).)
 
 v1.0.40 (2026-02-22)
 --------------------
 
-* chore(changes): normalize this package changelog to required CHANGES format.
+* normalize this package changelog to required CHANGES format.
 * (Changes generated/assisted by Codex (profile: chatgpt-5.3-codex/medium).)
 
 v1.0.39 (2026-02-19)
