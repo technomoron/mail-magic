@@ -12,7 +12,6 @@ node-compile-cache/
 package-lock.json
 .env
 .mmcli-env
-pnpm-lock.yaml
 maildata.db
 config/
 uploads/

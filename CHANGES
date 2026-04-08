@@ -1,7 +1,11 @@
 CHANGES
 =======
 
-Version 2.0.0-beta1 (2026-03-07)
+Version 2.0.0-beta1 (2026-04-08)
+-----------------------
+
+* add a root `pnpm-lock.yaml` so repo policy checks see a workspace lockfile.
+* update release workflows to use `actions/setup-node@v6` on Node 24.
 
 Version 2.0.0-beta1 (2026-03-19)
 -----------------------
